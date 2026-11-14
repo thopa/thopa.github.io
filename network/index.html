@@ -96,6 +96,8 @@ footer { color: var(--muted); font-size: 13px; max-width: 78ch; }
   .card h2 .feeds { display: none; }
   .rules, .outs { min-width: 640px; }
 }
+.bar .f.inl { flex-direction: row; align-items: center; gap: 8px; min-width: 0; }
+.bar .f.inl select { width: auto; height: 32px; padding: 0 8px; }
 </style>
 
 <div class="wrap">
@@ -108,7 +110,7 @@ footer { color: var(--muted); font-size: 13px; max-width: 78ch; }
   <div class="bar" role="group" aria-label="Transport and sound">
     <button id="play" type="button" class="on">Pause</button>
     <button id="sound" type="button" aria-pressed="false">Sound off</button>
-    <div class="f"><label for="kit">Pad sound</label><select id="kit" title="Choose the oscillators of the pad the modulators move"></select></div>
+    <div class="f inl"><label for="kit">Pad sound</label><select id="kit" title="Choose the oscillators of the pad the modulators move"></select></div>
     <div class="f"><label for="bpm">Tempo <output id="bpm-o">120 BPM</output></label><input id="bpm" type="range" min="60" max="180" value="120"></div>
     <div class="f"><label for="vol">Volume <output id="vol-o">70 %</output></label><input id="vol" type="range" min="0" max="100" value="70"></div>
     <button id="diceall" type="button" class="dice" title="Roll new nodes, layouts and depths"></button>

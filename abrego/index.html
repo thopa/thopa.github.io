@@ -87,6 +87,8 @@ footer { color: var(--muted); font-size: 13px; max-width: 76ch; }
 footer a { color: var(--fg); }
 @media (max-width: 760px) { .grid { grid-template-columns: minmax(0, 1fr); } .card h2 .feeds { display: none; } }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+.bar .f.inl { flex-direction: row; align-items: center; gap: 8px; min-width: 0; }
+.bar .f.inl select { width: auto; height: 32px; padding: 0 8px; }
 </style>
 
 <div class="wrap">
@@ -99,7 +101,7 @@ footer a { color: var(--fg); }
   <div class="bar" role="group" aria-label="Transport and sound">
     <button id="play" type="button" class="on">Pause</button>
     <button id="sound" type="button" aria-pressed="false">Sound off</button>
-    <div class="f"><label for="kit">Sounds</label><select id="kit" title="Choose the sounds the five voices play"></select></div>
+    <div class="f inl"><label for="kit">Sounds</label><select id="kit" title="Choose the sounds the five voices play"></select></div>
     <div class="f"><label for="bpm">Tempo <output id="bpm-o">116 BPM</output></label><input id="bpm" type="range" min="70" max="160" value="116"></div>
     <div class="f"><label for="vol">Volume <output id="vol-o">70 %</output></label><input id="vol" type="range" min="0" max="100" value="70"></div>
     <button id="drums" type="button" aria-pressed="false">Beat</button>
