@@ -40,10 +40,11 @@ input[type=range]{width:100%;accent-color:var(--acc)}
 .voices span{display:inline-block;min-width:54px;font-size:12px;color:var(--lab);margin-right:6px} .voices b{color:var(--hi)}
 </style></head><body><main>
 <h1>How Virazon Lite moves</h1>
-<div class="sub">Version 0.12.34 · this page runs the device's own engine script. What it does here is what the device does in Live. The sound is a plain built-in synth; the source registers and lanes are in the full edition.</div>
+<div class="sub">Version 0.12.34 · this page runs the device's own engine script. What it does here is what the device does in Live. The sound is a simple built-in synth (pick one under Sounds); the source registers and lanes are in the full edition.</div>
 <div class="bar">
   <button id="play" aria-pressed="false">Play</button>
   <label>Tempo <input id="tempo" type="number" min="40" max="220" value="110" style="width:64px;background:var(--ctl);border:1px solid var(--bord);border-radius:3px;padding:4px"></label>
+  <label>Sounds <select id="kit" title="Choose the sounds the voices play"></select></label>
   <button id="tourBtn" class="on" aria-pressed="true">Tour</button>
   <button id="freeBtn" aria-pressed="false">Free play</button>
 </div>
@@ -263,19 +264,45 @@ function flushMidi() {
 		var st = m[i][0] & 0xF0, ch = (m[i][0] & 15) + 1, n = m[i][1], vel = m[i][2], when = t0 + (m[i][3] - tick0) * spt, key = ch + ":" + n;
 		if (when < ac.currentTime) when = ac.currentTime;
 		if (st === 0x90 && vel > 0) {
-			var o = ac.createOscillator(), g = ac.createGain();
-			o.type = WAVE[ch - 1] || "triangle"; o.frequency.value = 440 * Math.pow(2, (n - 69) / 12);
-			var lv = (vel / 127) * (o.type === "square" || o.type === "sawtooth" ? 0.05 : 0.14);
-			g.gain.setValueAtTime(0, when); g.gain.linearRampToValueAtTime(lv, when + 0.006);
-			o.connect(g); g.connect(ac.destination); o.start(when);
+			var v = mkVoice(KITS[kit][1][ch - 1] || "triangle", 440 * Math.pow(2, (n - 69) / 12), vel, when);
 			if (live[key]) stopVoice(live[key], when);
-			live[key] = [o, g]; lastNote[ch] = noteName(n);
+			live[key] = v; lastNote[ch] = noteName(n);
 		} else if (st === 0x80 || st === 0x90) { if (live[key]) { stopVoice(live[key], when); delete live[key]; } }
 	}
 	sent = m.length;
 	if (sent > 4000) { dev.clearMidi(); sent = 0; }
 }
-function stopVoice(v, when) { try { v[1].gain.cancelScheduledValues(when); v[1].gain.setTargetAtTime(0, when, 0.03); v[0].stop(when + 0.25); } catch (e) {} }
+function stopVoice(v, when) { try { v.g.gain.cancelScheduledValues(when); v.g.gain.setTargetAtTime(0, when, 0.03); v.os.forEach(function (o) { o.stop(when + 0.25); }); } catch (e) {} }
+var KITS = [
+	["Plain", ["triangle", "sine", "sine", "sine", "square", "sawtooth"]],
+	["Mallets", ["mallet", "mallet", "mallet", "mallet", "mallet", "mallet"]],
+	["Keys", ["keys", "keys", "keys", "keys", "keys", "keys"]],
+	["Bells", ["bell", "bell", "bell", "bell", "bell", "bell"]],
+	["Plucks", ["pluck", "pluck", "pluck", "pluck", "pluck", "pluck"]],
+	["Soft pads", ["pad", "pad", "pad", "pad", "pad", "pad"]],
+	["Organ", ["organ", "organ", "organ", "organ", "organ", "organ"]],
+	["Chip", ["square", "square", "square", "square", "square", "square"]]
+], kit = 0, PLAINW = { sine: 1, triangle: 1, square: 1, sawtooth: 1 };
+function mkVoice(name, f, vel, when) {
+	var g = ac.createGain(), os = [], a = vel / 127, lv = 0.1, dec = 0, att = 0.006;
+	function O(type, fr) { var o = ac.createOscillator(); o.type = type; o.frequency.value = fr; os.push(o); return o; }
+	if (PLAINW[name]) { O(name, f).connect(g); lv = a * (name === "square" || name === "sawtooth" ? 0.05 : 0.14); }
+	else if (name === "mallet") { O("sine", f).connect(g); var h = ac.createGain(); h.gain.setValueAtTime(0.25, when); h.gain.setTargetAtTime(0, when, 0.02); O("sine", f * 3.99).connect(h); h.connect(g); lv = a * 0.16; dec = 0.12; }
+	else if (name === "keys" || name === "bell") { var bl = name === "bell", c = O("sine", f), m = O("sine", f * (bl ? 3.5 : 1)), mg = ac.createGain(); mg.gain.setValueAtTime(f * (bl ? 3 : 1.2), when); mg.gain.setTargetAtTime(f * 0.05, when, 0.15); m.connect(mg); mg.connect(c.frequency); c.connect(g); lv = a * 0.12; dec = bl ? 0.5 : 0.35; }
+	else if (name === "pluck") { var lp = ac.createBiquadFilter(); lp.type = "lowpass"; lp.Q.value = 3; lp.frequency.setValueAtTime(600 + vel * 30, when); lp.frequency.setTargetAtTime(400, when, 0.08); var sw = O("sawtooth", f), sq = O("square", f); sq.detune.value = 7; sw.connect(lp); sq.connect(lp); lp.connect(g); lv = a * 0.07; dec = 0.15; }
+	else if (name === "pad") { O("triangle", f).connect(g); O("sine", f * 1.003).connect(g); lv = a * 0.09; att = 0.08; }
+	else if (name === "organ") { [1, 2, 3].forEach(function (k) { O("sine", f * k).connect(g); }); lv = a * 0.05; }
+	else { O("triangle", f).connect(g); lv = a * 0.14; }
+	g.gain.setValueAtTime(0, when); g.gain.linearRampToValueAtTime(lv, when + att);
+	if (dec) g.gain.setTargetAtTime(0, when + att, dec);
+	g.connect(ac.destination); os.forEach(function (o) { o.start(when); });
+	return { os: os, g: g };
+}
+(function () {
+	var sel = document.getElementById("kit"); if (!sel) return;
+	KITS.forEach(function (k, i) { var o = document.createElement("option"); o.value = String(i); o.textContent = k[0]; sel.appendChild(o); });
+	sel.addEventListener("change", function () { kit = +sel.value || 0; });
+})();
 function loop() {
 	var tempo = +$("tempo").value || 110, want = tick0 + (ac.currentTime + 0.06 - t0) * 480 * tempo / 60, n = 0;
 	while (dev.songPos() < want && n++ < 400) dev.ticks(1);

@@ -108,6 +108,7 @@ footer { color: var(--muted); font-size: 13px; max-width: 78ch; }
   <div class="bar" role="group" aria-label="Transport and sound">
     <button id="play" type="button" class="on">Pause</button>
     <button id="sound" type="button" aria-pressed="false">Sound off</button>
+    <div class="f"><label for="kit">Pad sound</label><select id="kit" title="Choose the oscillators of the pad the modulators move"></select></div>
     <div class="f"><label for="bpm">Tempo <output id="bpm-o">120 BPM</output></label><input id="bpm" type="range" min="60" max="180" value="120"></div>
     <div class="f"><label for="vol">Volume <output id="vol-o">70 %</output></label><input id="vol" type="range" min="0" max="100" value="70"></div>
     <button id="diceall" type="button" class="dice" title="Roll new nodes, layouts and depths"></button>
@@ -2617,6 +2618,7 @@ var NET_EXPORTS = { makeNet: makeNet, NOUT: 38 };
   // ---------- sound ----------
   var A = null, soundOn = false;
   var PAD = [36, 43, 48, 51, 58];
+  var NKITS = [["Saw + square", ["sawtooth", "square"]], ["Soft", ["triangle", "sine"]], ["Hollow", ["square", "triangle"]], ["Pure", ["sine", "sine"]], ["Buzz", ["sawtooth", "sawtooth"]]], nkit = 0;
   function audio() {
     if (A) return A;
     var ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -2637,7 +2639,7 @@ var NET_EXPORTS = { makeNet: makeNet, NOUT: 38 };
     PAD.forEach(function (n, j) {
       var f = 440 * Math.pow(2, (n - 69) / 12);
       var a = ctx.createOscillator(), b = ctx.createOscillator();
-      a.type = "sawtooth"; b.type = "square"; a.frequency.value = f; b.frequency.value = f;
+      a.type = NKITS[nkit][1][0]; b.type = NKITS[nkit][1][1]; a.frequency.value = f; b.frequency.value = f;
       a.detune.value = (j % 2 ? 1 : -1) * 4;
       var lv = j === 0 ? 0.26 : 0.13, gs = ctx.createGain(), gq = ctx.createGain();
       a.connect(gs); b.connect(gq);
@@ -3074,6 +3076,9 @@ var NET_EXPORTS = { makeNet: makeNet, NOUT: 38 };
   });
 
   // ---------- bar ----------
+  var kitSel = document.getElementById("kit");
+  NKITS.forEach(function (k, i) { var o = document.createElement("option"); o.value = String(i); o.textContent = k[0]; kitSel.appendChild(o); });
+  kitSel.addEventListener("change", function () { nkit = +kitSel.value || 0; if (A) A.oscs.forEach(function (o, i) { o.type = NKITS[nkit][1][i % 2]; }); });
   var playB = document.getElementById("play"), soundB = document.getElementById("sound");
   playB.addEventListener("click", function () { RT.playing = !RT.playing; playB.textContent = RT.playing ? "Pause" : "Play"; playB.classList.toggle("on", RT.playing); });
   soundB.addEventListener("click", function () {
