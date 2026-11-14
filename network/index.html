@@ -1,0 +1,3104 @@
+<title>How Network Moves</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: the family's dark device-panel page (as How Abrego Moves). The real Network core runs in the page;
+   a network graph on top, the eight scopes + edit panel under it, then what the network moves: a synth, drums, a melody. */
+:root {
+  --bg: #121316;
+  --surface: #1a1b20;
+  --raised: #26272e;
+  --line: #34353e;
+  --fg: #dfe0e6;
+  --muted: #9093a0;
+  --accent: #b49cff;      /* bank A, provisional Network accent */
+  --accent-dim: #4b3f74;
+  --turq: #3dd9d6;        /* bank B */
+  --turq-dim: #1d5c5b;
+  --hot: #ff7d5c;         /* clicks, gates */
+  --display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", sans-serif;
+  --body: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.55; margin: 0;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 32px 56px;
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+.wrap { max-width: 1120px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
+header { display: flex; flex-direction: column; gap: 10px; max-width: 74ch; }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); }
+h1 { font-family: var(--display); font-weight: 700; font-size: clamp(34px, 6vw, 58px); line-height: 1.02; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+.lead { color: var(--muted); margin: 0; font-size: 16px; }
+.lead b { color: var(--fg); font-weight: 500; }
+.bar {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; padding: 10px 12px;
+  border: 1px solid var(--line); border-radius: 10px; background: var(--surface);
+}
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 14px 16px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.card.wide { grid-column: 1 / -1; }
+.card h2 { font-family: var(--display); font-weight: 700; font-size: 20px; margin: 0; letter-spacing: .02em; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.card h2 .n { font: 500 12px var(--mono); color: var(--accent); letter-spacing: .08em; }
+.card h2 .feeds { margin-left: auto; font: 400 11px var(--mono); color: var(--muted); letter-spacing: .06em; }
+.what { margin: 0; color: var(--muted); font-size: 14px; max-width: 82ch; }
+.what b { color: var(--fg); font-weight: 500; }
+.try { margin: 0; font-size: 13px; color: var(--fg); border-left: 2px solid var(--accent); padding: 2px 0 2px 10px; }
+.try > span:first-child { font: 500 11px var(--mono); color: var(--accent); letter-spacing: .1em; text-transform: uppercase; margin-right: 6px; }
+canvas { width: 100%; display: block; border-radius: 8px; background: var(--bg); touch-action: manipulation; }
+canvas.pick { cursor: pointer; }
+.ctl { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px 14px; align-items: end; }
+.ctl .sub { grid-column: 1 / -1; font: 500 11px var(--mono); color: var(--accent); letter-spacing: .1em; text-transform: uppercase; margin-top: 4px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ctl .sub.b { color: var(--turq); }
+.ctl .span2 { grid-column: span 2; }
+.f { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.f label, .f .lab { font: 400 11px var(--mono); color: var(--muted); display: flex; justify-content: space-between; gap: 8px; }
+.f output { color: var(--fg); font-variant-numeric: tabular-nums; }
+input[type=range] { width: 100%; accent-color: var(--accent); margin: 2px 0; }
+.bankB input[type=range] { accent-color: var(--turq); }
+select {
+  font: 400 13px var(--mono); color: var(--fg); background: var(--raised); border: 1px solid var(--line);
+  border-radius: 6px; padding: 5px 6px; width: 100%;
+}
+.seg { display: flex; gap: 4px; flex-wrap: wrap; }
+.seg button { flex: 1 1 auto; }
+button {
+  font: 500 12px var(--mono); color: var(--fg); background: var(--raised); border: 1px solid var(--line);
+  border-radius: 6px; padding: 6px 10px; cursor: pointer; min-height: 32px;
+}
+button[aria-pressed="true"], button.on { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+.bankB button[aria-pressed="true"] { background: var(--turq); border-color: var(--turq); }
+button.dice { display: inline-flex; align-items: center; gap: 6px; }
+button.dice svg { width: 14px; height: 14px; }
+button:focus-visible, select:focus-visible, input:focus-visible, canvas:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.bar .f { min-width: 130px; }
+.scenes { display: flex; flex-wrap: wrap; gap: 6px; }
+.rules { display: grid; grid-template-columns: auto auto minmax(80px, 1fr) minmax(110px, 1.2fr) minmax(90px, 1fr) minmax(90px, 1fr) auto; gap: 6px 8px; align-items: center; font: 400 12px var(--mono); color: var(--muted); }
+.rules .h { font-size: 11px; letter-spacing: .06em; }
+.rules .lamp { width: 14px; height: 14px; border-radius: 50%; background: var(--raised); border: 1px solid var(--line); }
+.rules .note { color: var(--fg); }
+.outs { display: grid; grid-template-columns: minmax(80px, auto) minmax(80px, 1fr) minmax(120px, 1.4fr) minmax(120px, 1.4fr) 56px; gap: 6px 10px; align-items: center; font: 400 12px var(--mono); color: var(--muted); }
+.outs .meter { height: 8px; border-radius: 4px; background: var(--raised); overflow: hidden; }
+.outs .meter i { display: block; height: 100%; width: 0; background: var(--accent); }
+.outs .tname { color: var(--fg); }
+.scroll { overflow-x: auto; }
+.note-name { font-family: var(--mono); color: var(--accent); font-variant-numeric: tabular-nums; }
+.status { font: 500 12px var(--mono); color: var(--accent); min-height: 18px; }
+footer { color: var(--muted); font-size: 13px; max-width: 78ch; }
+@media (max-width: 760px) {
+  .grid { grid-template-columns: minmax(0, 1fr); }
+  .card h2 .feeds { display: none; }
+  .rules, .outs { min-width: 640px; }
+}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Network · Max for Live · 8 modulators · core 0.0.1</div>
+    <h1>How Network moves</h1>
+    <p class="lead"><b>Network</b> is eight small modulators that modulate each other while they move parameters in your Set. On its own an LFO repeats; in Network, one LFO's speed is pushed around by another one, which is pushed by a third, so the motion <b>never quite repeats</b>. You don't patch wires: each bank of four uses one of six <b>fixed layouts</b>, and you change the character by switching layouts and turning depths. Everything below runs the device's real modulation engine. Switch the sound on and turn things.</p>
+  </header>
+
+  <div class="bar" role="group" aria-label="Transport and sound">
+    <button id="play" type="button" class="on">Pause</button>
+    <button id="sound" type="button" aria-pressed="false">Sound off</button>
+    <div class="f"><label for="bpm">Tempo <output id="bpm-o">120 BPM</output></label><input id="bpm" type="range" min="60" max="180" value="120"></div>
+    <div class="f"><label for="vol">Volume <output id="vol-o">70 %</output></label><input id="vol" type="range" min="0" max="100" value="70"></div>
+    <button id="diceall" type="button" class="dice" title="Roll new nodes, layouts and depths"></button>
+    <button id="reset" type="button">init</button>
+  </div>
+
+  <section class="card wide" aria-labelledby="ex-h">
+    <h2 id="ex-h">EXAMPLES<span class="feeds">load one, then change it</span></h2>
+    <div class="scenes" id="scenes"></div>
+    <p class="what" id="scene-what"></p>
+  </section>
+
+  <div class="grid">
+    <section class="card wide">
+      <h2><span class="n">01</span>THE NETWORK<span class="feeds">who moves whom</span></h2>
+      <canvas id="c-net" class="pick" height="300" aria-label="The eight nodes and the wires of the current layouts. Click a node to edit it"></canvas>
+      <p class="what">Two banks of four nodes: <b>A1–A4</b> and <b>B1–B4</b>. Each bank has its own <b>layout</b>, a fixed set of wires from one node to another node's <b>rate</b>, <b>amp</b>, <b>shape</b>, <b>phase</b> or <b>clock</b>. A wire's strength is its source node's <b>depth</b>. <b>Couple</b> wires the two banks together (A4 → B1 rate, B4 → A1 rate), and <b>Feedback</b> sends each bank's first node back into its own rate. Wires glow with the value they carry; click a node to edit it.</p>
+      <div class="ctl" id="k-net"></div>
+      <p class="try"><span>Try</span>Switch bank A from Chain to Ring: now A4 pushes A1 again, the loop closes, and the motion stops repeating. Then raise Feedback A.</p>
+    </section>
+
+    <section class="card wide">
+      <h2><span class="n">02</span>NODES<span class="feeds">→ the wires, the outputs</span></h2>
+      <canvas id="c-scopes" class="pick" height="96" aria-label="Eight scopes, one per node. Click one to edit that node"></canvas>
+      <p class="what">Every node is one of four types and has the same controls: <b>rate</b>, <b>amp</b>, and two dials, <b>A</b> and <b>B</b>, whose meaning depends on the type. <b>LFO</b>: A morphs sine → triangle → saw → square. <b>Loop env</b>: an envelope that retriggers itself; A is how much of the cycle it rises, B the curve. <b>S&amp;H</b>: a new random value every cycle (or on the layout's clock); A is slew, B quantises to steps. <b>Geiger</b>: random clicks at an average rate; A is the click width, B how regular they are. <b>SYNC</b> nodes follow the song position, <b>FREE</b> nodes run in Hz.</p>
+      <div class="ctl" id="k-node"></div>
+      <p class="try"><span>Try</span>Select A2 and make it a Geiger at 1/8 with regularity 0: the chain now gets random kicks. Set A3 to S&amp;H with steps up: the pan jumps between fixed positions.</p>
+    </section>
+
+    <section class="card wide">
+      <h2><span class="n">03</span>OUTPUTS<span class="feeds">→ parameters in your Set</span></h2>
+      <p class="what">In the device each node's output maps to a Live parameter, like any Max for Live modulator, and a node can drive a <b>group</b> of up to three parameters at once (its lanes 1&ndash;3), some of them inverted. Here the targets are the controls of a small synth. Pick the node that drives each one, how far it moves (negative = inverted) and where it rests. Two or more targets with the same node make a group; turn on <b>hand-off (pass)</b> in that node (section 02) and it moves one target at a time, handing over each cycle while the others hold.</p>
+      <div class="scroll"><div class="outs" id="k-outs"></div></div>
+      <p class="try"><span>Try</span>Drive Cutoff, Resonance and Drive from the same node, with Resonance at −50 %: the filter opens while the resonance falls back, the way the mockup's node E does.</p>
+    </section>
+
+    <section class="card">
+      <h2><span class="n">04</span>RHYTHM<span class="feeds">→ MIDI notes</span></h2>
+      <canvas id="c-rhy" height="150" aria-label="Four rhythm rules and the gates they produce"></canvas>
+      <p class="what">A rule compares two nodes and plays a note while it is true. <b>a &gt; b</b> plays when a rises above b; <b>a and b</b> when both are high; <b>a crosses b</b> on every crossing. b can also be a fixed threshold. The modulation becomes a drum pattern that drifts with it.</p>
+      <div class="scroll"><div class="rules" id="k-rhy"></div></div>
+      <p class="try"><span>Try</span>Switch rule 1 on with A1 &gt; A2: kicks land where the two LFOs cross over, and move as A1's rate is pushed around.</p>
+    </section>
+
+    <section class="card">
+      <h2><span class="n">05</span>PITCH<span class="feeds">→ MIDI notes</span></h2>
+      <canvas id="c-pitch" height="150" aria-label="Notes made from a node, quantised to a scale"></canvas>
+      <p class="what">One node becomes a melody: on every <b>tick</b> its value is read, spread over the <b>range</b> and fitted to the <b>scale</b>. The tick is a clock division or another node's trigger, so a Geiger can play it. <b>Prob</b> thins both the rhythm and the pitch notes; the modulation itself never skips.</p>
+      <div class="ctl" id="k-pitch"></div>
+      <p class="try"><span>Try</span>Source A1, tick 1/8, minor pentatonic. Then put A2 on A1's rate (Chain): the melody speeds up and slows down by itself.</p>
+    </section>
+  </div>
+
+  <footer>A simulation for learning: the page runs the generated Network core (the same code as the device's gen~ engine, at 1 kHz instead of audio rate) and a small Web Audio synth in place of your Set. The device itself is not built yet; this is core 0.0.1, so names, defaults and the accent colour may change. In the device the outputs move Live parameters (modulating around the knob in Live 12, taking it over in Live 11), patterns store everything here, and the rhythm and pitch notes go out as MIDI. Settings here aren't saved.</footer>
+</div>
+
+<script>
+// GENERATED by src/build.py - JS mirror of dist/net.genexpr, for tests only.
+var Mth = Math;
+function clamp(x, a, b) { return x < a ? a : (x > b ? b : x); }
+function fract(x) { return x - Mth.floor(x); }
+function wrap(x, a, b) { var r = b - a; return a + (x - a) - r * Mth.floor((x - a) / r); }
+var tanh = Mth.tanh, pow = Mth.pow, exp = Mth.exp, floor = Mth.floor, abs = Mth.abs, cos = Mth.cos;
+var min = Mth.min, max = Mth.max, twopi = 2 * Mth.PI;
+function isnan(x) { return x !== x ? 1 : 0; }
+
+function makeNet(sr, seed) {
+  var samplerate = sr;
+  var rs = (seed >>> 0) || 1;
+  function noise() { rs ^= rs << 13; rs >>>= 0; rs ^= rs >>> 17; rs ^= rs << 5; rs >>>= 0; return rs / 2147483648 - 1; }
+  function n_lfo(p, s) {
+    var sn, tr, sw, sq, x, r;
+    sn = 0.5 - 0.5 * cos(twopi * p);
+    tr = 1 - abs(1 - 2 * p);
+    sw = p;
+    sq = p < 0.5 ? 1 : 0;
+    x = clamp(s, 0, 1) * 3;
+    r = sn + (tr - sn) * x;
+    if (x >= 1) {
+      r = tr + (sw - tr) * (x - 1);
+    }
+    if (x >= 2) {
+      r = sw + (sq - sw) * (x - 2);
+    }
+    return r;
+  }
+  function n_env(p, ri, c) {
+    var rr, x, ex;
+    rr = clamp(ri, 0.01, 0.99);
+    x = p < rr ? p / rr : 1 - (p - rr) / (1 - rr);
+    ex = pow(4, (clamp(c, 0, 1) - 0.5) * 2);
+    return pow(clamp(x, 0, 1), ex);
+  }
+  function n_shq(x, st) {
+    var r, n;
+    r = x;
+    if (st >= 0.01) {
+      n = floor(2 + st * 14);
+      r = clamp(floor(x * n) / (n - 1), 0, 1);
+    }
+    return r;
+  }
+  function n_slew(t, sr) {
+    var tau;
+    tau = 0.0005 + t * t * 2;
+    return 1 - exp(-1 / (sr * tau));
+  }
+  function n_fin(x) {
+    var r;
+    r = isnan(x) ? 0 : x;
+    return clamp(r, -1, 1);
+  }
+  function n_grp(x, dp, bi) {
+    var r;
+    r = x * dp;
+    if (bi < 0.5) {
+      if (dp < 0) { r = 0 - dp * (1 - x); }
+    }
+    return r;
+  }
+  function n_bit(k, b) {
+    return floor(k / pow(2, b)) - 2 * floor(k / pow(2, b + 1));
+  }
+  function n_next(a, m) {
+    var k, c1, c2, r;
+    k = floor(m + 0.5);
+    c1 = a + 1;
+    if (c1 >= 3) { c1 = c1 - 3; }
+    c2 = c1 + 1;
+    if (c2 >= 3) { c2 = c2 - 3; }
+    r = a;
+    if (n_bit(k, c2) > 0.5) { r = c2; }
+    if (n_bit(k, c1) > 0.5) { r = c1; }
+    return r;
+  }
+  function n_pick(a, v0, v1, v2, v3, v4, v5, v6, v7) {
+    var k, r;
+    k = floor(a + 0.5);
+    r = v0;
+    if (k == 1) { r = v1; }
+    if (k == 2) { r = v2; }
+    if (k == 3) { r = v3; }
+    if (k == 4) { r = v4; }
+    if (k == 5) { r = v5; }
+    if (k == 6) { r = v6; }
+    if (k == 7) { r = v7; }
+    return r;
+  }
+  function n_divb(a) {
+    var k, r;
+    k = floor(a + 0.5);
+    r = 0.0625;
+    if (k == 1) { r = 0.08333333333; }
+    if (k == 2) { r = 0.125; }
+    if (k == 3) { r = 0.1666666667; }
+    if (k == 4) { r = 0.25; }
+    if (k == 5) { r = 0.3333333333; }
+    if (k == 6) { r = 0.375; }
+    if (k == 7) { r = 0.5; }
+    if (k == 8) { r = 0.6666666667; }
+    if (k == 9) { r = 0.75; }
+    if (k == 10) { r = 1; }
+    if (k == 11) { r = 1.5; }
+    if (k == 12) { r = 2; }
+    if (k == 13) { r = 3; }
+    if (k == 14) { r = 4; }
+    if (k == 15) { r = 8; }
+    if (k == 16) { r = 12; }
+    if (k == 17) { r = 16; }
+    if (k == 18) { r = 24; }
+    if (k == 19) { r = 32; }
+    if (k == 20) { r = 48; }
+    if (k == 21) { r = 64; }
+    if (k == 22) { r = 128; }
+    if (k == 23) { r = 256; }
+    return r;
+  }
+  var P_on0 = 1;
+  var P_type0 = 0;
+  var P_sync0 = 1;
+  var P_div0 = 14;
+  var P_hz0 = 0.25;
+  var P_amp0 = 0.8;
+  var P_ta0 = 0.0;
+  var P_tb0 = 0.0;
+  var P_phase0 = 0.0;
+  var P_depth0 = 0.3;
+  var P_bi0 = 0;
+  var P_clk0 = 0;
+  var P_out0 = 1;
+  var P_mode0 = 0;
+  var P_pol0 = 0;
+  var P_g1d0 = 1;
+  var P_g2d0 = 1;
+  var P_ho0 = 0;
+  var P_hm0 = 1;
+  var P_on1 = 1;
+  var P_type1 = 0;
+  var P_sync1 = 1;
+  var P_div1 = 12;
+  var P_hz1 = 0.5;
+  var P_amp1 = 0.7;
+  var P_ta1 = 0.33;
+  var P_tb1 = 0.0;
+  var P_phase1 = 0.0;
+  var P_depth1 = 0.3;
+  var P_bi1 = 0;
+  var P_clk1 = 0;
+  var P_out1 = 1;
+  var P_mode1 = 0;
+  var P_pol1 = 0;
+  var P_g1d1 = 1;
+  var P_g2d1 = 1;
+  var P_ho1 = 0;
+  var P_hm1 = 1;
+  var P_on2 = 1;
+  var P_type2 = 2;
+  var P_sync2 = 1;
+  var P_div2 = 10;
+  var P_hz2 = 2.0;
+  var P_amp2 = 0.6;
+  var P_ta2 = 0.2;
+  var P_tb2 = 0.0;
+  var P_phase2 = 0.0;
+  var P_depth2 = 0.3;
+  var P_bi2 = 0;
+  var P_clk2 = 0;
+  var P_out2 = 1;
+  var P_mode2 = 0;
+  var P_pol2 = 0;
+  var P_g1d2 = 1;
+  var P_g2d2 = 1;
+  var P_ho2 = 0;
+  var P_hm2 = 1;
+  var P_on3 = 1;
+  var P_type3 = 1;
+  var P_sync3 = 1;
+  var P_div3 = 15;
+  var P_hz3 = 0.125;
+  var P_amp3 = 0.8;
+  var P_ta3 = 0.2;
+  var P_tb3 = 0.6;
+  var P_phase3 = 0.0;
+  var P_depth3 = 0.3;
+  var P_bi3 = 0;
+  var P_clk3 = 0;
+  var P_out3 = 1;
+  var P_mode3 = 0;
+  var P_pol3 = 0;
+  var P_g1d3 = 1;
+  var P_g2d3 = 1;
+  var P_ho3 = 0;
+  var P_hm3 = 1;
+  var P_on4 = 1;
+  var P_type4 = 0;
+  var P_sync4 = 0;
+  var P_div4 = 14;
+  var P_hz4 = 0.13;
+  var P_amp4 = 0.8;
+  var P_ta4 = 0.0;
+  var P_tb4 = 0.0;
+  var P_phase4 = 0.0;
+  var P_depth4 = 0.3;
+  var P_bi4 = 0;
+  var P_clk4 = 0;
+  var P_out4 = 1;
+  var P_mode4 = 0;
+  var P_pol4 = 0;
+  var P_g1d4 = 1;
+  var P_g2d4 = 1;
+  var P_ho4 = 0;
+  var P_hm4 = 1;
+  var P_on5 = 1;
+  var P_type5 = 0;
+  var P_sync5 = 0;
+  var P_div5 = 12;
+  var P_hz5 = 0.21;
+  var P_amp5 = 0.7;
+  var P_ta5 = 0.67;
+  var P_tb5 = 0.0;
+  var P_phase5 = 0.0;
+  var P_depth5 = 0.3;
+  var P_bi5 = 0;
+  var P_clk5 = 0;
+  var P_out5 = 1;
+  var P_mode5 = 0;
+  var P_pol5 = 0;
+  var P_g1d5 = 1;
+  var P_g2d5 = 1;
+  var P_ho5 = 0;
+  var P_hm5 = 1;
+  var P_on6 = 1;
+  var P_type6 = 3;
+  var P_sync6 = 1;
+  var P_div6 = 14;
+  var P_hz6 = 1.0;
+  var P_amp6 = 1.0;
+  var P_ta6 = 0.1;
+  var P_tb6 = 0.0;
+  var P_phase6 = 0.0;
+  var P_depth6 = 0.5;
+  var P_bi6 = 0;
+  var P_clk6 = 0;
+  var P_out6 = 1;
+  var P_mode6 = 0;
+  var P_pol6 = 0;
+  var P_g1d6 = 1;
+  var P_g2d6 = 1;
+  var P_ho6 = 0;
+  var P_hm6 = 1;
+  var P_on7 = 1;
+  var P_type7 = 2;
+  var P_sync7 = 1;
+  var P_div7 = 12;
+  var P_hz7 = 1.0;
+  var P_amp7 = 0.6;
+  var P_ta7 = 0.1;
+  var P_tb7 = 0.0;
+  var P_phase7 = 0.0;
+  var P_depth7 = 0.3;
+  var P_bi7 = 0;
+  var P_clk7 = 0;
+  var P_out7 = 1;
+  var P_mode7 = 0;
+  var P_pol7 = 0;
+  var P_g1d7 = 1;
+  var P_g2d7 = 1;
+  var P_ho7 = 0;
+  var P_hm7 = 1;
+  var P_bankA = 1;
+  var P_bankB = 0;
+  var P_layA = 0;
+  var P_layB = 0;
+  var P_couple = 0;
+  var P_fbA = 0;
+  var P_fbB = 0;
+  var P_nudge = 0;
+  var P_rst = 0;
+  var P_tempo = 120;
+  var P_play = 0;
+  var P_mdep = 1;
+  var P_moff = 0;
+  var P_ron0 = 0;
+  var P_ra0 = 0;
+  var P_rop0 = 0;
+  var P_rb0 = 1;
+  var P_rthr0 = 0.5;
+  var P_ron1 = 0;
+  var P_ra1 = 0;
+  var P_rop1 = 0;
+  var P_rb1 = 1;
+  var P_rthr1 = 0.5;
+  var P_ron2 = 0;
+  var P_ra2 = 0;
+  var P_rop2 = 0;
+  var P_rb2 = 1;
+  var P_rthr2 = 0.5;
+  var P_ron3 = 0;
+  var P_ra3 = 0;
+  var P_rop3 = 0;
+  var P_rb3 = 1;
+  var P_rthr3 = 0.5;
+  var P_pon = 0;
+  var P_psrc = 0;
+  var P_ptick = 10;
+  var lb = 0, plw = 0, pf = 0, pvh = 0, pcnt = 0, raw0 = 0, off0 = 0, hv0 = 0, sv0 = 0, gc0 = 0, vv0 = 0, pv0 = 0, tg0 = 0, ep0 = 0, er0 = 0, cx0 = 0, cy0 = 0, cz0 = 0, lha0 = 0, lhb0 = 0, lhc0 = 0, as0 = 0, raw1 = 0, off1 = 0, hv1 = 0, sv1 = 0, gc1 = 0, vv1 = 0, pv1 = 0, tg1 = 0, ep1 = 0, er1 = 0, cx1 = 0, cy1 = 0, cz1 = 0, lha1 = 0, lhb1 = 0, lhc1 = 0, as1 = 0, raw2 = 0, off2 = 0, hv2 = 0, sv2 = 0, gc2 = 0, vv2 = 0, pv2 = 0, tg2 = 0, ep2 = 0, er2 = 0, cx2 = 0, cy2 = 0, cz2 = 0, lha2 = 0, lhb2 = 0, lhc2 = 0, as2 = 0, raw3 = 0, off3 = 0, hv3 = 0, sv3 = 0, gc3 = 0, vv3 = 0, pv3 = 0, tg3 = 0, ep3 = 0, er3 = 0, cx3 = 0, cy3 = 0, cz3 = 0, lha3 = 0, lhb3 = 0, lhc3 = 0, as3 = 0, raw4 = 0, off4 = 0, hv4 = 0, sv4 = 0, gc4 = 0, vv4 = 0, pv4 = 0, tg4 = 0, ep4 = 0, er4 = 0, cx4 = 0, cy4 = 0, cz4 = 0, lha4 = 0, lhb4 = 0, lhc4 = 0, as4 = 0, raw5 = 0, off5 = 0, hv5 = 0, sv5 = 0, gc5 = 0, vv5 = 0, pv5 = 0, tg5 = 0, ep5 = 0, er5 = 0, cx5 = 0, cy5 = 0, cz5 = 0, lha5 = 0, lhb5 = 0, lhc5 = 0, as5 = 0, raw6 = 0, off6 = 0, hv6 = 0, sv6 = 0, gc6 = 0, vv6 = 0, pv6 = 0, tg6 = 0, ep6 = 0, er6 = 0, cx6 = 0, cy6 = 0, cz6 = 0, lha6 = 0, lhb6 = 0, lhc6 = 0, as6 = 0, raw7 = 0, off7 = 0, hv7 = 0, sv7 = 0, gc7 = 0, vv7 = 0, pv7 = 0, tg7 = 0, ep7 = 0, er7 = 0, cx7 = 0, cy7 = 0, cz7 = 0, lha7 = 0, lhb7 = 0, lhc7 = 0, as7 = 0, rg0 = 0, rs0 = 0, pc0 = 0, rg1 = 0, rs1 = 0, pc1 = 0, rg2 = 0, rs2 = 0, pc2 = 0, rg3 = 0, rs3 = 0, pc3 = 0;
+  function step(in1, in2, in3) {
+    var out1, out2, out3, out4, out5, out6, out7, out8, out9, out10, out11, out12, out13, out14, out15, out16, out17, out18, out19, out20, out21, out22, out23, out24, out25, out26, out27, out28, out29, out30, out31, out32, out33, out34, out35, out36, out37, out38, tempo, playing, d, lbn, pstart, bankon0, bankon1, lay0, lay1, mr0, ma0, ms0, mp0, ck0, mr1, ma1, ms1, mp1, ck1, mr2, ma2, ms2, mp2, ck2, mr3, ma3, ms3, mp3, ck3, mr4, ma4, ms4, mp4, ck4, mr5, ma5, ms5, mp5, ck5, mr6, ma6, ms6, mp6, ck6, mr7, ma7, ms7, mp7, ck7, on0, ty0, rf0, pb0, offn0, rawn0, lam0, hz0, rs00, wrap0, ph0, ta0, ae0, pm0, v0, hvn0, svn0, gcn0, epn0, ern0, cxn0, cyn0, czn0, st0, fire0, rnd0, rnd20, xin0, st40, md50, st50, u50, t50, q50, dtc0, ox0, oz0, rc0, dx0, dy0, dz0, rr0, esc0, wn0, pvn0, tgn0, o0, gb0, y00, y10, y20, asn0, on1, ty1, rf1, pb1, offn1, rawn1, lam1, hz1, rs01, wrap1, ph1, ta1, ae1, pm1, v1, hvn1, svn1, gcn1, epn1, ern1, cxn1, cyn1, czn1, st1, fire1, rnd1, rnd21, xin1, st41, md51, st51, u51, t51, q51, dtc1, ox1, oz1, rc1, dx1, dy1, dz1, rr1, esc1, wn1, pvn1, tgn1, o1, gb1, y01, y11, y21, asn1, on2, ty2, rf2, pb2, offn2, rawn2, lam2, hz2, rs02, wrap2, ph2, ta2, ae2, pm2, v2, hvn2, svn2, gcn2, epn2, ern2, cxn2, cyn2, czn2, st2, fire2, rnd2, rnd22, xin2, st42, md52, st52, u52, t52, q52, dtc2, ox2, oz2, rc2, dx2, dy2, dz2, rr2, esc2, wn2, pvn2, tgn2, o2, gb2, y02, y12, y22, asn2, on3, ty3, rf3, pb3, offn3, rawn3, lam3, hz3, rs03, wrap3, ph3, ta3, ae3, pm3, v3, hvn3, svn3, gcn3, epn3, ern3, cxn3, cyn3, czn3, st3, fire3, rnd3, rnd23, xin3, st43, md53, st53, u53, t53, q53, dtc3, ox3, oz3, rc3, dx3, dy3, dz3, rr3, esc3, wn3, pvn3, tgn3, o3, gb3, y03, y13, y23, asn3, on4, ty4, rf4, pb4, offn4, rawn4, lam4, hz4, rs04, wrap4, ph4, ta4, ae4, pm4, v4, hvn4, svn4, gcn4, epn4, ern4, cxn4, cyn4, czn4, st4, fire4, rnd4, rnd24, xin4, st44, md54, st54, u54, t54, q54, dtc4, ox4, oz4, rc4, dx4, dy4, dz4, rr4, esc4, wn4, pvn4, tgn4, o4, gb4, y04, y14, y24, asn4, on5, ty5, rf5, pb5, offn5, rawn5, lam5, hz5, rs05, wrap5, ph5, ta5, ae5, pm5, v5, hvn5, svn5, gcn5, epn5, ern5, cxn5, cyn5, czn5, st5, fire5, rnd5, rnd25, xin5, st45, md55, st55, u55, t55, q55, dtc5, ox5, oz5, rc5, dx5, dy5, dz5, rr5, esc5, wn5, pvn5, tgn5, o5, gb5, y05, y15, y25, asn5, on6, ty6, rf6, pb6, offn6, rawn6, lam6, hz6, rs06, wrap6, ph6, ta6, ae6, pm6, v6, hvn6, svn6, gcn6, epn6, ern6, cxn6, cyn6, czn6, st6, fire6, rnd6, rnd26, xin6, st46, md56, st56, u56, t56, q56, dtc6, ox6, oz6, rc6, dx6, dy6, dz6, rr6, esc6, wn6, pvn6, tgn6, o6, gb6, y06, y16, y26, asn6, on7, ty7, rf7, pb7, offn7, rawn7, lam7, hz7, rs07, wrap7, ph7, ta7, ae7, pm7, v7, hvn7, svn7, gcn7, epn7, ern7, cxn7, cyn7, czn7, st7, fire7, rnd7, rnd27, xin7, st47, md57, st57, u57, t57, q57, dtc7, ox7, oz7, rc7, dx7, dy7, dz7, rr7, esc7, wn7, pvn7, tgn7, o7, gb7, y07, y17, y27, asn7, ra0, rb0, op0, sdn0, gn0, pcn0, lv0, ra1, rb1, op1, sdn1, gn1, pcn1, lv1, ra2, rb2, op2, sdn2, gn2, pcn2, lv2, ra3, rb3, op3, sdn3, gn3, pcn3, lv3, pt, pfn, ptk, pvhn, pcntn;
+    // in1 = [phasor~ 192.0.0 @lock 1]: 0..1 over 192 bars of 4/4 = 768 beats (a multiple of every division, so the
+    // phase never jumps when it wraps). Tempo and play state come from the engine (Live's transport).
+    tempo = clamp(P_tempo, 20, 999);
+    playing = P_play > 0.5 ? 1 : 0;
+    d = tempo / (60 * samplerate);
+    lbn = lb + d;
+    if (playing > 0.5) {
+      lbn = in1 * 768 + P_nudge * tempo / 60000;
+    }
+    pstart = 0;
+    if (playing > 0.5) {
+      if (plw < 0.5) { pstart = 1; }
+    }
+    bankon0 = P_bankA > 0.5 ? 1 : 0;
+    bankon1 = P_bankB > 0.5 ? 1 : 0;
+    lay0 = floor(P_layA + 0.5);
+    lay1 = floor(P_layB + 0.5);
+    
+    mr0 = 0; ma0 = 0; ms0 = 0; mp0 = 0; ck0 = 0;
+    mr1 = 0; ma1 = 0; ms1 = 0; mp1 = 0; ck1 = 0;
+    mr2 = 0; ma2 = 0; ms2 = 0; mp2 = 0; ck2 = 0;
+    mr3 = 0; ma3 = 0; ms3 = 0; mp3 = 0; ck3 = 0;
+    mr4 = 0; ma4 = 0; ms4 = 0; mp4 = 0; ck4 = 0;
+    mr5 = 0; ma5 = 0; ms5 = 0; mp5 = 0; ck5 = 0;
+    mr6 = 0; ma6 = 0; ms6 = 0; mp6 = 0; ck6 = 0;
+    mr7 = 0; ma7 = 0; ms7 = 0; mp7 = 0; ck7 = 0;
+    if (lay0 == 0) {  // bank A: Chain
+      mr1 = mr1 + pv0 * P_depth0;
+      ma2 = ma2 + pv1 * P_depth1;
+      ms3 = ms3 + pv2 * P_depth2;
+    }
+    if (lay0 == 1) {  // bank A: Ring
+      mr1 = mr1 + pv0 * P_depth0;
+      mr2 = mr2 + pv1 * P_depth1;
+      mr3 = mr3 + pv2 * P_depth2;
+      mr0 = mr0 + pv3 * P_depth3;
+    }
+    if (lay0 == 2) {  // bank A: Star
+      mr1 = mr1 + pv0 * P_depth0;
+      ma2 = ma2 + pv0 * P_depth0;
+      mp3 = mp3 + pv0 * P_depth0;
+    }
+    if (lay0 == 3) {  // bank A: Pairs
+      mr1 = mr1 + pv0 * P_depth0;
+      mr0 = mr0 + pv1 * P_depth1;
+      ms3 = ms3 + pv2 * P_depth2;
+      mr2 = mr2 + pv3 * P_depth3;
+    }
+    if (lay0 == 4) {  // bank A: Clocked
+      if (tg0 > 0.5) {
+        if (noise() * 0.5 + 0.5 < abs(P_depth0)) { ck1 = 1; }
+      }
+      if (tg0 > 0.5) {
+        if (noise() * 0.5 + 0.5 < abs(P_depth0)) { ck2 = 1; }
+      }
+      if (tg0 > 0.5) {
+        if (noise() * 0.5 + 0.5 < abs(P_depth0)) { ck3 = 1; }
+      }
+    }
+    if (lay0 == 5) {  // bank A: Self
+      mr0 = mr0 + pv0 * P_depth0;
+      mr1 = mr1 + pv1 * P_depth1;
+      mr2 = mr2 + pv2 * P_depth2;
+      mr3 = mr3 + pv3 * P_depth3;
+    }
+    if (lay1 == 0) {  // bank B: Chain
+      mr5 = mr5 + pv4 * P_depth4;
+      ma6 = ma6 + pv5 * P_depth5;
+      ms7 = ms7 + pv6 * P_depth6;
+    }
+    if (lay1 == 1) {  // bank B: Ring
+      mr5 = mr5 + pv4 * P_depth4;
+      mr6 = mr6 + pv5 * P_depth5;
+      mr7 = mr7 + pv6 * P_depth6;
+      mr4 = mr4 + pv7 * P_depth7;
+    }
+    if (lay1 == 2) {  // bank B: Star
+      mr5 = mr5 + pv4 * P_depth4;
+      ma6 = ma6 + pv4 * P_depth4;
+      mp7 = mp7 + pv4 * P_depth4;
+    }
+    if (lay1 == 3) {  // bank B: Pairs
+      mr5 = mr5 + pv4 * P_depth4;
+      mr4 = mr4 + pv5 * P_depth5;
+      ms7 = ms7 + pv6 * P_depth6;
+      mr6 = mr6 + pv7 * P_depth7;
+    }
+    if (lay1 == 4) {  // bank B: Clocked
+      if (tg4 > 0.5) {
+        if (noise() * 0.5 + 0.5 < abs(P_depth4)) { ck5 = 1; }
+      }
+      if (tg4 > 0.5) {
+        if (noise() * 0.5 + 0.5 < abs(P_depth4)) { ck6 = 1; }
+      }
+      if (tg4 > 0.5) {
+        if (noise() * 0.5 + 0.5 < abs(P_depth4)) { ck7 = 1; }
+      }
+    }
+    if (lay1 == 5) {  // bank B: Self
+      mr4 = mr4 + pv4 * P_depth4;
+      mr5 = mr5 + pv5 * P_depth5;
+      mr6 = mr6 + pv6 * P_depth6;
+      mr7 = mr7 + pv7 * P_depth7;
+    }
+    mr4 = mr4 + pv3 * P_couple;
+    mr0 = mr0 + pv7 * P_couple;
+    mr0 = mr0 + pv0 * P_fbA;
+    mr4 = mr4 + pv4 * P_fbB;
+    on0 = P_on0 * bankon0;
+    ty0 = floor(P_type0 + 0.5);
+    mr0 = tanh(mr0);
+    rf0 = pow(2, 4 * mr0);
+    pb0 = n_divb(P_div0);
+    offn0 = off0;
+    rawn0 = raw0;
+    lam0 = 0;
+    if (on0 > 0.5) {
+      if (P_sync0 > 0.5) {
+        offn0 = off0 + (rf0 - 1) * d / pb0;
+        if (abs(mr0) < 0.001) {
+          offn0 = offn0 + (floor(offn0 + 0.5) - offn0) * d * 0.25;
+        }
+        offn0 = offn0 - floor(offn0 + 0.5);
+        rawn0 = fract(lbn / pb0 + offn0);
+        lam0 = rf0 * tempo / (60 * pb0);
+      } else {
+        hz0 = clamp(P_hz0 * rf0, 0.005, 40);
+        rawn0 = fract(raw0 + hz0 / samplerate);
+        lam0 = hz0;
+        rs00 = pstart * P_rst;
+        if (ty0 < 2) { rs00 = max(rs00, ck0); }
+        if (rs00 > 0.5) { rawn0 = 0; }
+      }
+    }
+    wrap0 = rawn0 < raw0 - 0.5 ? 1 : 0;
+    ph0 = fract(rawn0 + P_phase0 + 0.5 * tanh(mp0));
+    ta0 = clamp(P_ta0 + 0.5 * tanh(ms0), 0, 1);
+    ae0 = clamp(P_amp0 + tanh(ma0), 0, 1);
+    // POLARIZE (amp wire mode 2): the wire into amp no longer adds to amp, it scales the node around its middle by
+    // -1..1, so the shape turns upside down while the modulator is below zero (no wire = flat)
+    if (P_pol0 > 0.5) { ae0 = clamp(P_amp0, 0, 1); }
+    pm0 = clamp(ma0, -1, 1);
+    v0 = 0.5;
+    hvn0 = hv0;
+    svn0 = sv0;
+    gcn0 = max(0, gc0 - 1);
+    epn0 = ep0;
+    ern0 = er0;
+    cxn0 = cx0;
+    cyn0 = cy0;
+    czn0 = cz0;
+    if (on0 > 0.5) {
+      if (ty0 == 0) {
+        v0 = n_lfo(ph0, ta0);
+      }
+      if (ty0 == 1) {
+        // SLOPE: mode 1 = cycle (the loop envelope), mode 2 = trigger: one rise + fall each time the
+        // layout's clock fires, then it rests at 0
+        if (P_mode0 > 0.5) {
+          if (ck0 > 0.5) {
+            epn0 = 0;
+            ern0 = 1;
+          }
+          if (ern0 > 0.5) {
+            epn0 = epn0 + lam0 / samplerate;
+            if (epn0 >= 1) {
+              epn0 = 0;
+              ern0 = 0;
+            }
+          }
+          v0 = ern0 > 0.5 ? n_env(epn0, ta0, P_tb0) : 0;
+        } else {
+          v0 = n_env(ph0, ta0, P_tb0);
+        }
+      }
+      if (ty0 == 2) {
+        st0 = P_clk0 > 0.5 ? ck0 : max(wrap0, ck0);
+        if (st0 > 0.5) {
+          hvn0 = n_shq(noise() * 0.5 + 0.5, P_tb0);
+        }
+        svn0 = sv0 + (hvn0 - sv0) * n_slew(ta0, samplerate);
+        v0 = svn0;
+      }
+      if (ty0 == 3) {
+        fire0 = ck0;
+        rnd0 = noise() * 0.5 + 0.5;
+        if (wrap0 > 0.5) {
+          if (rnd0 < P_tb0) { fire0 = 1; }
+        }
+        rnd20 = noise() * 0.5 + 0.5;
+        if (rnd20 < (1 - P_tb0) * lam0 / samplerate) { fire0 = 1; }
+        if (fire0 > 0.5) { gcn0 = (1 + ta0 * 49) * 0.001 * samplerate; }
+        v0 = gcn0 > 0 ? 1 : 0;
+      }
+      if (ty0 == 4) {
+        // SLEW (stepped or smooth): the signal on its shape input (the layout's wire), B mixes in fresh noise.
+        // mode 1 = stepped (sampled on each cycle / clock), mode 2 = smooth (slews toward it, A = slew)
+        xin0 = clamp(0.5 + 0.5 * tanh(ms0 * 2), 0, 1);
+        xin0 = xin0 + (noise() * 0.5 + 0.5 - xin0) * P_tb0;
+        st40 = P_clk0 > 0.5 ? ck0 : max(wrap0, ck0);
+        if (st40 > 0.5) { hvn0 = xin0; }
+        svn0 = sv0 + (xin0 - sv0) * n_slew(P_ta0, samplerate);
+        v0 = P_mode0 > 0.5 ? svn0 : hvn0;
+      }
+      if (ty0 == 5) {
+        // RANDOM: a new random value each cycle / clock. A = skew (0 low, 50 even, 100 high).
+        // mode 1 = stored (holds), mode 2 = fluctuating (glides to each new value over the cycle); B = steps.
+        // mode 3 = curve: smooth random along Bezier curves that join without corners; B = how much they bend.
+        // (curve keeps its start / handles in cx / cy / cz and its time in er, which only CHAOS / SLOPE use)
+        md50 = floor(P_mode0 + 0.5);
+        st50 = P_clk0 > 0.5 ? ck0 : max(wrap0, ck0);
+        if (st50 > 0.5) {
+          u50 = noise() * 0.5 + 0.5;
+          u50 = pow(clamp(u50, 0.000001, 1), pow(4, (0.5 - ta0) * 2));
+          hvn0 = n_shq(u50, P_tb0);
+          if (md50 == 2) {
+            hvn0 = u50;
+            cxn0 = clamp(sv0, 0, 1);
+            cyn0 = clamp(2 * cxn0 - cz0, 0, 1);
+            czn0 = clamp(hvn0 + (noise() * 0.5) * P_tb0, 0, 1);
+            ern0 = 0;
+          }
+        }
+        svn0 = sv0 + (hvn0 - sv0) * clamp(lam0 * 4 / samplerate, 0, 1);
+        v0 = P_mode0 > 0.5 ? svn0 : hvn0;
+        if (md50 == 2) {
+          ern0 = min(1, ern0 + lam0 / samplerate);
+          t50 = clamp(ern0, 0, 1);
+          q50 = 1 - t50;
+          svn0 = q50 * q50 * q50 * cxn0 + 3 * q50 * q50 * t50 * cyn0 + 3 * q50 * t50 * t50 * czn0 + t50 * t50 * t50 * hvn0;
+          svn0 = clamp(svn0, 0, 1);
+          v0 = svn0;
+        }
+      }
+      if (ty0 == 6) {
+        // CHAOS: mode 1 = Lorenz, mode 2 = Rossler, at about one orbit per cycle. A = output x .. z, B = character.
+        // The layout's clock kicks it. Escapes (never seen in the fuzz) restart it.
+        if (abs(cxn0) + abs(cyn0) + abs(czn0) < 0.000001) { cxn0 = 0.1; }
+        if (ck0 > 0.5) { cxn0 = cxn0 + 0.5; }
+        dtc0 = min(0.01, lam0 * 0.75 / samplerate);
+        ox0 = 0.5;
+        oz0 = 0;
+        if (P_mode0 > 0.5) {
+          rc0 = 4 + 4 * P_tb0;
+          dx0 = 0 - cyn0 - czn0;
+          dy0 = cxn0 + 0.2 * cyn0;
+          dz0 = 0.2 + czn0 * (cxn0 - rc0);
+          cxn0 = cxn0 + dx0 * dtc0;
+          cyn0 = cyn0 + dy0 * dtc0;
+          czn0 = czn0 + dz0 * dtc0;
+          ox0 = clamp(cxn0 / 24 + 0.5, 0, 1);
+          oz0 = clamp(czn0 / 20, 0, 1);
+        } else {
+          rr0 = 24 + 16 * P_tb0;
+          dx0 = 10 * (cyn0 - cxn0);
+          dy0 = cxn0 * (rr0 - czn0) - cyn0;
+          dz0 = cxn0 * cyn0 - 2.6667 * czn0;
+          cxn0 = cxn0 + dx0 * dtc0;
+          cyn0 = cyn0 + dy0 * dtc0;
+          czn0 = czn0 + dz0 * dtc0;
+          ox0 = clamp(cxn0 / 44 + 0.5, 0, 1);
+          oz0 = clamp(czn0 / 60, 0, 1);
+        }
+        esc0 = abs(cxn0) + abs(cyn0) + abs(czn0);
+        if (isnan(esc0) > 0.5) { esc0 = 1000; }
+        if (esc0 > 500) {
+          cxn0 = 0.1;
+          cyn0 = 0;
+          czn0 = 0;
+        }
+        v0 = ox0 + (oz0 - ox0) * ta0;
+      }
+    }
+    v0 = clamp(v0, 0, 1);
+    if (P_pol0 > 0.5) { v0 = 0.5 + (v0 - 0.5) * pm0; }
+    wn0 = on0 > 0.5 ? v0 * ae0 : 0;
+    pvn0 = on0 > 0.5 ? (v0 * 2 - 1) * ae0 : 0;
+    tgn0 = 0;
+    if (v0 > 0.5) {
+      if (vv0 <= 0.5) { tgn0 = on0; }
+    }
+    o0 = P_bi0 > 0.5 ? pvn0 : wn0;
+    o0 = n_fin(o0 * P_out0 * P_mdep + P_moff);   // master depth (negative = all inverted) and master offset, all lanes
+    // GROUP lanes 2 and 3 of this node: the same output (before the main lane's level), each with its own depth; a
+    // negative depth inverts (0..1 outputs flip to 1 - x, -1..1 outputs to -x)
+    gb0 = P_bi0 > 0.5 ? pvn0 : wn0;
+    gb0 = n_fin(gb0 * P_mdep + P_moff);
+    y00 = o0;
+    y10 = n_fin(n_grp(gb0, P_g1d0, P_bi0));
+    y20 = n_fin(n_grp(gb0, P_g2d0, P_bi0));
+    // HAND-OFF: one lane at a time moves, the others hold where they were; the node passes to the next lane in use
+    // (P_hm = which of its three lanes are on, from the engine) at the end of each cycle
+    asn0 = as0;
+    if (P_ho0 > 0.5) {
+      if (wrap0 > 0.5) { asn0 = n_next(as0, P_hm0); }
+      if (asn0 != 0) { y00 = lha0; }
+      if (asn0 != 1) { y10 = lhb0; }
+      if (asn0 != 2) { y20 = lhc0; }
+    }
+    
+    on1 = P_on1 * bankon0;
+    ty1 = floor(P_type1 + 0.5);
+    mr1 = tanh(mr1);
+    rf1 = pow(2, 4 * mr1);
+    pb1 = n_divb(P_div1);
+    offn1 = off1;
+    rawn1 = raw1;
+    lam1 = 0;
+    if (on1 > 0.5) {
+      if (P_sync1 > 0.5) {
+        offn1 = off1 + (rf1 - 1) * d / pb1;
+        if (abs(mr1) < 0.001) {
+          offn1 = offn1 + (floor(offn1 + 0.5) - offn1) * d * 0.25;
+        }
+        offn1 = offn1 - floor(offn1 + 0.5);
+        rawn1 = fract(lbn / pb1 + offn1);
+        lam1 = rf1 * tempo / (60 * pb1);
+      } else {
+        hz1 = clamp(P_hz1 * rf1, 0.005, 40);
+        rawn1 = fract(raw1 + hz1 / samplerate);
+        lam1 = hz1;
+        rs01 = pstart * P_rst;
+        if (ty1 < 2) { rs01 = max(rs01, ck1); }
+        if (rs01 > 0.5) { rawn1 = 0; }
+      }
+    }
+    wrap1 = rawn1 < raw1 - 0.5 ? 1 : 0;
+    ph1 = fract(rawn1 + P_phase1 + 0.5 * tanh(mp1));
+    ta1 = clamp(P_ta1 + 0.5 * tanh(ms1), 0, 1);
+    ae1 = clamp(P_amp1 + tanh(ma1), 0, 1);
+    // POLARIZE (amp wire mode 2): the wire into amp no longer adds to amp, it scales the node around its middle by
+    // -1..1, so the shape turns upside down while the modulator is below zero (no wire = flat)
+    if (P_pol1 > 0.5) { ae1 = clamp(P_amp1, 0, 1); }
+    pm1 = clamp(ma1, -1, 1);
+    v1 = 0.5;
+    hvn1 = hv1;
+    svn1 = sv1;
+    gcn1 = max(0, gc1 - 1);
+    epn1 = ep1;
+    ern1 = er1;
+    cxn1 = cx1;
+    cyn1 = cy1;
+    czn1 = cz1;
+    if (on1 > 0.5) {
+      if (ty1 == 0) {
+        v1 = n_lfo(ph1, ta1);
+      }
+      if (ty1 == 1) {
+        // SLOPE: mode 1 = cycle (the loop envelope), mode 2 = trigger: one rise + fall each time the
+        // layout's clock fires, then it rests at 0
+        if (P_mode1 > 0.5) {
+          if (ck1 > 0.5) {
+            epn1 = 0;
+            ern1 = 1;
+          }
+          if (ern1 > 0.5) {
+            epn1 = epn1 + lam1 / samplerate;
+            if (epn1 >= 1) {
+              epn1 = 0;
+              ern1 = 0;
+            }
+          }
+          v1 = ern1 > 0.5 ? n_env(epn1, ta1, P_tb1) : 0;
+        } else {
+          v1 = n_env(ph1, ta1, P_tb1);
+        }
+      }
+      if (ty1 == 2) {
+        st1 = P_clk1 > 0.5 ? ck1 : max(wrap1, ck1);
+        if (st1 > 0.5) {
+          hvn1 = n_shq(noise() * 0.5 + 0.5, P_tb1);
+        }
+        svn1 = sv1 + (hvn1 - sv1) * n_slew(ta1, samplerate);
+        v1 = svn1;
+      }
+      if (ty1 == 3) {
+        fire1 = ck1;
+        rnd1 = noise() * 0.5 + 0.5;
+        if (wrap1 > 0.5) {
+          if (rnd1 < P_tb1) { fire1 = 1; }
+        }
+        rnd21 = noise() * 0.5 + 0.5;
+        if (rnd21 < (1 - P_tb1) * lam1 / samplerate) { fire1 = 1; }
+        if (fire1 > 0.5) { gcn1 = (1 + ta1 * 49) * 0.001 * samplerate; }
+        v1 = gcn1 > 0 ? 1 : 0;
+      }
+      if (ty1 == 4) {
+        // SLEW (stepped or smooth): the signal on its shape input (the layout's wire), B mixes in fresh noise.
+        // mode 1 = stepped (sampled on each cycle / clock), mode 2 = smooth (slews toward it, A = slew)
+        xin1 = clamp(0.5 + 0.5 * tanh(ms1 * 2), 0, 1);
+        xin1 = xin1 + (noise() * 0.5 + 0.5 - xin1) * P_tb1;
+        st41 = P_clk1 > 0.5 ? ck1 : max(wrap1, ck1);
+        if (st41 > 0.5) { hvn1 = xin1; }
+        svn1 = sv1 + (xin1 - sv1) * n_slew(P_ta1, samplerate);
+        v1 = P_mode1 > 0.5 ? svn1 : hvn1;
+      }
+      if (ty1 == 5) {
+        // RANDOM: a new random value each cycle / clock. A = skew (0 low, 50 even, 100 high).
+        // mode 1 = stored (holds), mode 2 = fluctuating (glides to each new value over the cycle); B = steps.
+        // mode 3 = curve: smooth random along Bezier curves that join without corners; B = how much they bend.
+        // (curve keeps its start / handles in cx / cy / cz and its time in er, which only CHAOS / SLOPE use)
+        md51 = floor(P_mode1 + 0.5);
+        st51 = P_clk1 > 0.5 ? ck1 : max(wrap1, ck1);
+        if (st51 > 0.5) {
+          u51 = noise() * 0.5 + 0.5;
+          u51 = pow(clamp(u51, 0.000001, 1), pow(4, (0.5 - ta1) * 2));
+          hvn1 = n_shq(u51, P_tb1);
+          if (md51 == 2) {
+            hvn1 = u51;
+            cxn1 = clamp(sv1, 0, 1);
+            cyn1 = clamp(2 * cxn1 - cz1, 0, 1);
+            czn1 = clamp(hvn1 + (noise() * 0.5) * P_tb1, 0, 1);
+            ern1 = 0;
+          }
+        }
+        svn1 = sv1 + (hvn1 - sv1) * clamp(lam1 * 4 / samplerate, 0, 1);
+        v1 = P_mode1 > 0.5 ? svn1 : hvn1;
+        if (md51 == 2) {
+          ern1 = min(1, ern1 + lam1 / samplerate);
+          t51 = clamp(ern1, 0, 1);
+          q51 = 1 - t51;
+          svn1 = q51 * q51 * q51 * cxn1 + 3 * q51 * q51 * t51 * cyn1 + 3 * q51 * t51 * t51 * czn1 + t51 * t51 * t51 * hvn1;
+          svn1 = clamp(svn1, 0, 1);
+          v1 = svn1;
+        }
+      }
+      if (ty1 == 6) {
+        // CHAOS: mode 1 = Lorenz, mode 2 = Rossler, at about one orbit per cycle. A = output x .. z, B = character.
+        // The layout's clock kicks it. Escapes (never seen in the fuzz) restart it.
+        if (abs(cxn1) + abs(cyn1) + abs(czn1) < 0.000001) { cxn1 = 0.1; }
+        if (ck1 > 0.5) { cxn1 = cxn1 + 0.5; }
+        dtc1 = min(0.01, lam1 * 0.75 / samplerate);
+        ox1 = 0.5;
+        oz1 = 0;
+        if (P_mode1 > 0.5) {
+          rc1 = 4 + 4 * P_tb1;
+          dx1 = 0 - cyn1 - czn1;
+          dy1 = cxn1 + 0.2 * cyn1;
+          dz1 = 0.2 + czn1 * (cxn1 - rc1);
+          cxn1 = cxn1 + dx1 * dtc1;
+          cyn1 = cyn1 + dy1 * dtc1;
+          czn1 = czn1 + dz1 * dtc1;
+          ox1 = clamp(cxn1 / 24 + 0.5, 0, 1);
+          oz1 = clamp(czn1 / 20, 0, 1);
+        } else {
+          rr1 = 24 + 16 * P_tb1;
+          dx1 = 10 * (cyn1 - cxn1);
+          dy1 = cxn1 * (rr1 - czn1) - cyn1;
+          dz1 = cxn1 * cyn1 - 2.6667 * czn1;
+          cxn1 = cxn1 + dx1 * dtc1;
+          cyn1 = cyn1 + dy1 * dtc1;
+          czn1 = czn1 + dz1 * dtc1;
+          ox1 = clamp(cxn1 / 44 + 0.5, 0, 1);
+          oz1 = clamp(czn1 / 60, 0, 1);
+        }
+        esc1 = abs(cxn1) + abs(cyn1) + abs(czn1);
+        if (isnan(esc1) > 0.5) { esc1 = 1000; }
+        if (esc1 > 500) {
+          cxn1 = 0.1;
+          cyn1 = 0;
+          czn1 = 0;
+        }
+        v1 = ox1 + (oz1 - ox1) * ta1;
+      }
+    }
+    v1 = clamp(v1, 0, 1);
+    if (P_pol1 > 0.5) { v1 = 0.5 + (v1 - 0.5) * pm1; }
+    wn1 = on1 > 0.5 ? v1 * ae1 : 0;
+    pvn1 = on1 > 0.5 ? (v1 * 2 - 1) * ae1 : 0;
+    tgn1 = 0;
+    if (v1 > 0.5) {
+      if (vv1 <= 0.5) { tgn1 = on1; }
+    }
+    o1 = P_bi1 > 0.5 ? pvn1 : wn1;
+    o1 = n_fin(o1 * P_out1 * P_mdep + P_moff);   // master depth (negative = all inverted) and master offset, all lanes
+    // GROUP lanes 2 and 3 of this node: the same output (before the main lane's level), each with its own depth; a
+    // negative depth inverts (0..1 outputs flip to 1 - x, -1..1 outputs to -x)
+    gb1 = P_bi1 > 0.5 ? pvn1 : wn1;
+    gb1 = n_fin(gb1 * P_mdep + P_moff);
+    y01 = o1;
+    y11 = n_fin(n_grp(gb1, P_g1d1, P_bi1));
+    y21 = n_fin(n_grp(gb1, P_g2d1, P_bi1));
+    // HAND-OFF: one lane at a time moves, the others hold where they were; the node passes to the next lane in use
+    // (P_hm = which of its three lanes are on, from the engine) at the end of each cycle
+    asn1 = as1;
+    if (P_ho1 > 0.5) {
+      if (wrap1 > 0.5) { asn1 = n_next(as1, P_hm1); }
+      if (asn1 != 0) { y01 = lha1; }
+      if (asn1 != 1) { y11 = lhb1; }
+      if (asn1 != 2) { y21 = lhc1; }
+    }
+    
+    on2 = P_on2 * bankon0;
+    ty2 = floor(P_type2 + 0.5);
+    mr2 = tanh(mr2);
+    rf2 = pow(2, 4 * mr2);
+    pb2 = n_divb(P_div2);
+    offn2 = off2;
+    rawn2 = raw2;
+    lam2 = 0;
+    if (on2 > 0.5) {
+      if (P_sync2 > 0.5) {
+        offn2 = off2 + (rf2 - 1) * d / pb2;
+        if (abs(mr2) < 0.001) {
+          offn2 = offn2 + (floor(offn2 + 0.5) - offn2) * d * 0.25;
+        }
+        offn2 = offn2 - floor(offn2 + 0.5);
+        rawn2 = fract(lbn / pb2 + offn2);
+        lam2 = rf2 * tempo / (60 * pb2);
+      } else {
+        hz2 = clamp(P_hz2 * rf2, 0.005, 40);
+        rawn2 = fract(raw2 + hz2 / samplerate);
+        lam2 = hz2;
+        rs02 = pstart * P_rst;
+        if (ty2 < 2) { rs02 = max(rs02, ck2); }
+        if (rs02 > 0.5) { rawn2 = 0; }
+      }
+    }
+    wrap2 = rawn2 < raw2 - 0.5 ? 1 : 0;
+    ph2 = fract(rawn2 + P_phase2 + 0.5 * tanh(mp2));
+    ta2 = clamp(P_ta2 + 0.5 * tanh(ms2), 0, 1);
+    ae2 = clamp(P_amp2 + tanh(ma2), 0, 1);
+    // POLARIZE (amp wire mode 2): the wire into amp no longer adds to amp, it scales the node around its middle by
+    // -1..1, so the shape turns upside down while the modulator is below zero (no wire = flat)
+    if (P_pol2 > 0.5) { ae2 = clamp(P_amp2, 0, 1); }
+    pm2 = clamp(ma2, -1, 1);
+    v2 = 0.5;
+    hvn2 = hv2;
+    svn2 = sv2;
+    gcn2 = max(0, gc2 - 1);
+    epn2 = ep2;
+    ern2 = er2;
+    cxn2 = cx2;
+    cyn2 = cy2;
+    czn2 = cz2;
+    if (on2 > 0.5) {
+      if (ty2 == 0) {
+        v2 = n_lfo(ph2, ta2);
+      }
+      if (ty2 == 1) {
+        // SLOPE: mode 1 = cycle (the loop envelope), mode 2 = trigger: one rise + fall each time the
+        // layout's clock fires, then it rests at 0
+        if (P_mode2 > 0.5) {
+          if (ck2 > 0.5) {
+            epn2 = 0;
+            ern2 = 1;
+          }
+          if (ern2 > 0.5) {
+            epn2 = epn2 + lam2 / samplerate;
+            if (epn2 >= 1) {
+              epn2 = 0;
+              ern2 = 0;
+            }
+          }
+          v2 = ern2 > 0.5 ? n_env(epn2, ta2, P_tb2) : 0;
+        } else {
+          v2 = n_env(ph2, ta2, P_tb2);
+        }
+      }
+      if (ty2 == 2) {
+        st2 = P_clk2 > 0.5 ? ck2 : max(wrap2, ck2);
+        if (st2 > 0.5) {
+          hvn2 = n_shq(noise() * 0.5 + 0.5, P_tb2);
+        }
+        svn2 = sv2 + (hvn2 - sv2) * n_slew(ta2, samplerate);
+        v2 = svn2;
+      }
+      if (ty2 == 3) {
+        fire2 = ck2;
+        rnd2 = noise() * 0.5 + 0.5;
+        if (wrap2 > 0.5) {
+          if (rnd2 < P_tb2) { fire2 = 1; }
+        }
+        rnd22 = noise() * 0.5 + 0.5;
+        if (rnd22 < (1 - P_tb2) * lam2 / samplerate) { fire2 = 1; }
+        if (fire2 > 0.5) { gcn2 = (1 + ta2 * 49) * 0.001 * samplerate; }
+        v2 = gcn2 > 0 ? 1 : 0;
+      }
+      if (ty2 == 4) {
+        // SLEW (stepped or smooth): the signal on its shape input (the layout's wire), B mixes in fresh noise.
+        // mode 1 = stepped (sampled on each cycle / clock), mode 2 = smooth (slews toward it, A = slew)
+        xin2 = clamp(0.5 + 0.5 * tanh(ms2 * 2), 0, 1);
+        xin2 = xin2 + (noise() * 0.5 + 0.5 - xin2) * P_tb2;
+        st42 = P_clk2 > 0.5 ? ck2 : max(wrap2, ck2);
+        if (st42 > 0.5) { hvn2 = xin2; }
+        svn2 = sv2 + (xin2 - sv2) * n_slew(P_ta2, samplerate);
+        v2 = P_mode2 > 0.5 ? svn2 : hvn2;
+      }
+      if (ty2 == 5) {
+        // RANDOM: a new random value each cycle / clock. A = skew (0 low, 50 even, 100 high).
+        // mode 1 = stored (holds), mode 2 = fluctuating (glides to each new value over the cycle); B = steps.
+        // mode 3 = curve: smooth random along Bezier curves that join without corners; B = how much they bend.
+        // (curve keeps its start / handles in cx / cy / cz and its time in er, which only CHAOS / SLOPE use)
+        md52 = floor(P_mode2 + 0.5);
+        st52 = P_clk2 > 0.5 ? ck2 : max(wrap2, ck2);
+        if (st52 > 0.5) {
+          u52 = noise() * 0.5 + 0.5;
+          u52 = pow(clamp(u52, 0.000001, 1), pow(4, (0.5 - ta2) * 2));
+          hvn2 = n_shq(u52, P_tb2);
+          if (md52 == 2) {
+            hvn2 = u52;
+            cxn2 = clamp(sv2, 0, 1);
+            cyn2 = clamp(2 * cxn2 - cz2, 0, 1);
+            czn2 = clamp(hvn2 + (noise() * 0.5) * P_tb2, 0, 1);
+            ern2 = 0;
+          }
+        }
+        svn2 = sv2 + (hvn2 - sv2) * clamp(lam2 * 4 / samplerate, 0, 1);
+        v2 = P_mode2 > 0.5 ? svn2 : hvn2;
+        if (md52 == 2) {
+          ern2 = min(1, ern2 + lam2 / samplerate);
+          t52 = clamp(ern2, 0, 1);
+          q52 = 1 - t52;
+          svn2 = q52 * q52 * q52 * cxn2 + 3 * q52 * q52 * t52 * cyn2 + 3 * q52 * t52 * t52 * czn2 + t52 * t52 * t52 * hvn2;
+          svn2 = clamp(svn2, 0, 1);
+          v2 = svn2;
+        }
+      }
+      if (ty2 == 6) {
+        // CHAOS: mode 1 = Lorenz, mode 2 = Rossler, at about one orbit per cycle. A = output x .. z, B = character.
+        // The layout's clock kicks it. Escapes (never seen in the fuzz) restart it.
+        if (abs(cxn2) + abs(cyn2) + abs(czn2) < 0.000001) { cxn2 = 0.1; }
+        if (ck2 > 0.5) { cxn2 = cxn2 + 0.5; }
+        dtc2 = min(0.01, lam2 * 0.75 / samplerate);
+        ox2 = 0.5;
+        oz2 = 0;
+        if (P_mode2 > 0.5) {
+          rc2 = 4 + 4 * P_tb2;
+          dx2 = 0 - cyn2 - czn2;
+          dy2 = cxn2 + 0.2 * cyn2;
+          dz2 = 0.2 + czn2 * (cxn2 - rc2);
+          cxn2 = cxn2 + dx2 * dtc2;
+          cyn2 = cyn2 + dy2 * dtc2;
+          czn2 = czn2 + dz2 * dtc2;
+          ox2 = clamp(cxn2 / 24 + 0.5, 0, 1);
+          oz2 = clamp(czn2 / 20, 0, 1);
+        } else {
+          rr2 = 24 + 16 * P_tb2;
+          dx2 = 10 * (cyn2 - cxn2);
+          dy2 = cxn2 * (rr2 - czn2) - cyn2;
+          dz2 = cxn2 * cyn2 - 2.6667 * czn2;
+          cxn2 = cxn2 + dx2 * dtc2;
+          cyn2 = cyn2 + dy2 * dtc2;
+          czn2 = czn2 + dz2 * dtc2;
+          ox2 = clamp(cxn2 / 44 + 0.5, 0, 1);
+          oz2 = clamp(czn2 / 60, 0, 1);
+        }
+        esc2 = abs(cxn2) + abs(cyn2) + abs(czn2);
+        if (isnan(esc2) > 0.5) { esc2 = 1000; }
+        if (esc2 > 500) {
+          cxn2 = 0.1;
+          cyn2 = 0;
+          czn2 = 0;
+        }
+        v2 = ox2 + (oz2 - ox2) * ta2;
+      }
+    }
+    v2 = clamp(v2, 0, 1);
+    if (P_pol2 > 0.5) { v2 = 0.5 + (v2 - 0.5) * pm2; }
+    wn2 = on2 > 0.5 ? v2 * ae2 : 0;
+    pvn2 = on2 > 0.5 ? (v2 * 2 - 1) * ae2 : 0;
+    tgn2 = 0;
+    if (v2 > 0.5) {
+      if (vv2 <= 0.5) { tgn2 = on2; }
+    }
+    o2 = P_bi2 > 0.5 ? pvn2 : wn2;
+    o2 = n_fin(o2 * P_out2 * P_mdep + P_moff);   // master depth (negative = all inverted) and master offset, all lanes
+    // GROUP lanes 2 and 3 of this node: the same output (before the main lane's level), each with its own depth; a
+    // negative depth inverts (0..1 outputs flip to 1 - x, -1..1 outputs to -x)
+    gb2 = P_bi2 > 0.5 ? pvn2 : wn2;
+    gb2 = n_fin(gb2 * P_mdep + P_moff);
+    y02 = o2;
+    y12 = n_fin(n_grp(gb2, P_g1d2, P_bi2));
+    y22 = n_fin(n_grp(gb2, P_g2d2, P_bi2));
+    // HAND-OFF: one lane at a time moves, the others hold where they were; the node passes to the next lane in use
+    // (P_hm = which of its three lanes are on, from the engine) at the end of each cycle
+    asn2 = as2;
+    if (P_ho2 > 0.5) {
+      if (wrap2 > 0.5) { asn2 = n_next(as2, P_hm2); }
+      if (asn2 != 0) { y02 = lha2; }
+      if (asn2 != 1) { y12 = lhb2; }
+      if (asn2 != 2) { y22 = lhc2; }
+    }
+    
+    on3 = P_on3 * bankon0;
+    ty3 = floor(P_type3 + 0.5);
+    mr3 = tanh(mr3);
+    rf3 = pow(2, 4 * mr3);
+    pb3 = n_divb(P_div3);
+    offn3 = off3;
+    rawn3 = raw3;
+    lam3 = 0;
+    if (on3 > 0.5) {
+      if (P_sync3 > 0.5) {
+        offn3 = off3 + (rf3 - 1) * d / pb3;
+        if (abs(mr3) < 0.001) {
+          offn3 = offn3 + (floor(offn3 + 0.5) - offn3) * d * 0.25;
+        }
+        offn3 = offn3 - floor(offn3 + 0.5);
+        rawn3 = fract(lbn / pb3 + offn3);
+        lam3 = rf3 * tempo / (60 * pb3);
+      } else {
+        hz3 = clamp(P_hz3 * rf3, 0.005, 40);
+        rawn3 = fract(raw3 + hz3 / samplerate);
+        lam3 = hz3;
+        rs03 = pstart * P_rst;
+        if (ty3 < 2) { rs03 = max(rs03, ck3); }
+        if (rs03 > 0.5) { rawn3 = 0; }
+      }
+    }
+    wrap3 = rawn3 < raw3 - 0.5 ? 1 : 0;
+    ph3 = fract(rawn3 + P_phase3 + 0.5 * tanh(mp3));
+    ta3 = clamp(P_ta3 + 0.5 * tanh(ms3), 0, 1);
+    ae3 = clamp(P_amp3 + tanh(ma3), 0, 1);
+    // POLARIZE (amp wire mode 2): the wire into amp no longer adds to amp, it scales the node around its middle by
+    // -1..1, so the shape turns upside down while the modulator is below zero (no wire = flat)
+    if (P_pol3 > 0.5) { ae3 = clamp(P_amp3, 0, 1); }
+    pm3 = clamp(ma3, -1, 1);
+    v3 = 0.5;
+    hvn3 = hv3;
+    svn3 = sv3;
+    gcn3 = max(0, gc3 - 1);
+    epn3 = ep3;
+    ern3 = er3;
+    cxn3 = cx3;
+    cyn3 = cy3;
+    czn3 = cz3;
+    if (on3 > 0.5) {
+      if (ty3 == 0) {
+        v3 = n_lfo(ph3, ta3);
+      }
+      if (ty3 == 1) {
+        // SLOPE: mode 1 = cycle (the loop envelope), mode 2 = trigger: one rise + fall each time the
+        // layout's clock fires, then it rests at 0
+        if (P_mode3 > 0.5) {
+          if (ck3 > 0.5) {
+            epn3 = 0;
+            ern3 = 1;
+          }
+          if (ern3 > 0.5) {
+            epn3 = epn3 + lam3 / samplerate;
+            if (epn3 >= 1) {
+              epn3 = 0;
+              ern3 = 0;
+            }
+          }
+          v3 = ern3 > 0.5 ? n_env(epn3, ta3, P_tb3) : 0;
+        } else {
+          v3 = n_env(ph3, ta3, P_tb3);
+        }
+      }
+      if (ty3 == 2) {
+        st3 = P_clk3 > 0.5 ? ck3 : max(wrap3, ck3);
+        if (st3 > 0.5) {
+          hvn3 = n_shq(noise() * 0.5 + 0.5, P_tb3);
+        }
+        svn3 = sv3 + (hvn3 - sv3) * n_slew(ta3, samplerate);
+        v3 = svn3;
+      }
+      if (ty3 == 3) {
+        fire3 = ck3;
+        rnd3 = noise() * 0.5 + 0.5;
+        if (wrap3 > 0.5) {
+          if (rnd3 < P_tb3) { fire3 = 1; }
+        }
+        rnd23 = noise() * 0.5 + 0.5;
+        if (rnd23 < (1 - P_tb3) * lam3 / samplerate) { fire3 = 1; }
+        if (fire3 > 0.5) { gcn3 = (1 + ta3 * 49) * 0.001 * samplerate; }
+        v3 = gcn3 > 0 ? 1 : 0;
+      }
+      if (ty3 == 4) {
+        // SLEW (stepped or smooth): the signal on its shape input (the layout's wire), B mixes in fresh noise.
+        // mode 1 = stepped (sampled on each cycle / clock), mode 2 = smooth (slews toward it, A = slew)
+        xin3 = clamp(0.5 + 0.5 * tanh(ms3 * 2), 0, 1);
+        xin3 = xin3 + (noise() * 0.5 + 0.5 - xin3) * P_tb3;
+        st43 = P_clk3 > 0.5 ? ck3 : max(wrap3, ck3);
+        if (st43 > 0.5) { hvn3 = xin3; }
+        svn3 = sv3 + (xin3 - sv3) * n_slew(P_ta3, samplerate);
+        v3 = P_mode3 > 0.5 ? svn3 : hvn3;
+      }
+      if (ty3 == 5) {
+        // RANDOM: a new random value each cycle / clock. A = skew (0 low, 50 even, 100 high).
+        // mode 1 = stored (holds), mode 2 = fluctuating (glides to each new value over the cycle); B = steps.
+        // mode 3 = curve: smooth random along Bezier curves that join without corners; B = how much they bend.
+        // (curve keeps its start / handles in cx / cy / cz and its time in er, which only CHAOS / SLOPE use)
+        md53 = floor(P_mode3 + 0.5);
+        st53 = P_clk3 > 0.5 ? ck3 : max(wrap3, ck3);
+        if (st53 > 0.5) {
+          u53 = noise() * 0.5 + 0.5;
+          u53 = pow(clamp(u53, 0.000001, 1), pow(4, (0.5 - ta3) * 2));
+          hvn3 = n_shq(u53, P_tb3);
+          if (md53 == 2) {
+            hvn3 = u53;
+            cxn3 = clamp(sv3, 0, 1);
+            cyn3 = clamp(2 * cxn3 - cz3, 0, 1);
+            czn3 = clamp(hvn3 + (noise() * 0.5) * P_tb3, 0, 1);
+            ern3 = 0;
+          }
+        }
+        svn3 = sv3 + (hvn3 - sv3) * clamp(lam3 * 4 / samplerate, 0, 1);
+        v3 = P_mode3 > 0.5 ? svn3 : hvn3;
+        if (md53 == 2) {
+          ern3 = min(1, ern3 + lam3 / samplerate);
+          t53 = clamp(ern3, 0, 1);
+          q53 = 1 - t53;
+          svn3 = q53 * q53 * q53 * cxn3 + 3 * q53 * q53 * t53 * cyn3 + 3 * q53 * t53 * t53 * czn3 + t53 * t53 * t53 * hvn3;
+          svn3 = clamp(svn3, 0, 1);
+          v3 = svn3;
+        }
+      }
+      if (ty3 == 6) {
+        // CHAOS: mode 1 = Lorenz, mode 2 = Rossler, at about one orbit per cycle. A = output x .. z, B = character.
+        // The layout's clock kicks it. Escapes (never seen in the fuzz) restart it.
+        if (abs(cxn3) + abs(cyn3) + abs(czn3) < 0.000001) { cxn3 = 0.1; }
+        if (ck3 > 0.5) { cxn3 = cxn3 + 0.5; }
+        dtc3 = min(0.01, lam3 * 0.75 / samplerate);
+        ox3 = 0.5;
+        oz3 = 0;
+        if (P_mode3 > 0.5) {
+          rc3 = 4 + 4 * P_tb3;
+          dx3 = 0 - cyn3 - czn3;
+          dy3 = cxn3 + 0.2 * cyn3;
+          dz3 = 0.2 + czn3 * (cxn3 - rc3);
+          cxn3 = cxn3 + dx3 * dtc3;
+          cyn3 = cyn3 + dy3 * dtc3;
+          czn3 = czn3 + dz3 * dtc3;
+          ox3 = clamp(cxn3 / 24 + 0.5, 0, 1);
+          oz3 = clamp(czn3 / 20, 0, 1);
+        } else {
+          rr3 = 24 + 16 * P_tb3;
+          dx3 = 10 * (cyn3 - cxn3);
+          dy3 = cxn3 * (rr3 - czn3) - cyn3;
+          dz3 = cxn3 * cyn3 - 2.6667 * czn3;
+          cxn3 = cxn3 + dx3 * dtc3;
+          cyn3 = cyn3 + dy3 * dtc3;
+          czn3 = czn3 + dz3 * dtc3;
+          ox3 = clamp(cxn3 / 44 + 0.5, 0, 1);
+          oz3 = clamp(czn3 / 60, 0, 1);
+        }
+        esc3 = abs(cxn3) + abs(cyn3) + abs(czn3);
+        if (isnan(esc3) > 0.5) { esc3 = 1000; }
+        if (esc3 > 500) {
+          cxn3 = 0.1;
+          cyn3 = 0;
+          czn3 = 0;
+        }
+        v3 = ox3 + (oz3 - ox3) * ta3;
+      }
+    }
+    v3 = clamp(v3, 0, 1);
+    if (P_pol3 > 0.5) { v3 = 0.5 + (v3 - 0.5) * pm3; }
+    wn3 = on3 > 0.5 ? v3 * ae3 : 0;
+    pvn3 = on3 > 0.5 ? (v3 * 2 - 1) * ae3 : 0;
+    tgn3 = 0;
+    if (v3 > 0.5) {
+      if (vv3 <= 0.5) { tgn3 = on3; }
+    }
+    o3 = P_bi3 > 0.5 ? pvn3 : wn3;
+    o3 = n_fin(o3 * P_out3 * P_mdep + P_moff);   // master depth (negative = all inverted) and master offset, all lanes
+    // GROUP lanes 2 and 3 of this node: the same output (before the main lane's level), each with its own depth; a
+    // negative depth inverts (0..1 outputs flip to 1 - x, -1..1 outputs to -x)
+    gb3 = P_bi3 > 0.5 ? pvn3 : wn3;
+    gb3 = n_fin(gb3 * P_mdep + P_moff);
+    y03 = o3;
+    y13 = n_fin(n_grp(gb3, P_g1d3, P_bi3));
+    y23 = n_fin(n_grp(gb3, P_g2d3, P_bi3));
+    // HAND-OFF: one lane at a time moves, the others hold where they were; the node passes to the next lane in use
+    // (P_hm = which of its three lanes are on, from the engine) at the end of each cycle
+    asn3 = as3;
+    if (P_ho3 > 0.5) {
+      if (wrap3 > 0.5) { asn3 = n_next(as3, P_hm3); }
+      if (asn3 != 0) { y03 = lha3; }
+      if (asn3 != 1) { y13 = lhb3; }
+      if (asn3 != 2) { y23 = lhc3; }
+    }
+    
+    on4 = P_on4 * bankon1;
+    ty4 = floor(P_type4 + 0.5);
+    mr4 = tanh(mr4);
+    rf4 = pow(2, 4 * mr4);
+    pb4 = n_divb(P_div4);
+    offn4 = off4;
+    rawn4 = raw4;
+    lam4 = 0;
+    if (on4 > 0.5) {
+      if (P_sync4 > 0.5) {
+        offn4 = off4 + (rf4 - 1) * d / pb4;
+        if (abs(mr4) < 0.001) {
+          offn4 = offn4 + (floor(offn4 + 0.5) - offn4) * d * 0.25;
+        }
+        offn4 = offn4 - floor(offn4 + 0.5);
+        rawn4 = fract(lbn / pb4 + offn4);
+        lam4 = rf4 * tempo / (60 * pb4);
+      } else {
+        hz4 = clamp(P_hz4 * rf4, 0.005, 40);
+        rawn4 = fract(raw4 + hz4 / samplerate);
+        lam4 = hz4;
+        rs04 = pstart * P_rst;
+        if (ty4 < 2) { rs04 = max(rs04, ck4); }
+        if (rs04 > 0.5) { rawn4 = 0; }
+      }
+    }
+    wrap4 = rawn4 < raw4 - 0.5 ? 1 : 0;
+    ph4 = fract(rawn4 + P_phase4 + 0.5 * tanh(mp4));
+    ta4 = clamp(P_ta4 + 0.5 * tanh(ms4), 0, 1);
+    ae4 = clamp(P_amp4 + tanh(ma4), 0, 1);
+    // POLARIZE (amp wire mode 2): the wire into amp no longer adds to amp, it scales the node around its middle by
+    // -1..1, so the shape turns upside down while the modulator is below zero (no wire = flat)
+    if (P_pol4 > 0.5) { ae4 = clamp(P_amp4, 0, 1); }
+    pm4 = clamp(ma4, -1, 1);
+    v4 = 0.5;
+    hvn4 = hv4;
+    svn4 = sv4;
+    gcn4 = max(0, gc4 - 1);
+    epn4 = ep4;
+    ern4 = er4;
+    cxn4 = cx4;
+    cyn4 = cy4;
+    czn4 = cz4;
+    if (on4 > 0.5) {
+      if (ty4 == 0) {
+        v4 = n_lfo(ph4, ta4);
+      }
+      if (ty4 == 1) {
+        // SLOPE: mode 1 = cycle (the loop envelope), mode 2 = trigger: one rise + fall each time the
+        // layout's clock fires, then it rests at 0
+        if (P_mode4 > 0.5) {
+          if (ck4 > 0.5) {
+            epn4 = 0;
+            ern4 = 1;
+          }
+          if (ern4 > 0.5) {
+            epn4 = epn4 + lam4 / samplerate;
+            if (epn4 >= 1) {
+              epn4 = 0;
+              ern4 = 0;
+            }
+          }
+          v4 = ern4 > 0.5 ? n_env(epn4, ta4, P_tb4) : 0;
+        } else {
+          v4 = n_env(ph4, ta4, P_tb4);
+        }
+      }
+      if (ty4 == 2) {
+        st4 = P_clk4 > 0.5 ? ck4 : max(wrap4, ck4);
+        if (st4 > 0.5) {
+          hvn4 = n_shq(noise() * 0.5 + 0.5, P_tb4);
+        }
+        svn4 = sv4 + (hvn4 - sv4) * n_slew(ta4, samplerate);
+        v4 = svn4;
+      }
+      if (ty4 == 3) {
+        fire4 = ck4;
+        rnd4 = noise() * 0.5 + 0.5;
+        if (wrap4 > 0.5) {
+          if (rnd4 < P_tb4) { fire4 = 1; }
+        }
+        rnd24 = noise() * 0.5 + 0.5;
+        if (rnd24 < (1 - P_tb4) * lam4 / samplerate) { fire4 = 1; }
+        if (fire4 > 0.5) { gcn4 = (1 + ta4 * 49) * 0.001 * samplerate; }
+        v4 = gcn4 > 0 ? 1 : 0;
+      }
+      if (ty4 == 4) {
+        // SLEW (stepped or smooth): the signal on its shape input (the layout's wire), B mixes in fresh noise.
+        // mode 1 = stepped (sampled on each cycle / clock), mode 2 = smooth (slews toward it, A = slew)
+        xin4 = clamp(0.5 + 0.5 * tanh(ms4 * 2), 0, 1);
+        xin4 = xin4 + (noise() * 0.5 + 0.5 - xin4) * P_tb4;
+        st44 = P_clk4 > 0.5 ? ck4 : max(wrap4, ck4);
+        if (st44 > 0.5) { hvn4 = xin4; }
+        svn4 = sv4 + (xin4 - sv4) * n_slew(P_ta4, samplerate);
+        v4 = P_mode4 > 0.5 ? svn4 : hvn4;
+      }
+      if (ty4 == 5) {
+        // RANDOM: a new random value each cycle / clock. A = skew (0 low, 50 even, 100 high).
+        // mode 1 = stored (holds), mode 2 = fluctuating (glides to each new value over the cycle); B = steps.
+        // mode 3 = curve: smooth random along Bezier curves that join without corners; B = how much they bend.
+        // (curve keeps its start / handles in cx / cy / cz and its time in er, which only CHAOS / SLOPE use)
+        md54 = floor(P_mode4 + 0.5);
+        st54 = P_clk4 > 0.5 ? ck4 : max(wrap4, ck4);
+        if (st54 > 0.5) {
+          u54 = noise() * 0.5 + 0.5;
+          u54 = pow(clamp(u54, 0.000001, 1), pow(4, (0.5 - ta4) * 2));
+          hvn4 = n_shq(u54, P_tb4);
+          if (md54 == 2) {
+            hvn4 = u54;
+            cxn4 = clamp(sv4, 0, 1);
+            cyn4 = clamp(2 * cxn4 - cz4, 0, 1);
+            czn4 = clamp(hvn4 + (noise() * 0.5) * P_tb4, 0, 1);
+            ern4 = 0;
+          }
+        }
+        svn4 = sv4 + (hvn4 - sv4) * clamp(lam4 * 4 / samplerate, 0, 1);
+        v4 = P_mode4 > 0.5 ? svn4 : hvn4;
+        if (md54 == 2) {
+          ern4 = min(1, ern4 + lam4 / samplerate);
+          t54 = clamp(ern4, 0, 1);
+          q54 = 1 - t54;
+          svn4 = q54 * q54 * q54 * cxn4 + 3 * q54 * q54 * t54 * cyn4 + 3 * q54 * t54 * t54 * czn4 + t54 * t54 * t54 * hvn4;
+          svn4 = clamp(svn4, 0, 1);
+          v4 = svn4;
+        }
+      }
+      if (ty4 == 6) {
+        // CHAOS: mode 1 = Lorenz, mode 2 = Rossler, at about one orbit per cycle. A = output x .. z, B = character.
+        // The layout's clock kicks it. Escapes (never seen in the fuzz) restart it.
+        if (abs(cxn4) + abs(cyn4) + abs(czn4) < 0.000001) { cxn4 = 0.1; }
+        if (ck4 > 0.5) { cxn4 = cxn4 + 0.5; }
+        dtc4 = min(0.01, lam4 * 0.75 / samplerate);
+        ox4 = 0.5;
+        oz4 = 0;
+        if (P_mode4 > 0.5) {
+          rc4 = 4 + 4 * P_tb4;
+          dx4 = 0 - cyn4 - czn4;
+          dy4 = cxn4 + 0.2 * cyn4;
+          dz4 = 0.2 + czn4 * (cxn4 - rc4);
+          cxn4 = cxn4 + dx4 * dtc4;
+          cyn4 = cyn4 + dy4 * dtc4;
+          czn4 = czn4 + dz4 * dtc4;
+          ox4 = clamp(cxn4 / 24 + 0.5, 0, 1);
+          oz4 = clamp(czn4 / 20, 0, 1);
+        } else {
+          rr4 = 24 + 16 * P_tb4;
+          dx4 = 10 * (cyn4 - cxn4);
+          dy4 = cxn4 * (rr4 - czn4) - cyn4;
+          dz4 = cxn4 * cyn4 - 2.6667 * czn4;
+          cxn4 = cxn4 + dx4 * dtc4;
+          cyn4 = cyn4 + dy4 * dtc4;
+          czn4 = czn4 + dz4 * dtc4;
+          ox4 = clamp(cxn4 / 44 + 0.5, 0, 1);
+          oz4 = clamp(czn4 / 60, 0, 1);
+        }
+        esc4 = abs(cxn4) + abs(cyn4) + abs(czn4);
+        if (isnan(esc4) > 0.5) { esc4 = 1000; }
+        if (esc4 > 500) {
+          cxn4 = 0.1;
+          cyn4 = 0;
+          czn4 = 0;
+        }
+        v4 = ox4 + (oz4 - ox4) * ta4;
+      }
+    }
+    v4 = clamp(v4, 0, 1);
+    if (P_pol4 > 0.5) { v4 = 0.5 + (v4 - 0.5) * pm4; }
+    wn4 = on4 > 0.5 ? v4 * ae4 : 0;
+    pvn4 = on4 > 0.5 ? (v4 * 2 - 1) * ae4 : 0;
+    tgn4 = 0;
+    if (v4 > 0.5) {
+      if (vv4 <= 0.5) { tgn4 = on4; }
+    }
+    o4 = P_bi4 > 0.5 ? pvn4 : wn4;
+    o4 = n_fin(o4 * P_out4 * P_mdep + P_moff);   // master depth (negative = all inverted) and master offset, all lanes
+    // GROUP lanes 2 and 3 of this node: the same output (before the main lane's level), each with its own depth; a
+    // negative depth inverts (0..1 outputs flip to 1 - x, -1..1 outputs to -x)
+    gb4 = P_bi4 > 0.5 ? pvn4 : wn4;
+    gb4 = n_fin(gb4 * P_mdep + P_moff);
+    y04 = o4;
+    y14 = n_fin(n_grp(gb4, P_g1d4, P_bi4));
+    y24 = n_fin(n_grp(gb4, P_g2d4, P_bi4));
+    // HAND-OFF: one lane at a time moves, the others hold where they were; the node passes to the next lane in use
+    // (P_hm = which of its three lanes are on, from the engine) at the end of each cycle
+    asn4 = as4;
+    if (P_ho4 > 0.5) {
+      if (wrap4 > 0.5) { asn4 = n_next(as4, P_hm4); }
+      if (asn4 != 0) { y04 = lha4; }
+      if (asn4 != 1) { y14 = lhb4; }
+      if (asn4 != 2) { y24 = lhc4; }
+    }
+    
+    on5 = P_on5 * bankon1;
+    ty5 = floor(P_type5 + 0.5);
+    mr5 = tanh(mr5);
+    rf5 = pow(2, 4 * mr5);
+    pb5 = n_divb(P_div5);
+    offn5 = off5;
+    rawn5 = raw5;
+    lam5 = 0;
+    if (on5 > 0.5) {
+      if (P_sync5 > 0.5) {
+        offn5 = off5 + (rf5 - 1) * d / pb5;
+        if (abs(mr5) < 0.001) {
+          offn5 = offn5 + (floor(offn5 + 0.5) - offn5) * d * 0.25;
+        }
+        offn5 = offn5 - floor(offn5 + 0.5);
+        rawn5 = fract(lbn / pb5 + offn5);
+        lam5 = rf5 * tempo / (60 * pb5);
+      } else {
+        hz5 = clamp(P_hz5 * rf5, 0.005, 40);
+        rawn5 = fract(raw5 + hz5 / samplerate);
+        lam5 = hz5;
+        rs05 = pstart * P_rst;
+        if (ty5 < 2) { rs05 = max(rs05, ck5); }
+        if (rs05 > 0.5) { rawn5 = 0; }
+      }
+    }
+    wrap5 = rawn5 < raw5 - 0.5 ? 1 : 0;
+    ph5 = fract(rawn5 + P_phase5 + 0.5 * tanh(mp5));
+    ta5 = clamp(P_ta5 + 0.5 * tanh(ms5), 0, 1);
+    ae5 = clamp(P_amp5 + tanh(ma5), 0, 1);
+    // POLARIZE (amp wire mode 2): the wire into amp no longer adds to amp, it scales the node around its middle by
+    // -1..1, so the shape turns upside down while the modulator is below zero (no wire = flat)
+    if (P_pol5 > 0.5) { ae5 = clamp(P_amp5, 0, 1); }
+    pm5 = clamp(ma5, -1, 1);
+    v5 = 0.5;
+    hvn5 = hv5;
+    svn5 = sv5;
+    gcn5 = max(0, gc5 - 1);
+    epn5 = ep5;
+    ern5 = er5;
+    cxn5 = cx5;
+    cyn5 = cy5;
+    czn5 = cz5;
+    if (on5 > 0.5) {
+      if (ty5 == 0) {
+        v5 = n_lfo(ph5, ta5);
+      }
+      if (ty5 == 1) {
+        // SLOPE: mode 1 = cycle (the loop envelope), mode 2 = trigger: one rise + fall each time the
+        // layout's clock fires, then it rests at 0
+        if (P_mode5 > 0.5) {
+          if (ck5 > 0.5) {
+            epn5 = 0;
+            ern5 = 1;
+          }
+          if (ern5 > 0.5) {
+            epn5 = epn5 + lam5 / samplerate;
+            if (epn5 >= 1) {
+              epn5 = 0;
+              ern5 = 0;
+            }
+          }
+          v5 = ern5 > 0.5 ? n_env(epn5, ta5, P_tb5) : 0;
+        } else {
+          v5 = n_env(ph5, ta5, P_tb5);
+        }
+      }
+      if (ty5 == 2) {
+        st5 = P_clk5 > 0.5 ? ck5 : max(wrap5, ck5);
+        if (st5 > 0.5) {
+          hvn5 = n_shq(noise() * 0.5 + 0.5, P_tb5);
+        }
+        svn5 = sv5 + (hvn5 - sv5) * n_slew(ta5, samplerate);
+        v5 = svn5;
+      }
+      if (ty5 == 3) {
+        fire5 = ck5;
+        rnd5 = noise() * 0.5 + 0.5;
+        if (wrap5 > 0.5) {
+          if (rnd5 < P_tb5) { fire5 = 1; }
+        }
+        rnd25 = noise() * 0.5 + 0.5;
+        if (rnd25 < (1 - P_tb5) * lam5 / samplerate) { fire5 = 1; }
+        if (fire5 > 0.5) { gcn5 = (1 + ta5 * 49) * 0.001 * samplerate; }
+        v5 = gcn5 > 0 ? 1 : 0;
+      }
+      if (ty5 == 4) {
+        // SLEW (stepped or smooth): the signal on its shape input (the layout's wire), B mixes in fresh noise.
+        // mode 1 = stepped (sampled on each cycle / clock), mode 2 = smooth (slews toward it, A = slew)
+        xin5 = clamp(0.5 + 0.5 * tanh(ms5 * 2), 0, 1);
+        xin5 = xin5 + (noise() * 0.5 + 0.5 - xin5) * P_tb5;
+        st45 = P_clk5 > 0.5 ? ck5 : max(wrap5, ck5);
+        if (st45 > 0.5) { hvn5 = xin5; }
+        svn5 = sv5 + (xin5 - sv5) * n_slew(P_ta5, samplerate);
+        v5 = P_mode5 > 0.5 ? svn5 : hvn5;
+      }
+      if (ty5 == 5) {
+        // RANDOM: a new random value each cycle / clock. A = skew (0 low, 50 even, 100 high).
+        // mode 1 = stored (holds), mode 2 = fluctuating (glides to each new value over the cycle); B = steps.
+        // mode 3 = curve: smooth random along Bezier curves that join without corners; B = how much they bend.
+        // (curve keeps its start / handles in cx / cy / cz and its time in er, which only CHAOS / SLOPE use)
+        md55 = floor(P_mode5 + 0.5);
+        st55 = P_clk5 > 0.5 ? ck5 : max(wrap5, ck5);
+        if (st55 > 0.5) {
+          u55 = noise() * 0.5 + 0.5;
+          u55 = pow(clamp(u55, 0.000001, 1), pow(4, (0.5 - ta5) * 2));
+          hvn5 = n_shq(u55, P_tb5);
+          if (md55 == 2) {
+            hvn5 = u55;
+            cxn5 = clamp(sv5, 0, 1);
+            cyn5 = clamp(2 * cxn5 - cz5, 0, 1);
+            czn5 = clamp(hvn5 + (noise() * 0.5) * P_tb5, 0, 1);
+            ern5 = 0;
+          }
+        }
+        svn5 = sv5 + (hvn5 - sv5) * clamp(lam5 * 4 / samplerate, 0, 1);
+        v5 = P_mode5 > 0.5 ? svn5 : hvn5;
+        if (md55 == 2) {
+          ern5 = min(1, ern5 + lam5 / samplerate);
+          t55 = clamp(ern5, 0, 1);
+          q55 = 1 - t55;
+          svn5 = q55 * q55 * q55 * cxn5 + 3 * q55 * q55 * t55 * cyn5 + 3 * q55 * t55 * t55 * czn5 + t55 * t55 * t55 * hvn5;
+          svn5 = clamp(svn5, 0, 1);
+          v5 = svn5;
+        }
+      }
+      if (ty5 == 6) {
+        // CHAOS: mode 1 = Lorenz, mode 2 = Rossler, at about one orbit per cycle. A = output x .. z, B = character.
+        // The layout's clock kicks it. Escapes (never seen in the fuzz) restart it.
+        if (abs(cxn5) + abs(cyn5) + abs(czn5) < 0.000001) { cxn5 = 0.1; }
+        if (ck5 > 0.5) { cxn5 = cxn5 + 0.5; }
+        dtc5 = min(0.01, lam5 * 0.75 / samplerate);
+        ox5 = 0.5;
+        oz5 = 0;
+        if (P_mode5 > 0.5) {
+          rc5 = 4 + 4 * P_tb5;
+          dx5 = 0 - cyn5 - czn5;
+          dy5 = cxn5 + 0.2 * cyn5;
+          dz5 = 0.2 + czn5 * (cxn5 - rc5);
+          cxn5 = cxn5 + dx5 * dtc5;
+          cyn5 = cyn5 + dy5 * dtc5;
+          czn5 = czn5 + dz5 * dtc5;
+          ox5 = clamp(cxn5 / 24 + 0.5, 0, 1);
+          oz5 = clamp(czn5 / 20, 0, 1);
+        } else {
+          rr5 = 24 + 16 * P_tb5;
+          dx5 = 10 * (cyn5 - cxn5);
+          dy5 = cxn5 * (rr5 - czn5) - cyn5;
+          dz5 = cxn5 * cyn5 - 2.6667 * czn5;
+          cxn5 = cxn5 + dx5 * dtc5;
+          cyn5 = cyn5 + dy5 * dtc5;
+          czn5 = czn5 + dz5 * dtc5;
+          ox5 = clamp(cxn5 / 44 + 0.5, 0, 1);
+          oz5 = clamp(czn5 / 60, 0, 1);
+        }
+        esc5 = abs(cxn5) + abs(cyn5) + abs(czn5);
+        if (isnan(esc5) > 0.5) { esc5 = 1000; }
+        if (esc5 > 500) {
+          cxn5 = 0.1;
+          cyn5 = 0;
+          czn5 = 0;
+        }
+        v5 = ox5 + (oz5 - ox5) * ta5;
+      }
+    }
+    v5 = clamp(v5, 0, 1);
+    if (P_pol5 > 0.5) { v5 = 0.5 + (v5 - 0.5) * pm5; }
+    wn5 = on5 > 0.5 ? v5 * ae5 : 0;
+    pvn5 = on5 > 0.5 ? (v5 * 2 - 1) * ae5 : 0;
+    tgn5 = 0;
+    if (v5 > 0.5) {
+      if (vv5 <= 0.5) { tgn5 = on5; }
+    }
+    o5 = P_bi5 > 0.5 ? pvn5 : wn5;
+    o5 = n_fin(o5 * P_out5 * P_mdep + P_moff);   // master depth (negative = all inverted) and master offset, all lanes
+    // GROUP lanes 2 and 3 of this node: the same output (before the main lane's level), each with its own depth; a
+    // negative depth inverts (0..1 outputs flip to 1 - x, -1..1 outputs to -x)
+    gb5 = P_bi5 > 0.5 ? pvn5 : wn5;
+    gb5 = n_fin(gb5 * P_mdep + P_moff);
+    y05 = o5;
+    y15 = n_fin(n_grp(gb5, P_g1d5, P_bi5));
+    y25 = n_fin(n_grp(gb5, P_g2d5, P_bi5));
+    // HAND-OFF: one lane at a time moves, the others hold where they were; the node passes to the next lane in use
+    // (P_hm = which of its three lanes are on, from the engine) at the end of each cycle
+    asn5 = as5;
+    if (P_ho5 > 0.5) {
+      if (wrap5 > 0.5) { asn5 = n_next(as5, P_hm5); }
+      if (asn5 != 0) { y05 = lha5; }
+      if (asn5 != 1) { y15 = lhb5; }
+      if (asn5 != 2) { y25 = lhc5; }
+    }
+    
+    on6 = P_on6 * bankon1;
+    ty6 = floor(P_type6 + 0.5);
+    mr6 = tanh(mr6);
+    rf6 = pow(2, 4 * mr6);
+    pb6 = n_divb(P_div6);
+    offn6 = off6;
+    rawn6 = raw6;
+    lam6 = 0;
+    if (on6 > 0.5) {
+      if (P_sync6 > 0.5) {
+        offn6 = off6 + (rf6 - 1) * d / pb6;
+        if (abs(mr6) < 0.001) {
+          offn6 = offn6 + (floor(offn6 + 0.5) - offn6) * d * 0.25;
+        }
+        offn6 = offn6 - floor(offn6 + 0.5);
+        rawn6 = fract(lbn / pb6 + offn6);
+        lam6 = rf6 * tempo / (60 * pb6);
+      } else {
+        hz6 = clamp(P_hz6 * rf6, 0.005, 40);
+        rawn6 = fract(raw6 + hz6 / samplerate);
+        lam6 = hz6;
+        rs06 = pstart * P_rst;
+        if (ty6 < 2) { rs06 = max(rs06, ck6); }
+        if (rs06 > 0.5) { rawn6 = 0; }
+      }
+    }
+    wrap6 = rawn6 < raw6 - 0.5 ? 1 : 0;
+    ph6 = fract(rawn6 + P_phase6 + 0.5 * tanh(mp6));
+    ta6 = clamp(P_ta6 + 0.5 * tanh(ms6), 0, 1);
+    ae6 = clamp(P_amp6 + tanh(ma6), 0, 1);
+    // POLARIZE (amp wire mode 2): the wire into amp no longer adds to amp, it scales the node around its middle by
+    // -1..1, so the shape turns upside down while the modulator is below zero (no wire = flat)
+    if (P_pol6 > 0.5) { ae6 = clamp(P_amp6, 0, 1); }
+    pm6 = clamp(ma6, -1, 1);
+    v6 = 0.5;
+    hvn6 = hv6;
+    svn6 = sv6;
+    gcn6 = max(0, gc6 - 1);
+    epn6 = ep6;
+    ern6 = er6;
+    cxn6 = cx6;
+    cyn6 = cy6;
+    czn6 = cz6;
+    if (on6 > 0.5) {
+      if (ty6 == 0) {
+        v6 = n_lfo(ph6, ta6);
+      }
+      if (ty6 == 1) {
+        // SLOPE: mode 1 = cycle (the loop envelope), mode 2 = trigger: one rise + fall each time the
+        // layout's clock fires, then it rests at 0
+        if (P_mode6 > 0.5) {
+          if (ck6 > 0.5) {
+            epn6 = 0;
+            ern6 = 1;
+          }
+          if (ern6 > 0.5) {
+            epn6 = epn6 + lam6 / samplerate;
+            if (epn6 >= 1) {
+              epn6 = 0;
+              ern6 = 0;
+            }
+          }
+          v6 = ern6 > 0.5 ? n_env(epn6, ta6, P_tb6) : 0;
+        } else {
+          v6 = n_env(ph6, ta6, P_tb6);
+        }
+      }
+      if (ty6 == 2) {
+        st6 = P_clk6 > 0.5 ? ck6 : max(wrap6, ck6);
+        if (st6 > 0.5) {
+          hvn6 = n_shq(noise() * 0.5 + 0.5, P_tb6);
+        }
+        svn6 = sv6 + (hvn6 - sv6) * n_slew(ta6, samplerate);
+        v6 = svn6;
+      }
+      if (ty6 == 3) {
+        fire6 = ck6;
+        rnd6 = noise() * 0.5 + 0.5;
+        if (wrap6 > 0.5) {
+          if (rnd6 < P_tb6) { fire6 = 1; }
+        }
+        rnd26 = noise() * 0.5 + 0.5;
+        if (rnd26 < (1 - P_tb6) * lam6 / samplerate) { fire6 = 1; }
+        if (fire6 > 0.5) { gcn6 = (1 + ta6 * 49) * 0.001 * samplerate; }
+        v6 = gcn6 > 0 ? 1 : 0;
+      }
+      if (ty6 == 4) {
+        // SLEW (stepped or smooth): the signal on its shape input (the layout's wire), B mixes in fresh noise.
+        // mode 1 = stepped (sampled on each cycle / clock), mode 2 = smooth (slews toward it, A = slew)
+        xin6 = clamp(0.5 + 0.5 * tanh(ms6 * 2), 0, 1);
+        xin6 = xin6 + (noise() * 0.5 + 0.5 - xin6) * P_tb6;
+        st46 = P_clk6 > 0.5 ? ck6 : max(wrap6, ck6);
+        if (st46 > 0.5) { hvn6 = xin6; }
+        svn6 = sv6 + (xin6 - sv6) * n_slew(P_ta6, samplerate);
+        v6 = P_mode6 > 0.5 ? svn6 : hvn6;
+      }
+      if (ty6 == 5) {
+        // RANDOM: a new random value each cycle / clock. A = skew (0 low, 50 even, 100 high).
+        // mode 1 = stored (holds), mode 2 = fluctuating (glides to each new value over the cycle); B = steps.
+        // mode 3 = curve: smooth random along Bezier curves that join without corners; B = how much they bend.
+        // (curve keeps its start / handles in cx / cy / cz and its time in er, which only CHAOS / SLOPE use)
+        md56 = floor(P_mode6 + 0.5);
+        st56 = P_clk6 > 0.5 ? ck6 : max(wrap6, ck6);
+        if (st56 > 0.5) {
+          u56 = noise() * 0.5 + 0.5;
+          u56 = pow(clamp(u56, 0.000001, 1), pow(4, (0.5 - ta6) * 2));
+          hvn6 = n_shq(u56, P_tb6);
+          if (md56 == 2) {
+            hvn6 = u56;
+            cxn6 = clamp(sv6, 0, 1);
+            cyn6 = clamp(2 * cxn6 - cz6, 0, 1);
+            czn6 = clamp(hvn6 + (noise() * 0.5) * P_tb6, 0, 1);
+            ern6 = 0;
+          }
+        }
+        svn6 = sv6 + (hvn6 - sv6) * clamp(lam6 * 4 / samplerate, 0, 1);
+        v6 = P_mode6 > 0.5 ? svn6 : hvn6;
+        if (md56 == 2) {
+          ern6 = min(1, ern6 + lam6 / samplerate);
+          t56 = clamp(ern6, 0, 1);
+          q56 = 1 - t56;
+          svn6 = q56 * q56 * q56 * cxn6 + 3 * q56 * q56 * t56 * cyn6 + 3 * q56 * t56 * t56 * czn6 + t56 * t56 * t56 * hvn6;
+          svn6 = clamp(svn6, 0, 1);
+          v6 = svn6;
+        }
+      }
+      if (ty6 == 6) {
+        // CHAOS: mode 1 = Lorenz, mode 2 = Rossler, at about one orbit per cycle. A = output x .. z, B = character.
+        // The layout's clock kicks it. Escapes (never seen in the fuzz) restart it.
+        if (abs(cxn6) + abs(cyn6) + abs(czn6) < 0.000001) { cxn6 = 0.1; }
+        if (ck6 > 0.5) { cxn6 = cxn6 + 0.5; }
+        dtc6 = min(0.01, lam6 * 0.75 / samplerate);
+        ox6 = 0.5;
+        oz6 = 0;
+        if (P_mode6 > 0.5) {
+          rc6 = 4 + 4 * P_tb6;
+          dx6 = 0 - cyn6 - czn6;
+          dy6 = cxn6 + 0.2 * cyn6;
+          dz6 = 0.2 + czn6 * (cxn6 - rc6);
+          cxn6 = cxn6 + dx6 * dtc6;
+          cyn6 = cyn6 + dy6 * dtc6;
+          czn6 = czn6 + dz6 * dtc6;
+          ox6 = clamp(cxn6 / 24 + 0.5, 0, 1);
+          oz6 = clamp(czn6 / 20, 0, 1);
+        } else {
+          rr6 = 24 + 16 * P_tb6;
+          dx6 = 10 * (cyn6 - cxn6);
+          dy6 = cxn6 * (rr6 - czn6) - cyn6;
+          dz6 = cxn6 * cyn6 - 2.6667 * czn6;
+          cxn6 = cxn6 + dx6 * dtc6;
+          cyn6 = cyn6 + dy6 * dtc6;
+          czn6 = czn6 + dz6 * dtc6;
+          ox6 = clamp(cxn6 / 44 + 0.5, 0, 1);
+          oz6 = clamp(czn6 / 60, 0, 1);
+        }
+        esc6 = abs(cxn6) + abs(cyn6) + abs(czn6);
+        if (isnan(esc6) > 0.5) { esc6 = 1000; }
+        if (esc6 > 500) {
+          cxn6 = 0.1;
+          cyn6 = 0;
+          czn6 = 0;
+        }
+        v6 = ox6 + (oz6 - ox6) * ta6;
+      }
+    }
+    v6 = clamp(v6, 0, 1);
+    if (P_pol6 > 0.5) { v6 = 0.5 + (v6 - 0.5) * pm6; }
+    wn6 = on6 > 0.5 ? v6 * ae6 : 0;
+    pvn6 = on6 > 0.5 ? (v6 * 2 - 1) * ae6 : 0;
+    tgn6 = 0;
+    if (v6 > 0.5) {
+      if (vv6 <= 0.5) { tgn6 = on6; }
+    }
+    o6 = P_bi6 > 0.5 ? pvn6 : wn6;
+    o6 = n_fin(o6 * P_out6 * P_mdep + P_moff);   // master depth (negative = all inverted) and master offset, all lanes
+    // GROUP lanes 2 and 3 of this node: the same output (before the main lane's level), each with its own depth; a
+    // negative depth inverts (0..1 outputs flip to 1 - x, -1..1 outputs to -x)
+    gb6 = P_bi6 > 0.5 ? pvn6 : wn6;
+    gb6 = n_fin(gb6 * P_mdep + P_moff);
+    y06 = o6;
+    y16 = n_fin(n_grp(gb6, P_g1d6, P_bi6));
+    y26 = n_fin(n_grp(gb6, P_g2d6, P_bi6));
+    // HAND-OFF: one lane at a time moves, the others hold where they were; the node passes to the next lane in use
+    // (P_hm = which of its three lanes are on, from the engine) at the end of each cycle
+    asn6 = as6;
+    if (P_ho6 > 0.5) {
+      if (wrap6 > 0.5) { asn6 = n_next(as6, P_hm6); }
+      if (asn6 != 0) { y06 = lha6; }
+      if (asn6 != 1) { y16 = lhb6; }
+      if (asn6 != 2) { y26 = lhc6; }
+    }
+    
+    on7 = P_on7 * bankon1;
+    ty7 = floor(P_type7 + 0.5);
+    mr7 = tanh(mr7);
+    rf7 = pow(2, 4 * mr7);
+    pb7 = n_divb(P_div7);
+    offn7 = off7;
+    rawn7 = raw7;
+    lam7 = 0;
+    if (on7 > 0.5) {
+      if (P_sync7 > 0.5) {
+        offn7 = off7 + (rf7 - 1) * d / pb7;
+        if (abs(mr7) < 0.001) {
+          offn7 = offn7 + (floor(offn7 + 0.5) - offn7) * d * 0.25;
+        }
+        offn7 = offn7 - floor(offn7 + 0.5);
+        rawn7 = fract(lbn / pb7 + offn7);
+        lam7 = rf7 * tempo / (60 * pb7);
+      } else {
+        hz7 = clamp(P_hz7 * rf7, 0.005, 40);
+        rawn7 = fract(raw7 + hz7 / samplerate);
+        lam7 = hz7;
+        rs07 = pstart * P_rst;
+        if (ty7 < 2) { rs07 = max(rs07, ck7); }
+        if (rs07 > 0.5) { rawn7 = 0; }
+      }
+    }
+    wrap7 = rawn7 < raw7 - 0.5 ? 1 : 0;
+    ph7 = fract(rawn7 + P_phase7 + 0.5 * tanh(mp7));
+    ta7 = clamp(P_ta7 + 0.5 * tanh(ms7), 0, 1);
+    ae7 = clamp(P_amp7 + tanh(ma7), 0, 1);
+    // POLARIZE (amp wire mode 2): the wire into amp no longer adds to amp, it scales the node around its middle by
+    // -1..1, so the shape turns upside down while the modulator is below zero (no wire = flat)
+    if (P_pol7 > 0.5) { ae7 = clamp(P_amp7, 0, 1); }
+    pm7 = clamp(ma7, -1, 1);
+    v7 = 0.5;
+    hvn7 = hv7;
+    svn7 = sv7;
+    gcn7 = max(0, gc7 - 1);
+    epn7 = ep7;
+    ern7 = er7;
+    cxn7 = cx7;
+    cyn7 = cy7;
+    czn7 = cz7;
+    if (on7 > 0.5) {
+      if (ty7 == 0) {
+        v7 = n_lfo(ph7, ta7);
+      }
+      if (ty7 == 1) {
+        // SLOPE: mode 1 = cycle (the loop envelope), mode 2 = trigger: one rise + fall each time the
+        // layout's clock fires, then it rests at 0
+        if (P_mode7 > 0.5) {
+          if (ck7 > 0.5) {
+            epn7 = 0;
+            ern7 = 1;
+          }
+          if (ern7 > 0.5) {
+            epn7 = epn7 + lam7 / samplerate;
+            if (epn7 >= 1) {
+              epn7 = 0;
+              ern7 = 0;
+            }
+          }
+          v7 = ern7 > 0.5 ? n_env(epn7, ta7, P_tb7) : 0;
+        } else {
+          v7 = n_env(ph7, ta7, P_tb7);
+        }
+      }
+      if (ty7 == 2) {
+        st7 = P_clk7 > 0.5 ? ck7 : max(wrap7, ck7);
+        if (st7 > 0.5) {
+          hvn7 = n_shq(noise() * 0.5 + 0.5, P_tb7);
+        }
+        svn7 = sv7 + (hvn7 - sv7) * n_slew(ta7, samplerate);
+        v7 = svn7;
+      }
+      if (ty7 == 3) {
+        fire7 = ck7;
+        rnd7 = noise() * 0.5 + 0.5;
+        if (wrap7 > 0.5) {
+          if (rnd7 < P_tb7) { fire7 = 1; }
+        }
+        rnd27 = noise() * 0.5 + 0.5;
+        if (rnd27 < (1 - P_tb7) * lam7 / samplerate) { fire7 = 1; }
+        if (fire7 > 0.5) { gcn7 = (1 + ta7 * 49) * 0.001 * samplerate; }
+        v7 = gcn7 > 0 ? 1 : 0;
+      }
+      if (ty7 == 4) {
+        // SLEW (stepped or smooth): the signal on its shape input (the layout's wire), B mixes in fresh noise.
+        // mode 1 = stepped (sampled on each cycle / clock), mode 2 = smooth (slews toward it, A = slew)
+        xin7 = clamp(0.5 + 0.5 * tanh(ms7 * 2), 0, 1);
+        xin7 = xin7 + (noise() * 0.5 + 0.5 - xin7) * P_tb7;
+        st47 = P_clk7 > 0.5 ? ck7 : max(wrap7, ck7);
+        if (st47 > 0.5) { hvn7 = xin7; }
+        svn7 = sv7 + (xin7 - sv7) * n_slew(P_ta7, samplerate);
+        v7 = P_mode7 > 0.5 ? svn7 : hvn7;
+      }
+      if (ty7 == 5) {
+        // RANDOM: a new random value each cycle / clock. A = skew (0 low, 50 even, 100 high).
+        // mode 1 = stored (holds), mode 2 = fluctuating (glides to each new value over the cycle); B = steps.
+        // mode 3 = curve: smooth random along Bezier curves that join without corners; B = how much they bend.
+        // (curve keeps its start / handles in cx / cy / cz and its time in er, which only CHAOS / SLOPE use)
+        md57 = floor(P_mode7 + 0.5);
+        st57 = P_clk7 > 0.5 ? ck7 : max(wrap7, ck7);
+        if (st57 > 0.5) {
+          u57 = noise() * 0.5 + 0.5;
+          u57 = pow(clamp(u57, 0.000001, 1), pow(4, (0.5 - ta7) * 2));
+          hvn7 = n_shq(u57, P_tb7);
+          if (md57 == 2) {
+            hvn7 = u57;
+            cxn7 = clamp(sv7, 0, 1);
+            cyn7 = clamp(2 * cxn7 - cz7, 0, 1);
+            czn7 = clamp(hvn7 + (noise() * 0.5) * P_tb7, 0, 1);
+            ern7 = 0;
+          }
+        }
+        svn7 = sv7 + (hvn7 - sv7) * clamp(lam7 * 4 / samplerate, 0, 1);
+        v7 = P_mode7 > 0.5 ? svn7 : hvn7;
+        if (md57 == 2) {
+          ern7 = min(1, ern7 + lam7 / samplerate);
+          t57 = clamp(ern7, 0, 1);
+          q57 = 1 - t57;
+          svn7 = q57 * q57 * q57 * cxn7 + 3 * q57 * q57 * t57 * cyn7 + 3 * q57 * t57 * t57 * czn7 + t57 * t57 * t57 * hvn7;
+          svn7 = clamp(svn7, 0, 1);
+          v7 = svn7;
+        }
+      }
+      if (ty7 == 6) {
+        // CHAOS: mode 1 = Lorenz, mode 2 = Rossler, at about one orbit per cycle. A = output x .. z, B = character.
+        // The layout's clock kicks it. Escapes (never seen in the fuzz) restart it.
+        if (abs(cxn7) + abs(cyn7) + abs(czn7) < 0.000001) { cxn7 = 0.1; }
+        if (ck7 > 0.5) { cxn7 = cxn7 + 0.5; }
+        dtc7 = min(0.01, lam7 * 0.75 / samplerate);
+        ox7 = 0.5;
+        oz7 = 0;
+        if (P_mode7 > 0.5) {
+          rc7 = 4 + 4 * P_tb7;
+          dx7 = 0 - cyn7 - czn7;
+          dy7 = cxn7 + 0.2 * cyn7;
+          dz7 = 0.2 + czn7 * (cxn7 - rc7);
+          cxn7 = cxn7 + dx7 * dtc7;
+          cyn7 = cyn7 + dy7 * dtc7;
+          czn7 = czn7 + dz7 * dtc7;
+          ox7 = clamp(cxn7 / 24 + 0.5, 0, 1);
+          oz7 = clamp(czn7 / 20, 0, 1);
+        } else {
+          rr7 = 24 + 16 * P_tb7;
+          dx7 = 10 * (cyn7 - cxn7);
+          dy7 = cxn7 * (rr7 - czn7) - cyn7;
+          dz7 = cxn7 * cyn7 - 2.6667 * czn7;
+          cxn7 = cxn7 + dx7 * dtc7;
+          cyn7 = cyn7 + dy7 * dtc7;
+          czn7 = czn7 + dz7 * dtc7;
+          ox7 = clamp(cxn7 / 44 + 0.5, 0, 1);
+          oz7 = clamp(czn7 / 60, 0, 1);
+        }
+        esc7 = abs(cxn7) + abs(cyn7) + abs(czn7);
+        if (isnan(esc7) > 0.5) { esc7 = 1000; }
+        if (esc7 > 500) {
+          cxn7 = 0.1;
+          cyn7 = 0;
+          czn7 = 0;
+        }
+        v7 = ox7 + (oz7 - ox7) * ta7;
+      }
+    }
+    v7 = clamp(v7, 0, 1);
+    if (P_pol7 > 0.5) { v7 = 0.5 + (v7 - 0.5) * pm7; }
+    wn7 = on7 > 0.5 ? v7 * ae7 : 0;
+    pvn7 = on7 > 0.5 ? (v7 * 2 - 1) * ae7 : 0;
+    tgn7 = 0;
+    if (v7 > 0.5) {
+      if (vv7 <= 0.5) { tgn7 = on7; }
+    }
+    o7 = P_bi7 > 0.5 ? pvn7 : wn7;
+    o7 = n_fin(o7 * P_out7 * P_mdep + P_moff);   // master depth (negative = all inverted) and master offset, all lanes
+    // GROUP lanes 2 and 3 of this node: the same output (before the main lane's level), each with its own depth; a
+    // negative depth inverts (0..1 outputs flip to 1 - x, -1..1 outputs to -x)
+    gb7 = P_bi7 > 0.5 ? pvn7 : wn7;
+    gb7 = n_fin(gb7 * P_mdep + P_moff);
+    y07 = o7;
+    y17 = n_fin(n_grp(gb7, P_g1d7, P_bi7));
+    y27 = n_fin(n_grp(gb7, P_g2d7, P_bi7));
+    // HAND-OFF: one lane at a time moves, the others hold where they were; the node passes to the next lane in use
+    // (P_hm = which of its three lanes are on, from the engine) at the end of each cycle
+    asn7 = as7;
+    if (P_ho7 > 0.5) {
+      if (wrap7 > 0.5) { asn7 = n_next(as7, P_hm7); }
+      if (asn7 != 0) { y07 = lha7; }
+      if (asn7 != 1) { y17 = lhb7; }
+      if (asn7 != 2) { y27 = lhc7; }
+    }
+    
+    ra0 = n_pick(P_ra0, wn0, wn1, wn2, wn3, wn4, wn5, wn6, wn7);
+    rb0 = n_pick(P_rb0, wn0, wn1, wn2, wn3, wn4, wn5, wn6, wn7);
+    if (P_rb0 > 7.5) { rb0 = P_rthr0; }
+    op0 = floor(P_rop0 + 0.5);
+    sdn0 = rs0;
+    if (ra0 > rb0 + 0.02) { sdn0 = 1; }
+    if (ra0 < rb0 - 0.02) { sdn0 = -1; }
+    gn0 = rg0;
+    pcn0 = max(0, pc0 - 1);
+    if (op0 == 0) {
+      gn0 = sdn0 > 0 ? 1 : 0;
+    }
+    if (op0 == 1) {
+      gn0 = sdn0 < 0 ? 1 : 0;
+    }
+    if (op0 == 2) {
+      lv0 = min(ra0, rb0);
+      if (lv0 > 0.52) { gn0 = 1; }
+      if (lv0 < 0.48) { gn0 = 0; }
+    }
+    if (op0 == 3) {
+      lv0 = max(ra0, rb0);
+      if (lv0 > 0.52) { gn0 = 1; }
+      if (lv0 < 0.48) { gn0 = 0; }
+    }
+    if (op0 == 4) {
+      if (sdn0 != rs0) {
+        if (rs0 != 0) { pcn0 = 0.001 * samplerate; }
+      }
+      gn0 = pcn0 > 0 ? 1 : 0;
+    }
+    if (P_ron0 < 0.5) { gn0 = 0; }
+    
+    ra1 = n_pick(P_ra1, wn0, wn1, wn2, wn3, wn4, wn5, wn6, wn7);
+    rb1 = n_pick(P_rb1, wn0, wn1, wn2, wn3, wn4, wn5, wn6, wn7);
+    if (P_rb1 > 7.5) { rb1 = P_rthr1; }
+    op1 = floor(P_rop1 + 0.5);
+    sdn1 = rs1;
+    if (ra1 > rb1 + 0.02) { sdn1 = 1; }
+    if (ra1 < rb1 - 0.02) { sdn1 = -1; }
+    gn1 = rg1;
+    pcn1 = max(0, pc1 - 1);
+    if (op1 == 0) {
+      gn1 = sdn1 > 0 ? 1 : 0;
+    }
+    if (op1 == 1) {
+      gn1 = sdn1 < 0 ? 1 : 0;
+    }
+    if (op1 == 2) {
+      lv1 = min(ra1, rb1);
+      if (lv1 > 0.52) { gn1 = 1; }
+      if (lv1 < 0.48) { gn1 = 0; }
+    }
+    if (op1 == 3) {
+      lv1 = max(ra1, rb1);
+      if (lv1 > 0.52) { gn1 = 1; }
+      if (lv1 < 0.48) { gn1 = 0; }
+    }
+    if (op1 == 4) {
+      if (sdn1 != rs1) {
+        if (rs1 != 0) { pcn1 = 0.001 * samplerate; }
+      }
+      gn1 = pcn1 > 0 ? 1 : 0;
+    }
+    if (P_ron1 < 0.5) { gn1 = 0; }
+    
+    ra2 = n_pick(P_ra2, wn0, wn1, wn2, wn3, wn4, wn5, wn6, wn7);
+    rb2 = n_pick(P_rb2, wn0, wn1, wn2, wn3, wn4, wn5, wn6, wn7);
+    if (P_rb2 > 7.5) { rb2 = P_rthr2; }
+    op2 = floor(P_rop2 + 0.5);
+    sdn2 = rs2;
+    if (ra2 > rb2 + 0.02) { sdn2 = 1; }
+    if (ra2 < rb2 - 0.02) { sdn2 = -1; }
+    gn2 = rg2;
+    pcn2 = max(0, pc2 - 1);
+    if (op2 == 0) {
+      gn2 = sdn2 > 0 ? 1 : 0;
+    }
+    if (op2 == 1) {
+      gn2 = sdn2 < 0 ? 1 : 0;
+    }
+    if (op2 == 2) {
+      lv2 = min(ra2, rb2);
+      if (lv2 > 0.52) { gn2 = 1; }
+      if (lv2 < 0.48) { gn2 = 0; }
+    }
+    if (op2 == 3) {
+      lv2 = max(ra2, rb2);
+      if (lv2 > 0.52) { gn2 = 1; }
+      if (lv2 < 0.48) { gn2 = 0; }
+    }
+    if (op2 == 4) {
+      if (sdn2 != rs2) {
+        if (rs2 != 0) { pcn2 = 0.001 * samplerate; }
+      }
+      gn2 = pcn2 > 0 ? 1 : 0;
+    }
+    if (P_ron2 < 0.5) { gn2 = 0; }
+    
+    ra3 = n_pick(P_ra3, wn0, wn1, wn2, wn3, wn4, wn5, wn6, wn7);
+    rb3 = n_pick(P_rb3, wn0, wn1, wn2, wn3, wn4, wn5, wn6, wn7);
+    if (P_rb3 > 7.5) { rb3 = P_rthr3; }
+    op3 = floor(P_rop3 + 0.5);
+    sdn3 = rs3;
+    if (ra3 > rb3 + 0.02) { sdn3 = 1; }
+    if (ra3 < rb3 - 0.02) { sdn3 = -1; }
+    gn3 = rg3;
+    pcn3 = max(0, pc3 - 1);
+    if (op3 == 0) {
+      gn3 = sdn3 > 0 ? 1 : 0;
+    }
+    if (op3 == 1) {
+      gn3 = sdn3 < 0 ? 1 : 0;
+    }
+    if (op3 == 2) {
+      lv3 = min(ra3, rb3);
+      if (lv3 > 0.52) { gn3 = 1; }
+      if (lv3 < 0.48) { gn3 = 0; }
+    }
+    if (op3 == 3) {
+      lv3 = max(ra3, rb3);
+      if (lv3 > 0.52) { gn3 = 1; }
+      if (lv3 < 0.48) { gn3 = 0; }
+    }
+    if (op3 == 4) {
+      if (sdn3 != rs3) {
+        if (rs3 != 0) { pcn3 = 0.001 * samplerate; }
+      }
+      gn3 = pcn3 > 0 ? 1 : 0;
+    }
+    if (P_ron3 < 0.5) { gn3 = 0; }
+    
+    pt = floor(P_ptick + 0.5);
+    pfn = pf;
+    ptk = 0;
+    if (pt < 24) {
+      pfn = fract(lbn / n_divb(pt));
+      if (pfn < pf - 0.5) { ptk = 1; }
+    } else {
+      ptk = n_pick(pt - 24, tgn0, tgn1, tgn2, tgn3, tgn4, tgn5, tgn6, tgn7);
+    }
+    pvhn = pvh;
+    pcntn = max(0, pcnt - 1);
+    if (ptk > 0.5) {
+      if (P_pon > 0.5) {
+        pvhn = n_pick(P_psrc, wn0, wn1, wn2, wn3, wn4, wn5, wn6, wn7);
+        pcntn = 0.001 * samplerate;
+      }
+    }
+    
+    lb = lbn;
+    plw = playing;
+    pf = pfn;
+    pvh = pvhn;
+    pcnt = pcntn;
+    raw0 = rawn0;
+    off0 = offn0;
+    hv0 = hvn0;
+    sv0 = svn0;
+    gc0 = gcn0;
+    vv0 = v0;
+    pv0 = pvn0;
+    tg0 = tgn0;
+    ep0 = epn0;
+    er0 = ern0;
+    cx0 = cxn0;
+    cy0 = cyn0;
+    cz0 = czn0;
+    lha0 = y00;
+    lhb0 = y10;
+    lhc0 = y20;
+    as0 = asn0;
+    raw1 = rawn1;
+    off1 = offn1;
+    hv1 = hvn1;
+    sv1 = svn1;
+    gc1 = gcn1;
+    vv1 = v1;
+    pv1 = pvn1;
+    tg1 = tgn1;
+    ep1 = epn1;
+    er1 = ern1;
+    cx1 = cxn1;
+    cy1 = cyn1;
+    cz1 = czn1;
+    lha1 = y01;
+    lhb1 = y11;
+    lhc1 = y21;
+    as1 = asn1;
+    raw2 = rawn2;
+    off2 = offn2;
+    hv2 = hvn2;
+    sv2 = svn2;
+    gc2 = gcn2;
+    vv2 = v2;
+    pv2 = pvn2;
+    tg2 = tgn2;
+    ep2 = epn2;
+    er2 = ern2;
+    cx2 = cxn2;
+    cy2 = cyn2;
+    cz2 = czn2;
+    lha2 = y02;
+    lhb2 = y12;
+    lhc2 = y22;
+    as2 = asn2;
+    raw3 = rawn3;
+    off3 = offn3;
+    hv3 = hvn3;
+    sv3 = svn3;
+    gc3 = gcn3;
+    vv3 = v3;
+    pv3 = pvn3;
+    tg3 = tgn3;
+    ep3 = epn3;
+    er3 = ern3;
+    cx3 = cxn3;
+    cy3 = cyn3;
+    cz3 = czn3;
+    lha3 = y03;
+    lhb3 = y13;
+    lhc3 = y23;
+    as3 = asn3;
+    raw4 = rawn4;
+    off4 = offn4;
+    hv4 = hvn4;
+    sv4 = svn4;
+    gc4 = gcn4;
+    vv4 = v4;
+    pv4 = pvn4;
+    tg4 = tgn4;
+    ep4 = epn4;
+    er4 = ern4;
+    cx4 = cxn4;
+    cy4 = cyn4;
+    cz4 = czn4;
+    lha4 = y04;
+    lhb4 = y14;
+    lhc4 = y24;
+    as4 = asn4;
+    raw5 = rawn5;
+    off5 = offn5;
+    hv5 = hvn5;
+    sv5 = svn5;
+    gc5 = gcn5;
+    vv5 = v5;
+    pv5 = pvn5;
+    tg5 = tgn5;
+    ep5 = epn5;
+    er5 = ern5;
+    cx5 = cxn5;
+    cy5 = cyn5;
+    cz5 = czn5;
+    lha5 = y05;
+    lhb5 = y15;
+    lhc5 = y25;
+    as5 = asn5;
+    raw6 = rawn6;
+    off6 = offn6;
+    hv6 = hvn6;
+    sv6 = svn6;
+    gc6 = gcn6;
+    vv6 = v6;
+    pv6 = pvn6;
+    tg6 = tgn6;
+    ep6 = epn6;
+    er6 = ern6;
+    cx6 = cxn6;
+    cy6 = cyn6;
+    cz6 = czn6;
+    lha6 = y06;
+    lhb6 = y16;
+    lhc6 = y26;
+    as6 = asn6;
+    raw7 = rawn7;
+    off7 = offn7;
+    hv7 = hvn7;
+    sv7 = svn7;
+    gc7 = gcn7;
+    vv7 = v7;
+    pv7 = pvn7;
+    tg7 = tgn7;
+    ep7 = epn7;
+    er7 = ern7;
+    cx7 = cxn7;
+    cy7 = cyn7;
+    cz7 = czn7;
+    lha7 = y07;
+    lhb7 = y17;
+    lhc7 = y27;
+    as7 = asn7;
+    rg0 = gn0;
+    rs0 = sdn0;
+    pc0 = pcn0;
+    rg1 = gn1;
+    rs1 = sdn1;
+    pc1 = pcn1;
+    rg2 = gn2;
+    rs2 = sdn2;
+    pc2 = pcn2;
+    rg3 = gn3;
+    rs3 = sdn3;
+    pc3 = pcn3;
+    out1 = y00;
+    out2 = y01;
+    out3 = y02;
+    out4 = y03;
+    out5 = y04;
+    out6 = y05;
+    out7 = y06;
+    out8 = y07;
+    out9 = y10;
+    out10 = y11;
+    out11 = y12;
+    out12 = y13;
+    out13 = y14;
+    out14 = y15;
+    out15 = y16;
+    out16 = y17;
+    out17 = y20;
+    out18 = y21;
+    out19 = y22;
+    out20 = y23;
+    out21 = y24;
+    out22 = y25;
+    out23 = y26;
+    out24 = y27;
+    out25 = gn0;
+    out26 = gn1;
+    out27 = gn2;
+    out28 = gn3;
+    out29 = pcntn > 0 ? 1 : 0;
+    out30 = pvhn;
+    out31 = wn0;
+    out32 = wn1;
+    out33 = wn2;
+    out34 = wn3;
+    out35 = wn4;
+    out36 = wn5;
+    out37 = wn6;
+    out38 = wn7;
+    return [out1, out2, out3, out4, out5, out6, out7, out8, out9, out10, out11, out12, out13, out14, out15, out16, out17, out18, out19, out20, out21, out22, out23, out24, out25, out26, out27, out28, out29, out30, out31, out32, out33, out34, out35, out36, out37, out38];
+  }
+  var setters = {P_on0: function (v) { P_on0 = v; }, P_type0: function (v) { P_type0 = v; }, P_sync0: function (v) { P_sync0 = v; }, P_div0: function (v) { P_div0 = v; }, P_hz0: function (v) { P_hz0 = v; }, P_amp0: function (v) { P_amp0 = v; }, P_ta0: function (v) { P_ta0 = v; }, P_tb0: function (v) { P_tb0 = v; }, P_phase0: function (v) { P_phase0 = v; }, P_depth0: function (v) { P_depth0 = v; }, P_bi0: function (v) { P_bi0 = v; }, P_clk0: function (v) { P_clk0 = v; }, P_out0: function (v) { P_out0 = v; }, P_mode0: function (v) { P_mode0 = v; }, P_pol0: function (v) { P_pol0 = v; }, P_g1d0: function (v) { P_g1d0 = v; }, P_g2d0: function (v) { P_g2d0 = v; }, P_ho0: function (v) { P_ho0 = v; }, P_hm0: function (v) { P_hm0 = v; }, P_on1: function (v) { P_on1 = v; }, P_type1: function (v) { P_type1 = v; }, P_sync1: function (v) { P_sync1 = v; }, P_div1: function (v) { P_div1 = v; }, P_hz1: function (v) { P_hz1 = v; }, P_amp1: function (v) { P_amp1 = v; }, P_ta1: function (v) { P_ta1 = v; }, P_tb1: function (v) { P_tb1 = v; }, P_phase1: function (v) { P_phase1 = v; }, P_depth1: function (v) { P_depth1 = v; }, P_bi1: function (v) { P_bi1 = v; }, P_clk1: function (v) { P_clk1 = v; }, P_out1: function (v) { P_out1 = v; }, P_mode1: function (v) { P_mode1 = v; }, P_pol1: function (v) { P_pol1 = v; }, P_g1d1: function (v) { P_g1d1 = v; }, P_g2d1: function (v) { P_g2d1 = v; }, P_ho1: function (v) { P_ho1 = v; }, P_hm1: function (v) { P_hm1 = v; }, P_on2: function (v) { P_on2 = v; }, P_type2: function (v) { P_type2 = v; }, P_sync2: function (v) { P_sync2 = v; }, P_div2: function (v) { P_div2 = v; }, P_hz2: function (v) { P_hz2 = v; }, P_amp2: function (v) { P_amp2 = v; }, P_ta2: function (v) { P_ta2 = v; }, P_tb2: function (v) { P_tb2 = v; }, P_phase2: function (v) { P_phase2 = v; }, P_depth2: function (v) { P_depth2 = v; }, P_bi2: function (v) { P_bi2 = v; }, P_clk2: function (v) { P_clk2 = v; }, P_out2: function (v) { P_out2 = v; }, P_mode2: function (v) { P_mode2 = v; }, P_pol2: function (v) { P_pol2 = v; }, P_g1d2: function (v) { P_g1d2 = v; }, P_g2d2: function (v) { P_g2d2 = v; }, P_ho2: function (v) { P_ho2 = v; }, P_hm2: function (v) { P_hm2 = v; }, P_on3: function (v) { P_on3 = v; }, P_type3: function (v) { P_type3 = v; }, P_sync3: function (v) { P_sync3 = v; }, P_div3: function (v) { P_div3 = v; }, P_hz3: function (v) { P_hz3 = v; }, P_amp3: function (v) { P_amp3 = v; }, P_ta3: function (v) { P_ta3 = v; }, P_tb3: function (v) { P_tb3 = v; }, P_phase3: function (v) { P_phase3 = v; }, P_depth3: function (v) { P_depth3 = v; }, P_bi3: function (v) { P_bi3 = v; }, P_clk3: function (v) { P_clk3 = v; }, P_out3: function (v) { P_out3 = v; }, P_mode3: function (v) { P_mode3 = v; }, P_pol3: function (v) { P_pol3 = v; }, P_g1d3: function (v) { P_g1d3 = v; }, P_g2d3: function (v) { P_g2d3 = v; }, P_ho3: function (v) { P_ho3 = v; }, P_hm3: function (v) { P_hm3 = v; }, P_on4: function (v) { P_on4 = v; }, P_type4: function (v) { P_type4 = v; }, P_sync4: function (v) { P_sync4 = v; }, P_div4: function (v) { P_div4 = v; }, P_hz4: function (v) { P_hz4 = v; }, P_amp4: function (v) { P_amp4 = v; }, P_ta4: function (v) { P_ta4 = v; }, P_tb4: function (v) { P_tb4 = v; }, P_phase4: function (v) { P_phase4 = v; }, P_depth4: function (v) { P_depth4 = v; }, P_bi4: function (v) { P_bi4 = v; }, P_clk4: function (v) { P_clk4 = v; }, P_out4: function (v) { P_out4 = v; }, P_mode4: function (v) { P_mode4 = v; }, P_pol4: function (v) { P_pol4 = v; }, P_g1d4: function (v) { P_g1d4 = v; }, P_g2d4: function (v) { P_g2d4 = v; }, P_ho4: function (v) { P_ho4 = v; }, P_hm4: function (v) { P_hm4 = v; }, P_on5: function (v) { P_on5 = v; }, P_type5: function (v) { P_type5 = v; }, P_sync5: function (v) { P_sync5 = v; }, P_div5: function (v) { P_div5 = v; }, P_hz5: function (v) { P_hz5 = v; }, P_amp5: function (v) { P_amp5 = v; }, P_ta5: function (v) { P_ta5 = v; }, P_tb5: function (v) { P_tb5 = v; }, P_phase5: function (v) { P_phase5 = v; }, P_depth5: function (v) { P_depth5 = v; }, P_bi5: function (v) { P_bi5 = v; }, P_clk5: function (v) { P_clk5 = v; }, P_out5: function (v) { P_out5 = v; }, P_mode5: function (v) { P_mode5 = v; }, P_pol5: function (v) { P_pol5 = v; }, P_g1d5: function (v) { P_g1d5 = v; }, P_g2d5: function (v) { P_g2d5 = v; }, P_ho5: function (v) { P_ho5 = v; }, P_hm5: function (v) { P_hm5 = v; }, P_on6: function (v) { P_on6 = v; }, P_type6: function (v) { P_type6 = v; }, P_sync6: function (v) { P_sync6 = v; }, P_div6: function (v) { P_div6 = v; }, P_hz6: function (v) { P_hz6 = v; }, P_amp6: function (v) { P_amp6 = v; }, P_ta6: function (v) { P_ta6 = v; }, P_tb6: function (v) { P_tb6 = v; }, P_phase6: function (v) { P_phase6 = v; }, P_depth6: function (v) { P_depth6 = v; }, P_bi6: function (v) { P_bi6 = v; }, P_clk6: function (v) { P_clk6 = v; }, P_out6: function (v) { P_out6 = v; }, P_mode6: function (v) { P_mode6 = v; }, P_pol6: function (v) { P_pol6 = v; }, P_g1d6: function (v) { P_g1d6 = v; }, P_g2d6: function (v) { P_g2d6 = v; }, P_ho6: function (v) { P_ho6 = v; }, P_hm6: function (v) { P_hm6 = v; }, P_on7: function (v) { P_on7 = v; }, P_type7: function (v) { P_type7 = v; }, P_sync7: function (v) { P_sync7 = v; }, P_div7: function (v) { P_div7 = v; }, P_hz7: function (v) { P_hz7 = v; }, P_amp7: function (v) { P_amp7 = v; }, P_ta7: function (v) { P_ta7 = v; }, P_tb7: function (v) { P_tb7 = v; }, P_phase7: function (v) { P_phase7 = v; }, P_depth7: function (v) { P_depth7 = v; }, P_bi7: function (v) { P_bi7 = v; }, P_clk7: function (v) { P_clk7 = v; }, P_out7: function (v) { P_out7 = v; }, P_mode7: function (v) { P_mode7 = v; }, P_pol7: function (v) { P_pol7 = v; }, P_g1d7: function (v) { P_g1d7 = v; }, P_g2d7: function (v) { P_g2d7 = v; }, P_ho7: function (v) { P_ho7 = v; }, P_hm7: function (v) { P_hm7 = v; }, P_bankA: function (v) { P_bankA = v; }, P_bankB: function (v) { P_bankB = v; }, P_layA: function (v) { P_layA = v; }, P_layB: function (v) { P_layB = v; }, P_couple: function (v) { P_couple = v; }, P_fbA: function (v) { P_fbA = v; }, P_fbB: function (v) { P_fbB = v; }, P_nudge: function (v) { P_nudge = v; }, P_rst: function (v) { P_rst = v; }, P_tempo: function (v) { P_tempo = v; }, P_play: function (v) { P_play = v; }, P_mdep: function (v) { P_mdep = v; }, P_moff: function (v) { P_moff = v; }, P_ron0: function (v) { P_ron0 = v; }, P_ra0: function (v) { P_ra0 = v; }, P_rop0: function (v) { P_rop0 = v; }, P_rb0: function (v) { P_rb0 = v; }, P_rthr0: function (v) { P_rthr0 = v; }, P_ron1: function (v) { P_ron1 = v; }, P_ra1: function (v) { P_ra1 = v; }, P_rop1: function (v) { P_rop1 = v; }, P_rb1: function (v) { P_rb1 = v; }, P_rthr1: function (v) { P_rthr1 = v; }, P_ron2: function (v) { P_ron2 = v; }, P_ra2: function (v) { P_ra2 = v; }, P_rop2: function (v) { P_rop2 = v; }, P_rb2: function (v) { P_rb2 = v; }, P_rthr2: function (v) { P_rthr2 = v; }, P_ron3: function (v) { P_ron3 = v; }, P_ra3: function (v) { P_ra3 = v; }, P_rop3: function (v) { P_rop3 = v; }, P_rb3: function (v) { P_rb3 = v; }, P_rthr3: function (v) { P_rthr3 = v; }, P_pon: function (v) { P_pon = v; }, P_psrc: function (v) { P_psrc = v; }, P_ptick: function (v) { P_ptick = v; }};
+  var hist = {lb: function () { return lb; }, plw: function () { return plw; }, pf: function () { return pf; }, pvh: function () { return pvh; }, pcnt: function () { return pcnt; }, raw0: function () { return raw0; }, off0: function () { return off0; }, hv0: function () { return hv0; }, sv0: function () { return sv0; }, gc0: function () { return gc0; }, vv0: function () { return vv0; }, pv0: function () { return pv0; }, tg0: function () { return tg0; }, ep0: function () { return ep0; }, er0: function () { return er0; }, cx0: function () { return cx0; }, cy0: function () { return cy0; }, cz0: function () { return cz0; }, lha0: function () { return lha0; }, lhb0: function () { return lhb0; }, lhc0: function () { return lhc0; }, as0: function () { return as0; }, raw1: function () { return raw1; }, off1: function () { return off1; }, hv1: function () { return hv1; }, sv1: function () { return sv1; }, gc1: function () { return gc1; }, vv1: function () { return vv1; }, pv1: function () { return pv1; }, tg1: function () { return tg1; }, ep1: function () { return ep1; }, er1: function () { return er1; }, cx1: function () { return cx1; }, cy1: function () { return cy1; }, cz1: function () { return cz1; }, lha1: function () { return lha1; }, lhb1: function () { return lhb1; }, lhc1: function () { return lhc1; }, as1: function () { return as1; }, raw2: function () { return raw2; }, off2: function () { return off2; }, hv2: function () { return hv2; }, sv2: function () { return sv2; }, gc2: function () { return gc2; }, vv2: function () { return vv2; }, pv2: function () { return pv2; }, tg2: function () { return tg2; }, ep2: function () { return ep2; }, er2: function () { return er2; }, cx2: function () { return cx2; }, cy2: function () { return cy2; }, cz2: function () { return cz2; }, lha2: function () { return lha2; }, lhb2: function () { return lhb2; }, lhc2: function () { return lhc2; }, as2: function () { return as2; }, raw3: function () { return raw3; }, off3: function () { return off3; }, hv3: function () { return hv3; }, sv3: function () { return sv3; }, gc3: function () { return gc3; }, vv3: function () { return vv3; }, pv3: function () { return pv3; }, tg3: function () { return tg3; }, ep3: function () { return ep3; }, er3: function () { return er3; }, cx3: function () { return cx3; }, cy3: function () { return cy3; }, cz3: function () { return cz3; }, lha3: function () { return lha3; }, lhb3: function () { return lhb3; }, lhc3: function () { return lhc3; }, as3: function () { return as3; }, raw4: function () { return raw4; }, off4: function () { return off4; }, hv4: function () { return hv4; }, sv4: function () { return sv4; }, gc4: function () { return gc4; }, vv4: function () { return vv4; }, pv4: function () { return pv4; }, tg4: function () { return tg4; }, ep4: function () { return ep4; }, er4: function () { return er4; }, cx4: function () { return cx4; }, cy4: function () { return cy4; }, cz4: function () { return cz4; }, lha4: function () { return lha4; }, lhb4: function () { return lhb4; }, lhc4: function () { return lhc4; }, as4: function () { return as4; }, raw5: function () { return raw5; }, off5: function () { return off5; }, hv5: function () { return hv5; }, sv5: function () { return sv5; }, gc5: function () { return gc5; }, vv5: function () { return vv5; }, pv5: function () { return pv5; }, tg5: function () { return tg5; }, ep5: function () { return ep5; }, er5: function () { return er5; }, cx5: function () { return cx5; }, cy5: function () { return cy5; }, cz5: function () { return cz5; }, lha5: function () { return lha5; }, lhb5: function () { return lhb5; }, lhc5: function () { return lhc5; }, as5: function () { return as5; }, raw6: function () { return raw6; }, off6: function () { return off6; }, hv6: function () { return hv6; }, sv6: function () { return sv6; }, gc6: function () { return gc6; }, vv6: function () { return vv6; }, pv6: function () { return pv6; }, tg6: function () { return tg6; }, ep6: function () { return ep6; }, er6: function () { return er6; }, cx6: function () { return cx6; }, cy6: function () { return cy6; }, cz6: function () { return cz6; }, lha6: function () { return lha6; }, lhb6: function () { return lhb6; }, lhc6: function () { return lhc6; }, as6: function () { return as6; }, raw7: function () { return raw7; }, off7: function () { return off7; }, hv7: function () { return hv7; }, sv7: function () { return sv7; }, gc7: function () { return gc7; }, vv7: function () { return vv7; }, pv7: function () { return pv7; }, tg7: function () { return tg7; }, ep7: function () { return ep7; }, er7: function () { return er7; }, cx7: function () { return cx7; }, cy7: function () { return cy7; }, cz7: function () { return cz7; }, lha7: function () { return lha7; }, lhb7: function () { return lhb7; }, lhc7: function () { return lhc7; }, as7: function () { return as7; }, rg0: function () { return rg0; }, rs0: function () { return rs0; }, pc0: function () { return pc0; }, rg1: function () { return rg1; }, rs1: function () { return rs1; }, pc1: function () { return pc1; }, rg2: function () { return rg2; }, rs2: function () { return rs2; }, pc2: function () { return pc2; }, rg3: function () { return rg3; }, rs3: function () { return rs3; }, pc3: function () { return pc3; }};
+  var lastT = -1, lastP = -1;
+  function run(beat, bpm, play) {   // the device's clock: song position as the 192-bar locked phasor
+    if (bpm !== lastT) { P_tempo = bpm; lastT = bpm; }
+    var pl = play ? 1 : 0; if (pl !== lastP) { P_play = pl; lastP = pl; }
+    var ph = beat / 768; ph = ph - Math.floor(ph);
+    return step(ph, 0, 0);
+  }
+  return { step: step, run: run,
+    set: function (n, v) { if (!setters[n]) { throw new Error('no param ' + n); } setters[n](v); },
+    h: function (n) { return hist[n](); } };
+}
+var NET_EXPORTS = { makeNet: makeNet, NOUT: 38 };
+
+</script>
+<script>
+(function () {
+  "use strict";
+  var D = {"layouts":[["Chain",[[0,1,"rate"],[1,2,"amp"],[2,3,"shape"]]],["Ring",[[0,1,"rate"],[1,2,"rate"],[2,3,"rate"],[3,0,"rate"]]],["Star",[[0,1,"rate"],[0,2,"amp"],[0,3,"phase"]]],["Pairs",[[0,1,"rate"],[1,0,"rate"],[2,3,"shape"],[3,2,"rate"]]],["Clocked",[[0,1,"clock"],[0,2,"clock"],[0,3,"clock"]]],["Self",[[0,0,"rate"],[1,1,"rate"],[2,2,"rate"],[3,3,"rate"]]]],"divs":[["1/64",0.0625],["1/32T",0.08333333333333333],["1/32",0.125],["1/16T",0.16666666666666666],["1/16",0.25],["1/8T",0.3333333333333333],["1/16D",0.375],["1/8",0.5],["1/4T",0.6666666666666666],["1/8D",0.75],["1/4",1.0],["1/4D",1.5],["1/2",2.0],["1/2D",3.0],["1 bar",4.0],["2 bars",8.0],["3 bars",12.0],["4 bars",16.0],["6 bars",24.0],["8 bars",32.0],["12 bars",48.0],["16 bars",64.0],["32 bars",128.0],["64 bars",256.0]],"ops":["a > b","a < b","a and b","a or b","a crosses b"],"params":[{"name":"P_on0","default":1,"min":0,"max":1},{"name":"P_type0","default":0,"min":0,"max":6},{"name":"P_sync0","default":1,"min":0,"max":1},{"name":"P_div0","default":14,"min":0,"max":23},{"name":"P_hz0","default":0.25,"min":0.005,"max":40},{"name":"P_amp0","default":0.8,"min":0,"max":1},{"name":"P_ta0","default":0.0,"min":0,"max":1},{"name":"P_tb0","default":0.0,"min":0,"max":1},{"name":"P_phase0","default":0.0,"min":0,"max":1},{"name":"P_depth0","default":0.3,"min":-1,"max":1},{"name":"P_bi0","default":0,"min":0,"max":1},{"name":"P_clk0","default":0,"min":0,"max":1},{"name":"P_out0","default":1,"min":0,"max":1},{"name":"P_mode0","default":0,"min":0,"max":2},{"name":"P_pol0","default":0,"min":0,"max":1},{"name":"P_g1d0","default":1,"min":-1,"max":1},{"name":"P_g2d0","default":1,"min":-1,"max":1},{"name":"P_ho0","default":0,"min":0,"max":1},{"name":"P_hm0","default":1,"min":0,"max":7},{"name":"P_on1","default":1,"min":0,"max":1},{"name":"P_type1","default":0,"min":0,"max":6},{"name":"P_sync1","default":1,"min":0,"max":1},{"name":"P_div1","default":12,"min":0,"max":23},{"name":"P_hz1","default":0.5,"min":0.005,"max":40},{"name":"P_amp1","default":0.7,"min":0,"max":1},{"name":"P_ta1","default":0.33,"min":0,"max":1},{"name":"P_tb1","default":0.0,"min":0,"max":1},{"name":"P_phase1","default":0.0,"min":0,"max":1},{"name":"P_depth1","default":0.3,"min":-1,"max":1},{"name":"P_bi1","default":0,"min":0,"max":1},{"name":"P_clk1","default":0,"min":0,"max":1},{"name":"P_out1","default":1,"min":0,"max":1},{"name":"P_mode1","default":0,"min":0,"max":2},{"name":"P_pol1","default":0,"min":0,"max":1},{"name":"P_g1d1","default":1,"min":-1,"max":1},{"name":"P_g2d1","default":1,"min":-1,"max":1},{"name":"P_ho1","default":0,"min":0,"max":1},{"name":"P_hm1","default":1,"min":0,"max":7},{"name":"P_on2","default":1,"min":0,"max":1},{"name":"P_type2","default":2,"min":0,"max":6},{"name":"P_sync2","default":1,"min":0,"max":1},{"name":"P_div2","default":10,"min":0,"max":23},{"name":"P_hz2","default":2.0,"min":0.005,"max":40},{"name":"P_amp2","default":0.6,"min":0,"max":1},{"name":"P_ta2","default":0.2,"min":0,"max":1},{"name":"P_tb2","default":0.0,"min":0,"max":1},{"name":"P_phase2","default":0.0,"min":0,"max":1},{"name":"P_depth2","default":0.3,"min":-1,"max":1},{"name":"P_bi2","default":0,"min":0,"max":1},{"name":"P_clk2","default":0,"min":0,"max":1},{"name":"P_out2","default":1,"min":0,"max":1},{"name":"P_mode2","default":0,"min":0,"max":2},{"name":"P_pol2","default":0,"min":0,"max":1},{"name":"P_g1d2","default":1,"min":-1,"max":1},{"name":"P_g2d2","default":1,"min":-1,"max":1},{"name":"P_ho2","default":0,"min":0,"max":1},{"name":"P_hm2","default":1,"min":0,"max":7},{"name":"P_on3","default":1,"min":0,"max":1},{"name":"P_type3","default":1,"min":0,"max":6},{"name":"P_sync3","default":1,"min":0,"max":1},{"name":"P_div3","default":15,"min":0,"max":23},{"name":"P_hz3","default":0.125,"min":0.005,"max":40},{"name":"P_amp3","default":0.8,"min":0,"max":1},{"name":"P_ta3","default":0.2,"min":0,"max":1},{"name":"P_tb3","default":0.6,"min":0,"max":1},{"name":"P_phase3","default":0.0,"min":0,"max":1},{"name":"P_depth3","default":0.3,"min":-1,"max":1},{"name":"P_bi3","default":0,"min":0,"max":1},{"name":"P_clk3","default":0,"min":0,"max":1},{"name":"P_out3","default":1,"min":0,"max":1},{"name":"P_mode3","default":0,"min":0,"max":2},{"name":"P_pol3","default":0,"min":0,"max":1},{"name":"P_g1d3","default":1,"min":-1,"max":1},{"name":"P_g2d3","default":1,"min":-1,"max":1},{"name":"P_ho3","default":0,"min":0,"max":1},{"name":"P_hm3","default":1,"min":0,"max":7},{"name":"P_on4","default":1,"min":0,"max":1},{"name":"P_type4","default":0,"min":0,"max":6},{"name":"P_sync4","default":0,"min":0,"max":1},{"name":"P_div4","default":14,"min":0,"max":23},{"name":"P_hz4","default":0.13,"min":0.005,"max":40},{"name":"P_amp4","default":0.8,"min":0,"max":1},{"name":"P_ta4","default":0.0,"min":0,"max":1},{"name":"P_tb4","default":0.0,"min":0,"max":1},{"name":"P_phase4","default":0.0,"min":0,"max":1},{"name":"P_depth4","default":0.3,"min":-1,"max":1},{"name":"P_bi4","default":0,"min":0,"max":1},{"name":"P_clk4","default":0,"min":0,"max":1},{"name":"P_out4","default":1,"min":0,"max":1},{"name":"P_mode4","default":0,"min":0,"max":2},{"name":"P_pol4","default":0,"min":0,"max":1},{"name":"P_g1d4","default":1,"min":-1,"max":1},{"name":"P_g2d4","default":1,"min":-1,"max":1},{"name":"P_ho4","default":0,"min":0,"max":1},{"name":"P_hm4","default":1,"min":0,"max":7},{"name":"P_on5","default":1,"min":0,"max":1},{"name":"P_type5","default":0,"min":0,"max":6},{"name":"P_sync5","default":0,"min":0,"max":1},{"name":"P_div5","default":12,"min":0,"max":23},{"name":"P_hz5","default":0.21,"min":0.005,"max":40},{"name":"P_amp5","default":0.7,"min":0,"max":1},{"name":"P_ta5","default":0.67,"min":0,"max":1},{"name":"P_tb5","default":0.0,"min":0,"max":1},{"name":"P_phase5","default":0.0,"min":0,"max":1},{"name":"P_depth5","default":0.3,"min":-1,"max":1},{"name":"P_bi5","default":0,"min":0,"max":1},{"name":"P_clk5","default":0,"min":0,"max":1},{"name":"P_out5","default":1,"min":0,"max":1},{"name":"P_mode5","default":0,"min":0,"max":2},{"name":"P_pol5","default":0,"min":0,"max":1},{"name":"P_g1d5","default":1,"min":-1,"max":1},{"name":"P_g2d5","default":1,"min":-1,"max":1},{"name":"P_ho5","default":0,"min":0,"max":1},{"name":"P_hm5","default":1,"min":0,"max":7},{"name":"P_on6","default":1,"min":0,"max":1},{"name":"P_type6","default":3,"min":0,"max":6},{"name":"P_sync6","default":1,"min":0,"max":1},{"name":"P_div6","default":14,"min":0,"max":23},{"name":"P_hz6","default":1.0,"min":0.005,"max":40},{"name":"P_amp6","default":1.0,"min":0,"max":1},{"name":"P_ta6","default":0.1,"min":0,"max":1},{"name":"P_tb6","default":0.0,"min":0,"max":1},{"name":"P_phase6","default":0.0,"min":0,"max":1},{"name":"P_depth6","default":0.5,"min":-1,"max":1},{"name":"P_bi6","default":0,"min":0,"max":1},{"name":"P_clk6","default":0,"min":0,"max":1},{"name":"P_out6","default":1,"min":0,"max":1},{"name":"P_mode6","default":0,"min":0,"max":2},{"name":"P_pol6","default":0,"min":0,"max":1},{"name":"P_g1d6","default":1,"min":-1,"max":1},{"name":"P_g2d6","default":1,"min":-1,"max":1},{"name":"P_ho6","default":0,"min":0,"max":1},{"name":"P_hm6","default":1,"min":0,"max":7},{"name":"P_on7","default":1,"min":0,"max":1},{"name":"P_type7","default":2,"min":0,"max":6},{"name":"P_sync7","default":1,"min":0,"max":1},{"name":"P_div7","default":12,"min":0,"max":23},{"name":"P_hz7","default":1.0,"min":0.005,"max":40},{"name":"P_amp7","default":0.6,"min":0,"max":1},{"name":"P_ta7","default":0.1,"min":0,"max":1},{"name":"P_tb7","default":0.0,"min":0,"max":1},{"name":"P_phase7","default":0.0,"min":0,"max":1},{"name":"P_depth7","default":0.3,"min":-1,"max":1},{"name":"P_bi7","default":0,"min":0,"max":1},{"name":"P_clk7","default":0,"min":0,"max":1},{"name":"P_out7","default":1,"min":0,"max":1},{"name":"P_mode7","default":0,"min":0,"max":2},{"name":"P_pol7","default":0,"min":0,"max":1},{"name":"P_g1d7","default":1,"min":-1,"max":1},{"name":"P_g2d7","default":1,"min":-1,"max":1},{"name":"P_ho7","default":0,"min":0,"max":1},{"name":"P_hm7","default":1,"min":0,"max":7},{"name":"P_bankA","default":1,"min":0,"max":1},{"name":"P_bankB","default":0,"min":0,"max":1},{"name":"P_layA","default":0,"min":0,"max":5},{"name":"P_layB","default":0,"min":0,"max":5},{"name":"P_couple","default":0,"min":0,"max":1},{"name":"P_fbA","default":0,"min":0,"max":1},{"name":"P_fbB","default":0,"min":0,"max":1},{"name":"P_nudge","default":0,"min":-50,"max":50},{"name":"P_rst","default":0,"min":0,"max":1},{"name":"P_tempo","default":120,"min":20,"max":999},{"name":"P_play","default":0,"min":0,"max":1},{"name":"P_mdep","default":1,"min":-1,"max":1},{"name":"P_moff","default":0,"min":-1,"max":1},{"name":"P_ron0","default":0,"min":0,"max":1},{"name":"P_ra0","default":0,"min":0,"max":7},{"name":"P_rop0","default":0,"min":0,"max":4},{"name":"P_rb0","default":1,"min":0,"max":8},{"name":"P_rthr0","default":0.5,"min":0,"max":1},{"name":"P_ron1","default":0,"min":0,"max":1},{"name":"P_ra1","default":0,"min":0,"max":7},{"name":"P_rop1","default":0,"min":0,"max":4},{"name":"P_rb1","default":1,"min":0,"max":8},{"name":"P_rthr1","default":0.5,"min":0,"max":1},{"name":"P_ron2","default":0,"min":0,"max":1},{"name":"P_ra2","default":0,"min":0,"max":7},{"name":"P_rop2","default":0,"min":0,"max":4},{"name":"P_rb2","default":1,"min":0,"max":8},{"name":"P_rthr2","default":0.5,"min":0,"max":1},{"name":"P_ron3","default":0,"min":0,"max":1},{"name":"P_ra3","default":0,"min":0,"max":7},{"name":"P_rop3","default":0,"min":0,"max":4},{"name":"P_rb3","default":1,"min":0,"max":8},{"name":"P_rthr3","default":0.5,"min":0,"max":1},{"name":"P_pon","default":0,"min":0,"max":1},{"name":"P_psrc","default":0,"min":0,"max":7},{"name":"P_ptick","default":10,"min":0,"max":31}]};
+  var css = getComputedStyle(document.documentElement);
+  function tok(n) { return css.getPropertyValue(n).trim(); }
+  var C = { bg: tok("--bg"), surf: tok("--surface"), raised: tok("--raised"), line: tok("--line"), fg: tok("--fg"), muted: tok("--muted"),
+    acc: tok("--accent"), accDim: tok("--accent-dim"), turq: tok("--turq"), turqDim: tok("--turq-dim"), hot: tok("--hot"), mono: tok("--mono") };
+  var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
+  function rnd() { return Math.random(); }
+  function pick(a) { return a[Math.floor(rnd() * a.length)]; }
+  var NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+  function nname(p) { p = Math.round(p); return NAMES[((p % 12) + 12) % 12] + (Math.floor(p / 12) - 2); }
+  var NODE = ["A1", "A2", "A3", "A4", "B1", "B2", "B3", "B4"];
+  var TSHORT = ["LFO", "SLP", "S&H", "GEI", "SLW", "RND", "CHS"];
+  var MODES = [null, ["cycle", "trigger"], null, null, ["stepped", "smooth"], ["hold", "glide", "curve"], ["Lorenz", "Rossler"]];
+  var INSHORT = { rate: "rate", amp: "amp", shape: "shape", phase: "phase", clock: "clk" };
+  var DIVN = D.divs.map(function (d) { return d[0]; });
+  var SCALES = { major: [0,2,4,5,7,9,11], minor: [0,2,3,5,7,8,10], dorian: [0,2,3,5,7,9,10], "pent minor": [0,3,5,7,10],
+    "pent major": [0,2,4,7,9], phrygian: [0,1,3,5,7,8,10], chromatic: [0,1,2,3,4,5,6,7,8,9,10,11] };
+
+  // ---------- the core ----------
+  var SR = 1000;
+  var NET, P;
+  function freshCore() {
+    NET = makeNet(SR, 1 + Math.floor(rnd() * 1e6));
+    P = {};
+    D.params.forEach(function (p) { P[p.name] = p["default"]; });
+  }
+  function setP(n, v) { P[n] = v; NET.set(n, v); }
+  function bankOf(i) { return i < 4 ? 0 : 1; }
+
+  // ---------- page state (the device's JS side, simplified) ----------
+  var TARGETS = [
+    { name: "Cutoff", unit: "Hz" }, { name: "Resonance", unit: "" }, { name: "Drive", unit: "" }, { name: "Wave", unit: "saw ↔ square" },
+    { name: "Pan", unit: "" }, { name: "Level", unit: "" }, { name: "Detune", unit: "cents" }, { name: "Echo", unit: "send" }
+  ];
+  var DRUMS = [["kick", 36], ["snare", 38], ["hat", 42], ["rim", 37]];
+  var X;   // page-only state: outputs, rule notes, pitch, prob, bpm
+  function freshX() {
+    return {
+      bpm: 120, vol: 70, prob: 100,
+      outs: [   // src -1 = none; dep -1..1; base 0..1
+        { src: 3, dep: 0.7, base: 0.12 }, { src: 0, dep: 0.35, base: 0.15 }, { src: -1, dep: 0.5, base: 0.15 }, { src: 1, dep: 0.6, base: 0.2 },
+        { src: 2, dep: 0.7, base: 0.15 }, { src: -1, dep: 0.5, base: 0.75 }, { src: -1, dep: 0.5, base: 0.5 }, { src: -1, dep: 0.5, base: 0.3 }
+      ],
+      pitch: { root: 0, scale: "minor", range: 2, base: 48 },
+      pass: [0, 0, 0, 0, 0, 0, 0, 0]   // per node: hand off its group one lane at a time
+    };
+  }
+
+  // ---------- runtime ----------
+  var RT;
+  function freshRT() {
+    RT = { beat: 0, playing: true, t: 0, o: new Array(38).fill(0), scope: [], hist: 0,
+      gates: [0, 0, 0, 0], gateTr: [[], [], [], []], hits: [[], [], [], []], lastTick: 0, notes: [], lastNote: "—", nodeSel: 0 };
+    for (var i = 0; i < 8; i++) RT.scope.push(new Float32Array(240));
+  }
+  function stepCore(n) {
+    var spb = X.bpm / 60 / SR;
+    for (var s = 0; s < n; s++) {
+      var o = NET.run(RT.beat, X.bpm, RT.playing ? 1 : 0);
+      if (RT.playing) RT.beat += spb;
+      RT.t += 1 / SR;
+      for (var k = 0; k < 4; k++) {
+        var g = o[24 + k];
+        if (g > 0.5 && RT.gates[k] < 0.5 && RT.playing) {
+          var ok = rnd() * 100 < X.prob;
+          RT.hits[k].push([RT.t, ok]);
+          if (ok) drum(k);
+        }
+        RT.gates[k] = g;
+      }
+      if (o[28] > 0.5 && RT.lastTick < 0.5 && RT.playing) pitchNote(o[29]);
+      RT.lastTick = o[28];
+      RT.o = o;
+      RT.hist += 1;
+      if (RT.hist >= 12) {           // ~83 Hz scope history, 240 points = ~2.9 s
+        RT.hist = 0;
+        for (var i = 0; i < 8; i++) { var sc = RT.scope[i]; sc.copyWithin(0, 1); sc[sc.length - 1] = o[30 + i]; }
+        for (k = 0; k < 4; k++) { RT.gateTr[k].push([RT.t, RT.gates[k]]); }
+      }
+    }
+    var cut = RT.t - 4;
+    for (k = 0; k < 4; k++) {
+      while (RT.gateTr[k].length && RT.gateTr[k][0][0] < cut) RT.gateTr[k].shift();
+      while (RT.hits[k].length && RT.hits[k][0][0] < cut) RT.hits[k].shift();
+    }
+    while (RT.notes.length && RT.notes[0].t < RT.t - 6) RT.notes.shift();
+  }
+  function quant(x) {
+    var sc = SCALES[X.pitch.scale], best = 0, bd = 1e9, o0 = Math.floor(x / 12);
+    for (var o = o0 - 1; o <= o0 + 1; o++) for (var d = 0; d < sc.length; d++) {
+      var c = 12 * o + (X.pitch.root + sc[d]) % 12, dd = Math.abs(c - x);
+      if (dd < bd - 1e-9) { bd = dd; best = c; }
+    }
+    return clamp(best, 0, 127);
+  }
+  function pitchNote(v) {
+    var ok = rnd() * 100 < X.prob;
+    var p = quant(X.pitch.base + clamp(v, 0, 1) * 12 * X.pitch.range);
+    RT.notes.push({ t: RT.t, p: p, ok: ok });
+    if (!ok) return;
+    RT.lastNote = nname(p);
+    pluck(p);
+  }
+  // groups + hand-off: targets sharing a node are its lanes 1/2/3 (outlets src, src+8, src+16). With pass on, the
+  // core hands the node's shape from one lane to the next each cycle (P_ho / P_hm); the others hold. Mirrors GROUPS.
+  function applyGroups() {
+    var slot = [0, 0, 0, 0, 0, 0, 0, 0], k, n;
+    for (n = 0; n < 8; n++) { NET.set("P_ho" + n, 0); NET.set("P_hm" + n, 1); }
+    var mask = [1, 1, 1, 1, 1, 1, 1, 1], count = [0, 0, 0, 0, 0, 0, 0, 0];
+    for (k = 0; k < X.outs.length; k++) {
+      var O = X.outs[k];
+      if (O.src < 0) { O.lane = -1; continue; }
+      n = O.src;
+      var sl = slot[n] < 3 ? slot[n] : 0;         // 1st/2nd/3rd target of this node -> lane 1/2/3; extras reuse lane 1
+      O.lane = n + 8 * sl;
+      if (slot[n] < 3) mask[n] |= (1 << sl);
+      slot[n]++; count[n]++;
+    }
+    for (n = 0; n < 8; n++) {
+      var on = X.pass[n] && count[n] >= 2;
+      NET.set("P_ho" + n, on ? 1 : 0);
+      NET.set("P_hm" + n, on ? mask[n] : 1);
+    }
+  }
+  // target value 0..1 from its node (its assigned lane, so hand-off shows)
+  function outVal(k) {
+    var O = X.outs[k];
+    if (O.src < 0) return O.base;
+    return clamp(O.base + O.dep * RT.o[O.lane == null ? O.src : O.lane], 0, 1);
+  }
+
+  // ---------- sound ----------
+  var A = null, soundOn = false;
+  var PAD = [36, 43, 48, 51, 58];
+  function audio() {
+    if (A) return A;
+    var ctx = new (window.AudioContext || window.webkitAudioContext)();
+    var master = ctx.createGain(); master.gain.value = X.vol / 100 * 0.8; master.connect(ctx.destination);
+    var verb = ctx.createConvolver(), len = ctx.sampleRate * 2.4, buf = ctx.createBuffer(2, len, ctx.sampleRate);
+    for (var ch = 0; ch < 2; ch++) { var d = buf.getChannelData(ch); for (var i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.8); }
+    verb.buffer = buf; var vo = ctx.createGain(); vo.gain.value = 0.28; verb.connect(vo); vo.connect(master);
+    var delay = ctx.createDelay(2), fb = ctx.createGain(), dl = ctx.createBiquadFilter(), dOut = ctx.createGain();
+    dl.type = "lowpass"; dl.frequency.value = 2200; fb.gain.value = 0.38; dOut.gain.value = 0.6;
+    delay.connect(dl); dl.connect(fb); fb.connect(delay); dl.connect(dOut); dOut.connect(master);
+    // the pad: saws + squares -> drive -> lowpass -> pan -> level
+    var saw = ctx.createGain(), sq = ctx.createGain(), pre = ctx.createGain(), shp = ctx.createWaveShaper(), post = ctx.createGain();
+    var curve = new Float32Array(1024); for (i = 0; i < 1024; i++) { var x = i / 511.5 - 1; curve[i] = Math.tanh(x * 3) / Math.tanh(3); }
+    shp.curve = curve;
+    var lp = ctx.createBiquadFilter(); lp.type = "lowpass";
+    var pan = ctx.createStereoPanner ? ctx.createStereoPanner() : null, lvl = ctx.createGain(), echo = ctx.createGain();
+    var oscs = [];
+    PAD.forEach(function (n, j) {
+      var f = 440 * Math.pow(2, (n - 69) / 12);
+      var a = ctx.createOscillator(), b = ctx.createOscillator();
+      a.type = "sawtooth"; b.type = "square"; a.frequency.value = f; b.frequency.value = f;
+      a.detune.value = (j % 2 ? 1 : -1) * 4;
+      var lv = j === 0 ? 0.26 : 0.13, gs = ctx.createGain(), gq = ctx.createGain();
+      a.connect(gs); b.connect(gq);
+      gs.gain.value = lv; gq.gain.value = lv * 0.7;
+      gs.connect(saw); gq.connect(sq);
+      a.start(); b.start(); oscs.push(a, b);
+    });
+    saw.connect(pre); sq.connect(pre); pre.connect(shp); shp.connect(post); post.connect(lp);
+    if (pan) { lp.connect(pan); pan.connect(lvl); } else { lp.connect(lvl); }
+    lvl.connect(master); lvl.connect(echo); echo.connect(delay);
+    var vs = ctx.createGain(); vs.gain.value = 0.35; lvl.connect(vs); vs.connect(verb);
+    lvl.gain.value = 0;
+    A = { ctx: ctx, master: master, delay: delay, verb: verb, saw: saw, sq: sq, pre: pre, post: post, lp: lp, pan: pan, lvl: lvl, echo: echo, oscs: oscs };
+    return A;
+  }
+  function setT(param, v) { param.setTargetAtTime(v, A.ctx.currentTime, 0.012); }
+  function applySynth() {
+    if (!A) return;
+    var v = []; for (var k = 0; k < 8; k++) v[k] = outVal(k);
+    var on = soundOn ? 1 : 0;
+    setT(A.lp.frequency, 70 * Math.pow(100, v[0]));
+    setT(A.lp.Q, 0.5 + v[1] * 16);
+    setT(A.pre.gain, 0.4 + v[2] * 5); setT(A.post.gain, 1 / (0.6 + v[2] * 1.6));
+    setT(A.saw.gain, 1 - v[3]); setT(A.sq.gain, v[3]);
+    if (A.pan) setT(A.pan.pan, v[4] * 2 - 1);
+    setT(A.lvl.gain, on * v[5] * 0.5);
+    var dt = (v[6] - 0.5) * 100; A.oscs.forEach(function (o, i) { if (i % 2 === 0) setT(o.detune, dt + ((i / 2) % 2 ? 4 : -4)); else setT(o.detune, -dt * 0.5); });
+    setT(A.echo.gain, on * v[7] * 0.9);
+    A.delay.delayTime.setTargetAtTime(60 / X.bpm * 0.75, A.ctx.currentTime, 0.05);
+  }
+  function envG(g, now, peak, a, d) { g.gain.setValueAtTime(0.0001, now); g.gain.exponentialRampToValueAtTime(peak, now + a); g.gain.exponentialRampToValueAtTime(0.0001, now + a + d); }
+  function noiseBuf(sec) { var b = A.ctx.createBuffer(1, Math.floor(A.ctx.sampleRate * sec), A.ctx.sampleRate), d = b.getChannelData(0); for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; return b; }
+  function drum(k) {
+    if (!soundOn || !A) return;
+    var ctx = A.ctx, now = ctx.currentTime, g = ctx.createGain(), s, f;
+    if (k === 0) {
+      var o = ctx.createOscillator(); o.frequency.setValueAtTime(150, now); o.frequency.exponentialRampToValueAtTime(42, now + 0.16);
+      o.connect(g); envG(g, now, 0.7, 0.002, 0.3); o.start(now); o.stop(now + 0.35);
+    } else if (k === 1) {
+      s = ctx.createBufferSource(); s.buffer = noiseBuf(0.2); f = ctx.createBiquadFilter(); f.type = "bandpass"; f.frequency.value = 1800; f.Q.value = 0.8;
+      s.connect(f); f.connect(g); envG(g, now, 0.35, 0.001, 0.16); s.start(now);
+      var t = ctx.createOscillator(), tg = ctx.createGain(); t.frequency.value = 190; t.connect(tg); envG(tg, now, 0.18, 0.001, 0.08); tg.connect(A.master); t.start(now); t.stop(now + 0.12);
+    } else if (k === 2) {
+      s = ctx.createBufferSource(); s.buffer = noiseBuf(0.06); f = ctx.createBiquadFilter(); f.type = "highpass"; f.frequency.value = 7500;
+      s.connect(f); f.connect(g); envG(g, now, 0.13, 0.001, 0.045); s.start(now);
+    } else {
+      var r = ctx.createOscillator(); r.type = "triangle"; r.frequency.value = 1700; r.connect(g); envG(g, now, 0.16, 0.001, 0.03); r.start(now); r.stop(now + 0.06);
+    }
+    g.connect(A.master);
+  }
+  function pluck(p) {
+    if (!soundOn || !A) return;
+    var ctx = A.ctx, now = ctx.currentTime, f = 440 * Math.pow(2, (p - 69) / 12), g = ctx.createGain();
+    var o = ctx.createOscillator(), m = ctx.createOscillator(), mg = ctx.createGain();
+    o.type = "sine"; o.frequency.value = f; m.type = "sine"; m.frequency.value = f * 2;
+    mg.gain.setValueAtTime(f * 1.4, now); mg.gain.exponentialRampToValueAtTime(f * 0.05, now + 0.5);
+    m.connect(mg); mg.connect(o.frequency); o.connect(g); envG(g, now, 0.16, 0.004, 0.55);
+    g.connect(A.master); var e = ctx.createGain(); e.gain.value = 0.35; g.connect(e); e.connect(A.delay); e.connect(A.verb);
+    o.start(now); m.start(now); o.stop(now + 0.65); m.stop(now + 0.65);
+  }
+
+  // ---------- examples ----------
+  function node(i, o) { setP("P_on" + i, 1); for (var k in o) setP("P_" + k + i, o[k]); }
+  function out(k, src, dep, base) { X.outs[k].src = src; X.outs[k].dep = dep; if (base != null) X.outs[k].base = base; }
+  function rule(k, a, op, b, thr) { setP("P_ron" + k, 1); setP("P_ra" + k, a); setP("P_rop" + k, op); setP("P_rb" + k, b); if (thr != null) setP("P_rthr" + k, thr); }
+  var SCENES = [
+    { name: "Starting state", what: "What a new device loads: bank A on with the Chain layout. A1 bends A2's rate, A2 moves A3's amp, A3 changes A4's shape. A4, a 2-bar envelope, opens the filter; A2 sweeps the wave, A3 throws the pan around. Rhythm and Pitch are off.", fn: function () {} },
+    { name: "Never repeats", what: "Pairs layout. A2, a slow free LFO, speeds A1 up and slows it down, and A1 pushes back. A1 sweeps the wave, so the sweep never lines up with the bar the same way twice.", fn: function () {
+      setP("P_layA", 3);
+      node(0, { type: 0, sync: 1, div: 12, amp: 1, ta: 0.33, depth: 0.35 });
+      node(1, { type: 0, sync: 0, hz: 0.09, amp: 1, ta: 0, depth: 0.7 });
+      out(3, 0, 0.85, 0.05); out(0, 1, 0.35, 0.3); out(1, -1, 0.3, 0.3);
+    } },
+    { name: "Slow drift", what: "A3 stretches A4's rise and fall; A4 feeds A3's rate back. That two-way link drifts slowly. A4 drives a group: Cutoff, Resonance inverted, and Drive.", fn: function () {
+      setP("P_layA", 3);
+      node(2, { type: 0, sync: 0, hz: 0.07, amp: 1, ta: 0, depth: 0.8 });
+      node(3, { type: 1, sync: 1, div: 15, amp: 1, ta: 0.3, tb: 0.7, depth: 0.6 });
+      out(0, 3, 0.8, 0.08); out(1, 3, -0.55, 0.65); out(2, 3, 0.6, 0.05); out(3, -1, 0.5, 0.35); out(4, 2, 0.5, 0.25);
+    } },
+    { name: "Geiger clicks", what: "Clocked layout. A1 is a Geiger: random clicks, about four a bar. Every click makes A2, A3 and A4, all S&H on the layout clock, pick a new value, so the filter, the pan and the resonance jump at irregular moments. Rule 1 plays a kick on each click.", fn: function () {
+      setP("P_layA", 4);
+      node(0, { type: 3, sync: 1, div: 10, amp: 1, ta: 0.6, tb: 0.15, depth: 1 });
+      node(1, { type: 2, sync: 1, div: 14, amp: 1, ta: 0.15, tb: 0, clk: 1 });
+      node(2, { type: 2, sync: 1, div: 14, amp: 1, ta: 0, tb: 0.5, clk: 1 });
+      node(3, { type: 2, sync: 1, div: 14, amp: 1, ta: 0.3, tb: 0, clk: 1 });
+      out(0, 1, 0.75, 0.1); out(4, 2, 1, 0); out(1, 3, 0.5, 0.15); out(3, -1, 0.5, 0.4);
+      rule(0, 0, 0, 8, 0.5); rule(2, 1, 0, 2);
+    } },
+    { name: "LFO as melody", what: "Pitch reads A1, a triangle LFO, on every 1/8 and fits it to C minor pentatonic. A2 is chained onto A1's rate, so the melody speeds up and slows down. Rule 1 plays a kick when A3 is above A4.", fn: function () {
+      setP("P_layA", 0);
+      node(0, { type: 0, sync: 1, div: 15, amp: 1, ta: 0.33, depth: 0.45 });
+      node(1, { type: 0, sync: 0, hz: 0.11, amp: 0.8, ta: 0, depth: 0.3 });
+      setP("P_pon", 1); setP("P_psrc", 0); setP("P_ptick", 7);
+      X.pitch.scale = "pent minor"; X.pitch.range = 2;
+      out(5, -1, 0.5, 0.45); out(0, 3, 0.4, 0.12);
+      rule(0, 2, 0, 3); rule(2, 1, 4, 8, 0.5);
+    } },
+    { name: "Two banks talking", what: "Both banks on, both in Ring. Bank B is all FREE, so it drifts against the tempo; Couple lets the two rings pull on each other. Turn Couple to 0 and they become two separate modulators.", fn: function () {
+      setP("P_bankB", 1); setP("P_layA", 1); setP("P_layB", 1); setP("P_couple", 0.55);
+      for (var i = 4; i < 8; i++) setP("P_depth" + i, 0.45);
+      out(7, 4, 0.8, 0.05); out(6, 5, 0.3, 0.5); out(1, 6, 0.45, 0.1);
+    } }
+  ];
+  var curScene = 0;
+  function loadScene(k) {
+    freshCore(); var keepBpm = X ? X.bpm : 120, keepVol = X ? X.vol : 70;
+    X = freshX(); X.bpm = keepBpm; X.vol = keepVol;
+    SCENES[k].fn();
+    curScene = k;
+    var sel = RT ? RT.nodeSel : 0, beat = RT ? RT.beat : 0, pl = RT ? RT.playing : true;
+    freshRT(); RT.nodeSel = sel; RT.beat = beat; RT.playing = pl;
+    stepCore(SR * 2);                    // two seconds so the scopes have history
+    buildAll();
+  }
+
+  // ---------- dice ----------
+  function rollAll() {
+    var bankB = rnd() < 0.5;
+    setP("P_bankB", bankB ? 1 : 0);
+    setP("P_layA", Math.floor(rnd() * 6)); setP("P_layB", Math.floor(rnd() * 6));
+    setP("P_couple", bankB ? pick([0, 0.2, 0.4, 0.6]) : 0); setP("P_fbA", pick([0, 0, 0.2, 0.4])); setP("P_fbB", pick([0, 0.2, 0.4]));
+    for (var i = 0; i < 8; i++) {
+      var ty = pick([0, 0, 0, 1, 1, 2, 2, 3]);
+      node(i, { type: ty, sync: rnd() < 0.7 ? 1 : 0, div: pick([7, 8, 10, 11, 12, 13, 14, 15, 17]), hz: +(0.04 + rnd() * rnd() * 2).toFixed(3),
+        amp: 0.5 + rnd() * 0.5, ta: rnd(), tb: rnd() * 0.8, depth: +(pick([-1, 1]) * (0.2 + rnd() * 0.6)).toFixed(2), clk: 0, phase: 0 });
+    }
+    buildAll();
+  }
+
+  // ---------- drawing ----------
+  var canv = {};
+  ["net", "scopes", "rhy", "pitch"].forEach(function (id) {
+    var el = document.getElementById("c-" + id); canv[id] = { el: el, ctx: el.getContext("2d"), w: 0, h: Number(el.getAttribute("height")) };
+  });
+  function fit() {
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    Object.keys(canv).forEach(function (k) { var c = canv[k], w = c.el.clientWidth || 300; c.w = w; c.el.width = Math.round(w * dpr); c.el.height = Math.round(c.h * dpr); c.el.style.height = c.h + "px"; c.ctx.setTransform(dpr, 0, 0, dpr, 0, 0); });
+  }
+  function clear(c) { c.ctx.fillStyle = C.bg; c.ctx.fillRect(0, 0, c.w, c.h); }
+  function txt(ctx, s, x, y, col, size, align, bold) { ctx.fillStyle = col; ctx.font = (bold ? "500 " : "") + (size || 11) + "px " + C.mono; ctx.textAlign = align || "left"; ctx.fillText(s, x, y); }
+  function bankCol(i, dim) { return i < 4 ? (dim ? C.accDim : C.acc) : (dim ? C.turqDim : C.turq); }
+  function nodeOn(i) { return P["P_on" + i] > 0.5 && P[i < 4 ? "P_bankA" : "P_bankB"] > 0.5; }
+
+  function netGeo(c) {
+    var w = c.w, h = c.h, narrow = w < 560, pos = [];
+    var bx = narrow ? [w * 0.27, w * 0.73] : [w * 0.27, w * 0.73], s = Math.min(narrow ? w * 0.13 : 74, 74), cy = h / 2 + 8;
+    for (var i = 0; i < 8; i++) {
+      var b = bankOf(i), q = i % 4, dx = (q === 0 || q === 3) ? -1 : 1, dy = (q < 2) ? -1 : 1;
+      pos.push([bx[b] + dx * s, cy + dy * s * 0.9]);
+    }
+    return { pos: pos, r: narrow ? 17 : 22 };
+  }
+  function arrow(ctx, x, y, ang, col, sz) {
+    ctx.fillStyle = col; ctx.beginPath();
+    ctx.moveTo(x, y); ctx.lineTo(x - sz * Math.cos(ang - 0.45), y - sz * Math.sin(ang - 0.45)); ctx.lineTo(x - sz * Math.cos(ang + 0.45), y - sz * Math.sin(ang + 0.45));
+    ctx.closePath(); ctx.fill();
+  }
+  function wire(ctx, a, b, r, col, width, dashed, label, bend) {
+    var dx = b[0] - a[0], dy = b[1] - a[1], L = Math.sqrt(dx * dx + dy * dy) || 1, nx = -dy / L, ny = dx / L;
+    var mx = (a[0] + b[0]) / 2 + nx * bend, my = (a[1] + b[1]) / 2 + ny * bend;
+    var sa = Math.atan2(my - a[1], mx - a[0]), ea = Math.atan2(b[1] - my, b[0] - mx);
+    var sx = a[0] + Math.cos(sa) * (r + 2), sy = a[1] + Math.sin(sa) * (r + 2), ex = b[0] - Math.cos(ea) * (r + 4), ey = b[1] - Math.sin(ea) * (r + 4);
+    ctx.strokeStyle = col; ctx.lineWidth = width; ctx.setLineDash(dashed ? [4, 4] : []);
+    ctx.beginPath(); ctx.moveTo(sx, sy); ctx.quadraticCurveTo(mx, my, ex, ey); ctx.stroke(); ctx.setLineDash([]);
+    arrow(ctx, ex, ey, Math.atan2(ey - my, ex - mx), col, 7);
+    if (label) txt(ctx, label, mx + nx * 9, my + ny * 9 + 4, C.muted, 10, "center");
+  }
+  function loop(ctx, p, r, col, width, label, up) {
+    var cy = p[1] + (up ? -r - 9 : r + 9);
+    ctx.strokeStyle = col; ctx.lineWidth = width; ctx.beginPath(); ctx.arc(p[0], cy, 9, 0, Math.PI * 2); ctx.stroke();
+    if (label) txt(ctx, label, p[0] + 14, cy + (up ? -6 : 14), C.muted, 10, "left");
+  }
+  function drawNet() {
+    var c = canv.net, ctx = c.ctx; clear(c);
+    var g = netGeo(c), pos = g.pos, r = g.r;
+    for (var b = 0; b < 2; b++) {
+      var lay = Math.round(P[b ? "P_layB" : "P_layA"]), on = P[b ? "P_bankB" : "P_bankA"] > 0.5;
+      txt(ctx, "BANK " + "AB"[b] + " · " + D.layouts[lay][0].toUpperCase() + (on ? "" : " · off"), (pos[b * 4][0] + pos[b * 4 + 1][0]) / 2, 18, on ? bankCol(b * 4) : C.muted, 11, "center", true);
+      ctx.globalAlpha = on ? 1 : 0.3;
+      D.layouts[lay][1].forEach(function (e) {
+        var s = e[0] + b * 4, t = e[1] + b * 4, dep = Math.abs(P["P_depth" + s]), live = nodeOn(s) ? Math.abs(RT.o[14 + s] * 2 - 1) : 0;
+        var col = bankCol(s, dep < 0.02);
+        ctx.globalAlpha = (on ? 1 : 0.3) * (0.35 + 0.65 * Math.min(1, dep * 1.4)) * (0.55 + 0.45 * live);
+        if (s === t) loop(ctx, pos[s], r, col, 1 + dep * 3, INSHORT[e[2]], (s % 4) < 2);
+        else wire(ctx, pos[s], pos[t], r, col, 1 + dep * 3, e[2] === "clock", INSHORT[e[2]], (s % 4 === 3 && t % 4 === 0) ? 0 : 14);
+      });
+      ctx.globalAlpha = 1;
+    }
+    // couple + feedback
+    var cpl = P.P_couple;
+    if (cpl > 0.01 && P.P_bankB > 0.5) {
+      ctx.globalAlpha = 0.4 + 0.6 * cpl;
+      wire(ctx, pos[3], pos[4], r, C.fg, 1 + cpl * 3, true, "couple", -26);
+      wire(ctx, pos[7], pos[0], r, C.fg, 1 + cpl * 3, true, "couple", -26);
+      ctx.globalAlpha = 1;
+    }
+    [[0, "P_fbA"], [4, "P_fbB"]].forEach(function (f) {
+      var a = P[f[1]]; if (a > 0.01 && nodeOn(f[0])) { ctx.globalAlpha = 0.4 + 0.6 * a; loop(ctx, pos[f[0]], r, C.hot, 1 + a * 3, "fb", false); ctx.globalAlpha = 1; }
+    });
+    // nodes
+    for (var i = 0; i < 8; i++) {
+      var p = pos[i], on2 = nodeOn(i), v = RT.o[30 + i], col = bankCol(i);
+      ctx.globalAlpha = on2 ? 1 : 0.35;
+      ctx.fillStyle = C.raised; ctx.beginPath(); ctx.arc(p[0], p[1], r, 0, Math.PI * 2); ctx.fill();
+      if (on2) { ctx.fillStyle = col; ctx.globalAlpha = 0.18 + 0.7 * v; ctx.beginPath(); ctx.arc(p[0], p[1], r * (0.3 + 0.7 * v), 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1; }
+      ctx.strokeStyle = i === RT.nodeSel ? C.fg : col; ctx.lineWidth = i === RT.nodeSel ? 2.5 : 1.2;
+      ctx.beginPath(); ctx.arc(p[0], p[1], r, 0, Math.PI * 2); ctx.stroke();
+      txt(ctx, NODE[i], p[0], p[1] - 1, C.fg, 11, "center", true);
+      txt(ctx, TSHORT[Math.round(P["P_type" + i])], p[0], p[1] + 11, C.muted, 9, "center");
+      ctx.globalAlpha = 1;
+    }
+  }
+  function scopeGeo(c) { var cols = c.w < 520 ? 4 : 8, rows = 8 / cols, gap = 6, w = (c.w - gap * (cols - 1)) / cols, h = (c.h - gap * (rows - 1)) / rows; return { cols: cols, w: w, h: h, gap: gap }; }
+  function drawScopes() {
+    var c = canv.scopes, ctx = c.ctx; clear(c);
+    var g = scopeGeo(c);
+    if (c.h !== (g.cols === 4 ? 150 : 96)) { c.el.setAttribute("height", g.cols === 4 ? 150 : 96); c.h = g.cols === 4 ? 150 : 96; fit(); return; }
+    for (var i = 0; i < 8; i++) {
+      var x = (i % g.cols) * (g.w + g.gap), y = Math.floor(i / g.cols) * (g.h + g.gap), on = nodeOn(i), col = bankCol(i), sc = RT.scope[i];
+      ctx.fillStyle = C.surf; ctx.fillRect(x, y, g.w, g.h);
+      if (i === RT.nodeSel) { ctx.strokeStyle = C.fg; ctx.lineWidth = 1.5; ctx.strokeRect(x + 0.75, y + 0.75, g.w - 1.5, g.h - 1.5); }
+      ctx.globalAlpha = on ? 1 : 0.35;
+      ctx.strokeStyle = col; ctx.lineWidth = 1.4; ctx.beginPath();
+      var top = y + 18, hh = g.h - 24;
+      for (var k = 0; k < sc.length; k++) { var px = x + 4 + k / (sc.length - 1) * (g.w - 8), py = top + hh - sc[k] * hh; if (k) ctx.lineTo(px, py); else ctx.moveTo(px, py); }
+      ctx.stroke();
+      txt(ctx, NODE[i], x + 6, y + 13, i === RT.nodeSel ? C.fg : col, 10, "left", true);
+      var ty = Math.round(P["P_type" + i]), rate = P["P_sync" + i] > 0.5 ? DIVN[Math.round(P["P_div" + i])] : (+P["P_hz" + i]).toFixed(2) + " Hz";
+      txt(ctx, on ? TSHORT[ty] + " " + rate : "off", x + g.w - 5, y + 13, C.muted, 9, "right");
+      ctx.globalAlpha = 1;
+    }
+  }
+  function drawRhy() {
+    var c = canv.rhy, ctx = c.ctx; clear(c);
+    var lh = (c.h - 8) / 4, x0 = 46, x1 = c.w - 8, span = 4;
+    for (var k = 0; k < 4; k++) {
+      var y = 4 + k * lh, on = P["P_ron" + k] > 0.5;
+      txt(ctx, "R" + (k + 1), 6, y + lh / 2 + 4, on ? C.fg : C.muted, 11, "left", true);
+      ctx.fillStyle = C.surf; ctx.fillRect(x0, y + 4, x1 - x0, lh - 8);
+      var tr = RT.gateTr[k];
+      ctx.fillStyle = C.accDim;
+      for (var i = 1; i < tr.length; i++) if (tr[i][1] > 0.5) { var xa = x1 - (RT.t - tr[i - 1][0]) / span * (x1 - x0), xb = x1 - (RT.t - tr[i][0]) / span * (x1 - x0); ctx.fillRect(Math.max(x0, xa), y + 8, Math.max(1, xb - xa), lh - 16); }
+      RT.hits[k].forEach(function (h) {
+        var x = x1 - (RT.t - h[0]) / span * (x1 - x0); if (x < x0) return;
+        ctx.fillStyle = h[1] ? C.hot : C.muted; ctx.fillRect(x - 1, y + 4, 2, lh - 8);
+      });
+      var lamp = document.getElementById("lamp" + k);
+      if (lamp) { var age = RT.hits[k].length ? RT.t - RT.hits[k][RT.hits[k].length - 1][0] : 9; lamp.style.background = age < 0.12 ? C.hot : (RT.gates[k] > 0.5 ? C.accDim : C.raised); }
+    }
+  }
+  function drawPitch() {
+    var c = canv.pitch, ctx = c.ctx; clear(c);
+    var lo = X.pitch.base - 1, hi = X.pitch.base + 12 * X.pitch.range + 1, x0 = 8, x1 = c.w - 8, span = 6;
+    var sc = SCALES[X.pitch.scale];
+    for (var p = Math.ceil(lo); p <= hi; p++) {
+      if (sc.indexOf(((p - X.pitch.root) % 12 + 12) % 12) < 0) continue;
+      var y = c.h - 18 - (p - lo) / (hi - lo) * (c.h - 30);
+      ctx.fillStyle = (p - X.pitch.root) % 12 === 0 ? C.line : "rgba(255,255,255,.035)"; ctx.fillRect(x0, y - 0.5, x1 - x0, 1);
+    }
+    RT.notes.forEach(function (n) {
+      var x = x1 - (RT.t - n.t) / span * (x1 - x0), y = c.h - 18 - (n.p - lo) / (hi - lo) * (c.h - 30);
+      if (x < x0) return;
+      ctx.fillStyle = n.ok ? C.acc : C.line; ctx.fillRect(x - 6, y - 3, 12, 6);
+    });
+    var on = P.P_pon > 0.5;
+    txt(ctx, on ? "last note " + RT.lastNote + "  ·  " + NAMES[X.pitch.root] + " " + X.pitch.scale : "pitch is off", x0, c.h - 4, on ? C.acc : C.muted, 11);
+  }
+  function drawAll() { drawNet(); drawScopes(); drawRhy(); drawPitch(); updMeters(); }
+
+  // ---------- controls ----------
+  function el(tag, attrs, html) { var e = document.createElement(tag); if (attrs) Object.keys(attrs).forEach(function (k) { e.setAttribute(k, attrs[k]); }); if (html != null) e.innerHTML = html; return e; }
+  function slider(host, id, label, min, max, step, val, fmt, on, cls) {
+    var f = el("div", { "class": "f" + (cls ? " " + cls : "") }), o = el("output", { id: id + "-o" }), l = el("label", { "for": id }, label);
+    l.appendChild(o); f.appendChild(l);
+    var i = el("input", { type: "range", id: id, min: min, max: max, step: step }); i.value = val; f.appendChild(i);
+    function upd() { o.textContent = fmt(+i.value); }
+    i.addEventListener("input", function () { on(+i.value); upd(); }); upd(); host.appendChild(f); return i;
+  }
+  function selectBox(host, id, label, opts, val, on, cls) {
+    var f = el("div", { "class": "f" + (cls ? " " + cls : "") }); f.appendChild(el("label", { "for": id }, label));
+    var s = el("select", { id: id }); opts.forEach(function (o, k) { var op = el("option", { value: Array.isArray(o) ? o[1] : k }, Array.isArray(o) ? o[0] : o); s.appendChild(op); });
+    s.value = val; s.addEventListener("change", function () { on(s.value); }); f.appendChild(s); host.appendChild(f); return s;
+  }
+  function segBox(host, label, opts, val, on, cls) {
+    var f = el("div", { "class": "f" + (cls ? " " + cls : "") }); f.appendChild(el("span", { "class": "lab" }, label));
+    var row = el("div", { "class": "seg", role: "group", "aria-label": label });
+    opts.forEach(function (o, k) {
+      var b = el("button", { type: "button", "aria-pressed": String(k === val) }, o);
+      b.addEventListener("click", function () { Array.prototype.forEach.call(row.children, function (x, j) { x.setAttribute("aria-pressed", String(j === k)); }); on(k); });
+      row.appendChild(b);
+    });
+    f.appendChild(row); host.appendChild(f); return row;
+  }
+  var pct = function (v) { return Math.round(v * 100) + " %"; };
+  var spct = function (v) { return (v > 0 ? "+" : "") + Math.round(v * 100) + " %"; };
+
+  function buildNet() {
+    var h = document.getElementById("k-net"); h.innerHTML = "";
+    var LN = D.layouts.map(function (l) { return l[0]; });
+    h.appendChild(el("div", { "class": "sub" }, "Bank A"));
+    selectBox(h, "layA", "Layout A", LN, Math.round(P.P_layA), function (v) { setP("P_layA", +v); });
+    slider(h, "fbA", "Feedback A", 0, 1, 0.01, P.P_fbA, pct, function (v) { setP("P_fbA", v); });
+    var sb = el("div", { "class": "sub b" }, "Bank B"); h.appendChild(sb);
+    var bb = el("button", { type: "button", "aria-pressed": String(P.P_bankB > 0.5) }, P.P_bankB > 0.5 ? "on" : "off");
+    bb.addEventListener("click", function () { setP("P_bankB", P.P_bankB > 0.5 ? 0 : 1); bb.setAttribute("aria-pressed", String(P.P_bankB > 0.5)); bb.textContent = P.P_bankB > 0.5 ? "on" : "off"; });
+    sb.appendChild(bb); sb.classList.add("bankB");
+    var wrapB = el("div", { "class": "bankB", style: "display:contents" }); h.appendChild(wrapB);
+    selectBox(wrapB, "layB", "Layout B", LN, Math.round(P.P_layB), function (v) { setP("P_layB", +v); });
+    slider(wrapB, "fbB", "Feedback B", 0, 1, 0.01, P.P_fbB, pct, function (v) { setP("P_fbB", v); });
+    slider(wrapB, "couple", "Couple A ↔ B", 0, 1, 0.01, P.P_couple, pct, function (v) { setP("P_couple", v); });
+  }
+  var BLAB = [null, "Curve", "Steps", "Regularity", "Noise", "Steps", "Character"];
+  function fmtA(ty) {
+    if (ty === 0) return function (v) { var s = v * 3; return s < 0.5 ? "sine" : s < 1.5 ? "triangle" : s < 2.5 ? "saw" : "square"; };
+    if (ty === 1) return function (v) { return Math.round(clamp(v, 0.01, 0.99) * 100) + " % up"; };
+    if (ty === 2 || ty === 4) return function (v) { return Math.round((0.0005 + v * v * 2) * 1000) + " ms"; };
+    if (ty === 5) return function (v) { return v < 0.4 ? "low" : v > 0.6 ? "high" : "even"; };
+    if (ty === 6) return function (v) { return Math.round(v * 100) + " % z"; };
+    return function (v) { return Math.round(1 + v * 49) + " ms"; };
+  }
+  function fmtB(ty) {
+    if (ty === 1) return function (v) { return v < 0.4 ? "log" : v > 0.6 ? "exp" : "lin"; };
+    if (ty === 2 || ty === 5) return function (v) { return v < 0.01 ? "smooth" : Math.floor(2 + v * 14) + " steps"; };
+    if (ty === 4 || ty === 6) return function (v) { return Math.round(v * 100) + " %"; };
+    return function (v) { return v < 0.05 ? "random" : v > 0.95 ? "one per cycle" : Math.round(v * 100) + " %"; };
+  }
+  function buildNode() {
+    var h = document.getElementById("k-node"); h.innerHTML = "";
+    var i = RT.nodeSel, ty = Math.round(P["P_type" + i]), B = i >= 4;
+    if (B) h.classList.add("bankB"); else h.classList.remove("bankB");
+    var head = el("div", { "class": "sub" + (B ? " b" : "") }, "Editing " + NODE[i]);
+    var onb = el("button", { type: "button", "aria-pressed": String(P["P_on" + i] > 0.5) }, P["P_on" + i] > 0.5 ? "on" : "off");
+    onb.addEventListener("click", function () { setP("P_on" + i, P["P_on" + i] > 0.5 ? 0 : 1); buildNode(); });
+    head.appendChild(onb);
+    if (B && P.P_bankB < 0.5) head.appendChild(el("span", null, "· bank B is off"));
+    h.appendChild(head);
+    segBox(h, "Type", ["LFO", "Slope", "S&H", "Geiger", "Slew", "Random", "Chaos"], ty, function (k) { setP("P_type" + i, k); buildNode(); }, "span2");
+    segBox(h, "Clock", ["SYNC", "FREE"], P["P_sync" + i] > 0.5 ? 0 : 1, function (k) { setP("P_sync" + i, k === 0 ? 1 : 0); buildNode(); });
+    var rl = ty === 3 ? "Mean rate" : ty === 2 ? "Rate" : "Cycle";
+    if (P["P_sync" + i] > 0.5) selectBox(h, "n-div", rl, DIVN, Math.round(P["P_div" + i]), function (v) { setP("P_div" + i, +v); });
+    else slider(h, "n-hz", rl, Math.log(0.005), Math.log(40), 0.001, Math.log(P["P_hz" + i]), function (v) { var z = Math.exp(v); return z < 1 ? z.toFixed(3) + " Hz" : z.toFixed(2) + " Hz"; }, function (v) { setP("P_hz" + i, Math.exp(v)); });
+    slider(h, "n-amp", ty === 3 ? "Click height" : "Amp", 0, 1, 0.01, P["P_amp" + i], pct, function (v) { setP("P_amp" + i, v); });
+    slider(h, "n-ta", "A · " + ["shape", "rise", "slew", "click width", "slew", "skew", "x .. z"][ty], 0, 1, 0.01, P["P_ta" + i], fmtA(ty), function (v) { setP("P_ta" + i, v); });
+    if (ty > 0) slider(h, "n-tb", "B · " + BLAB[ty].toLowerCase(), 0, 1, 0.01, P["P_tb" + i], fmtB(ty), function (v) { setP("P_tb" + i, v); });
+    if (MODES[ty]) segBox(h, "Mode", MODES[ty], Math.min(MODES[ty].length - 1, Math.round(P["P_mode" + i])), function (k) { setP("P_mode" + i, k); buildNode(); });
+    segBox(h, "Amp wire", ["ADD", "POLAR"], P["P_pol" + i] > 0.5 ? 1 : 0, function (k) { setP("P_pol" + i, k); });
+    if (ty < 2) slider(h, "n-ph", "Phase", 0, 1, 0.01, P["P_phase" + i], function (v) { return Math.round(v * 360) + "°"; }, function (v) { setP("P_phase" + i, v); });
+    slider(h, "n-dep", "Depth into the layout", -1, 1, 0.01, P["P_depth" + i], spct, function (v) { setP("P_depth" + i, v); });
+    segBox(h, "Polarity", ["0..1", "−1..1"], P["P_bi" + i] > 0.5 ? 1 : 0, function (k) { setP("P_bi" + i, k); });
+    slider(h, "n-out", "Output level", 0, 1, 0.01, P["P_out" + i], pct, function (v) { setP("P_out" + i, v); });
+    if (ty === 2 || ty === 4 || ty === 5) segBox(h, "Clock", ["own rate", "layout only"], P["P_clk" + i] > 0.5 ? 1 : 0, function (k) { setP("P_clk" + i, k); });
+    var grp = 0; for (var t2 = 0; t2 < X.outs.length; t2++) if (X.outs[t2].src === i) grp++;
+    segBox(h, "Hand-off (pass)", ["OFF", "ON"], X.pass[i] ? 1 : 0, function (k) { X.pass[i] = k; applyGroups(); });
+    var hint = el("p", { "class": "what", id: "pass-hint" },
+                  grp >= 2 ? ("With pass on, " + NODE[i] + " moves one of its " + grp + " targets at a time and hands over each cycle; the others hold.")
+                           : (NODE[i] + " drives " + grp + " target" + (grp === 1 ? "" : "s") + " — pass needs two or more (give another target the same node in OUTPUTS)."));
+    h.appendChild(hint);
+  }
+  function updPass() { if (document.getElementById("pass-hint")) buildNode(); }
+  var meters = [];
+  function buildOuts() {
+    var h = document.getElementById("k-outs"); h.innerHTML = ""; meters = [];
+    ["Target", "Driven by", "Amount", "Rests at", "Now"].forEach(function (t) { h.appendChild(el("span", { "class": "h" }, t)); });
+    var srcs = [["—", -1]].concat(NODE.map(function (n, i) { return [n, i]; }));
+    TARGETS.forEach(function (T, k) {
+      var O = X.outs[k];
+      h.appendChild(el("span", { "class": "tname" }, T.name));
+      var s = el("select", { id: "o-src" + k, "aria-label": T.name + " driven by" });
+      srcs.forEach(function (o) { s.appendChild(el("option", { value: o[1] }, o[0])); }); s.value = O.src;
+      s.addEventListener("change", function () { O.src = +s.value; applyGroups(); updPass(); }); h.appendChild(s);
+      var d = el("input", { type: "range", id: "o-dep" + k, min: -1, max: 1, step: 0.01, "aria-label": T.name + " amount" }); d.value = O.dep;
+      d.addEventListener("input", function () { O.dep = +d.value; }); h.appendChild(d);
+      var b = el("input", { type: "range", id: "o-base" + k, min: 0, max: 1, step: 0.01, "aria-label": T.name + " rests at" }); b.value = O.base;
+      b.addEventListener("input", function () { O.base = +b.value; }); h.appendChild(b);
+      var m = el("div", { "class": "meter" }), mi = el("i"); m.appendChild(mi); h.appendChild(m); meters.push(mi);
+    });
+  }
+  function updMeters() {
+    meters.forEach(function (mi, k) { var O = X.outs[k]; mi.style.width = Math.round(outVal(k) * 100) + "%"; mi.style.background = O.src < 0 ? C.muted : bankCol(O.src); });
+  }
+  function buildRhy() {
+    var h = document.getElementById("k-rhy"); h.innerHTML = "";
+    ["", "On", "a", "op", "b", "threshold", "note"].forEach(function (t) { h.appendChild(el("span", { "class": "h" }, t)); });
+    var srcs = NODE.slice(), srcsB = NODE.concat(["value"]);
+    for (var k = 0; k < 4; k++) (function (k) {
+      h.appendChild(el("span", { "class": "lamp", id: "lamp" + k, "aria-hidden": "true" }));
+      var on = el("button", { type: "button", "aria-pressed": String(P["P_ron" + k] > 0.5), "aria-label": "Rule " + (k + 1) + " on" }, "R" + (k + 1));
+      on.addEventListener("click", function () { setP("P_ron" + k, P["P_ron" + k] > 0.5 ? 0 : 1); on.setAttribute("aria-pressed", String(P["P_ron" + k] > 0.5)); });
+      h.appendChild(on);
+      [["P_ra", srcs], ["P_rop", D.ops], ["P_rb", srcsB]].forEach(function (q) {
+        var s = el("select", { id: "r" + q[0] + k, "aria-label": "Rule " + (k + 1) + " " + q[0].slice(3) });
+        q[1].forEach(function (o, j) { s.appendChild(el("option", { value: j }, o)); }); s.value = Math.round(P[q[0] + k]);
+        s.addEventListener("change", function () { setP(q[0] + k, +s.value); }); h.appendChild(s);
+      });
+      var t = el("input", { type: "range", id: "r-thr" + k, min: 0, max: 1, step: 0.01, "aria-label": "Rule " + (k + 1) + " threshold" }); t.value = P["P_rthr" + k];
+      t.addEventListener("input", function () { setP("P_rthr" + k, +t.value); }); h.appendChild(t);
+      h.appendChild(el("span", { "class": "note" }, DRUMS[k][0] + " " + nname(DRUMS[k][1])));
+    })(k);
+  }
+  function buildPitch() {
+    var h = document.getElementById("k-pitch"); h.innerHTML = "";
+    var pb = el("button", { type: "button", "aria-pressed": String(P.P_pon > 0.5) }, P.P_pon > 0.5 ? "on" : "off");
+    pb.addEventListener("click", function () { setP("P_pon", P.P_pon > 0.5 ? 0 : 1); pb.setAttribute("aria-pressed", String(P.P_pon > 0.5)); pb.textContent = P.P_pon > 0.5 ? "on" : "off"; });
+    var sub = el("div", { "class": "sub" }, "Pitch"); sub.appendChild(pb); h.appendChild(sub);
+    selectBox(h, "p-src", "Source", NODE, Math.round(P.P_psrc), function (v) { setP("P_psrc", +v); });
+    selectBox(h, "p-tick", "Tick", DIVN.concat(NODE.map(function (n) { return n + " trigger"; })), Math.round(P.P_ptick), function (v) { setP("P_ptick", +v); });
+    selectBox(h, "p-root", "Key", NAMES, X.pitch.root, function (v) { X.pitch.root = +v; });
+    selectBox(h, "p-scale", "Scale", Object.keys(SCALES).map(function (s) { return [s, s]; }), X.pitch.scale, function (v) { X.pitch.scale = v; });
+    slider(h, "p-range", "Range", 1, 4, 1, X.pitch.range, function (v) { return v + " oct"; }, function (v) { X.pitch.range = v; });
+    slider(h, "p-base", "Lowest note", 36, 72, 1, X.pitch.base, nname, function (v) { X.pitch.base = v; });
+    h.appendChild(el("div", { "class": "sub" }, "Both outputs"));
+    slider(h, "prob", "Prob", 0, 100, 1, X.prob, function (v) { return v + " %"; }, function (v) { X.prob = v; }, "span2");
+  }
+  function buildScenes() {
+    var h = document.getElementById("scenes"); h.innerHTML = "";
+    SCENES.forEach(function (s, k) {
+      var b = el("button", { type: "button", "aria-pressed": String(k === curScene) }, s.name);
+      b.addEventListener("click", function () { loadScene(k); });
+      h.appendChild(b);
+    });
+    document.getElementById("scene-what").textContent = curScene >= 0 ? SCENES[curScene].what : "Your own: rolled with rnd.";
+  }
+  function buildAll() { applyGroups(); buildScenes(); buildNet(); buildNode(); buildOuts(); buildRhy(); buildPitch(); fit(); drawAll(); }
+
+  // ---------- picking ----------
+  canv.net.el.addEventListener("click", function (e) {
+    var rc = canv.net.el.getBoundingClientRect(), x = e.clientX - rc.left, y = e.clientY - rc.top, g = netGeo(canv.net);
+    for (var i = 0; i < 8; i++) { var dx = x - g.pos[i][0], dy = y - g.pos[i][1]; if (dx * dx + dy * dy < (g.r + 8) * (g.r + 8)) { RT.nodeSel = i; buildNode(); drawAll(); return; } }
+  });
+  canv.scopes.el.addEventListener("click", function (e) {
+    var rc = canv.scopes.el.getBoundingClientRect(), x = e.clientX - rc.left, y = e.clientY - rc.top, g = scopeGeo(canv.scopes);
+    var col = Math.floor(x / (g.w + g.gap)), row = Math.floor(y / (g.h + g.gap)), i = row * g.cols + col;
+    if (i >= 0 && i < 8) { RT.nodeSel = i; buildNode(); drawAll(); }
+  });
+
+  // ---------- bar ----------
+  var playB = document.getElementById("play"), soundB = document.getElementById("sound");
+  playB.addEventListener("click", function () { RT.playing = !RT.playing; playB.textContent = RT.playing ? "Pause" : "Play"; playB.classList.toggle("on", RT.playing); });
+  soundB.addEventListener("click", function () {
+    soundOn = !soundOn; audio(); if (A.ctx.state === "suspended") A.ctx.resume();
+    soundB.setAttribute("aria-pressed", String(soundOn)); soundB.textContent = soundOn ? "Sound on" : "Sound off";
+  });
+  var bpmI = document.getElementById("bpm"), volI = document.getElementById("vol");
+  bpmI.addEventListener("input", function () { X.bpm = +bpmI.value; document.getElementById("bpm-o").textContent = X.bpm + " BPM"; });
+  volI.addEventListener("input", function () { X.vol = +volI.value; document.getElementById("vol-o").textContent = X.vol + " %"; if (A) A.master.gain.setTargetAtTime(X.vol / 100 * 0.8, A.ctx.currentTime, 0.05); });
+  var DICE_SVG = '<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="1.5" width="13" height="13" rx="3" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="5" cy="5" r="1.3" fill="currentColor"/><circle cx="11" cy="11" r="1.3" fill="currentColor"/><circle cx="8" cy="8" r="1.3" fill="currentColor"/></svg>';
+  var diceB = document.getElementById("diceall"); diceB.innerHTML = DICE_SVG + "rnd";
+  diceB.addEventListener("click", function () { curScene = -1; rollAll(); });
+  document.getElementById("reset").addEventListener("click", function () { loadScene(0); });
+
+  // ---------- run ----------
+  loadScene(0);
+  var last = performance.now();
+  function frame(now) {
+    var dt = Math.min(0.1, (now - last) / 1000); last = now;
+    stepCore(Math.round(dt * SR));
+    applySynth();
+    drawAll();
+    requestAnimationFrame(frame);
+  }
+  window.addEventListener("resize", function () { fit(); drawAll(); });
+  requestAnimationFrame(frame);
+})();
+</script>

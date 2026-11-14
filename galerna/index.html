@@ -1,0 +1,1681 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>body{margin:0}img{max-width:100%}</style>
+<title>Galerna — Virtual</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;700&display=swap" rel="stylesheet">
+<style>
+/* Layout: one 720px column, left aligned, 1px rules between sections — the device's own strip
+   proportions carried onto a page. Dark only, like the rest of the family. */
+:root {
+  --bg: #141417;
+  --surface: #303338;
+  --border: #45474D;
+  --edge: #404247;
+  --label: #8F919A;
+  --grey: #9EA1A8;
+  --text: #D6DBE0;
+  --hover: #EBEDF2;
+  --accent: #A8E05F;
+  --accent-dark: #52691F;
+  --muted: #73757D;
+  --font: 'Inter', 'IBM Plex Sans', system-ui, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 1.55;
+  font-variant-numeric: tabular-nums;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 40px 72px;
+}
+.wrap { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 40px; }
+h1 { font-size: 32px; font-weight: 700; margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+h2 { font-size: 18px; font-weight: 700; margin: 0; text-wrap: balance; }
+h3 { font-size: 14px; font-weight: 700; margin: 0; }
+p { margin: 0; max-width: 62ch; }
+.lede { color: var(--grey); }
+.eyebrow {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--label); margin: 0;
+}
+section { display: flex; flex-direction: column; gap: 16px; }
+.rule { border: 0; border-top: 1px solid var(--border); margin: 0; width: 100%; }
+
+/* --- the simulator --- */
+.sim { display: flex; flex-direction: column; gap: 12px; }
+.plot-box { width: 100%; min-width: 0; }
+.strip-box { width: 100%; max-width: 480px; min-width: 0; }
+canvas { display: block; width: 100%; height: auto; max-width: 100%; touch-action: none; }
+.strip-box canvas { cursor: ns-resize; user-select: none; }
+.strip-box canvas:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
+.readout {
+  display: flex; flex-wrap: wrap; gap: 8px 20px;
+  font-size: 12px; color: var(--label);
+}
+.readout b { color: var(--text); font-weight: 500; }
+
+.controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px 20px; }
+.ctl { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.ctl-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.ctl-head label, .ctl-head .ctl-label { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--label); }
+.ctl-head output { font-size: 12px; color: var(--text); }
+input[type="range"] {
+  -webkit-appearance: none; appearance: none; width: 100%; height: 16px;
+  background: transparent; margin: 0;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 2px; background: var(--border); border-radius: 0;
+}
+input[type="range"]::-moz-range-track { height: 2px; background: var(--border); }
+/* a 3px marker that still offers a 20px touch target */
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none; width: 20px; height: 16px; border: 0; border-radius: 0;
+  margin-top: -7px;
+  background: linear-gradient(90deg, transparent 0 8px, var(--text) 8px 11px, transparent 11px 100%);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 20px; height: 16px; border: 0; border-radius: 0;
+  background: linear-gradient(90deg, transparent 0 8px, var(--text) 8px 11px, transparent 11px 100%);
+}
+input[type="range"]:focus-visible { outline: 1px solid var(--accent); outline-offset: 4px; }
+
+.seg { display: flex; gap: 3px; flex-wrap: wrap; }
+button {
+  font: 500 12px var(--font); color: var(--text);
+  background: var(--surface); border: 1px solid var(--border); border-radius: 2px;
+  padding: 4px 10px; cursor: pointer; min-height: 28px;
+}
+button:hover { color: var(--hover); border-color: var(--grey); }
+button[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }
+button:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
+.presets { display: flex; flex-wrap: wrap; gap: 6px; }
+.transport { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
+.transport .vol { display: flex; align-items: center; gap: 8px; min-width: 160px; flex: 1 1 160px; }
+.transport .vol label { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--label); }
+.transport .vol input { flex: 1 1 auto; }
+#play[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* --- prose bits --- */
+dl { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 8px 20px; }
+dt { color: var(--label); font-size: 12px; }
+dd { margin: 0; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; font-weight: 700; color: var(--label); font-size: 11px;
+     letter-spacing: 0.08em; text-transform: uppercase; padding: 0 12px 6px 0; }
+td { padding: 6px 12px 6px 0; border-top: 1px solid var(--border); vertical-align: top; }
+td:last-child, th:last-child { padding-right: 0; }
+.num { text-align: right; }
+.table-box { width: 100%; overflow-x: auto; }
+.table-box:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
+.note { color: var(--label); font-size: 13px; }
+code { font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 12.5px; color: var(--text); }
+ul { margin: 0; padding-left: 18px; }
+li { margin-bottom: 6px; }
+li::marker { color: var(--label); }
+/* --- 0.25.2: the device's buttons, the Push pads, the tour --- */
+.tour { border: 1px solid var(--border); border-radius: 2px; padding: 14px 16px; gap: 10px; }
+.tour-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.tour.free #tour-title, .tour.free #tour-text, .tour.free #tour-back, .tour.free #tour-next { display: none; }
+.devrow { display: flex; flex-wrap: wrap; gap: 6px; align-items: flex-end; }
+.devrow .amt { flex: 1 1 160px; max-width: 240px; margin-left: 10px; }
+.push { display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--border); padding-top: 14px; }
+.push-top { display: flex; flex-direction: column; gap: 4px; }
+.push-body { display: flex; flex-wrap: wrap; gap: 16px 24px; align-items: flex-start; }
+.padgrid { display: grid; grid-template-columns: 14px repeat(8, 1fr); gap: 4px; width: 100%; max-width: 360px; flex: 1 1 280px; }
+.padgrid .n { font-size: 10px; color: var(--label); font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.padgrid button.pad { padding: 0; min-height: 0; aspect-ratio: 1; border-radius: 3px; border: 1px solid #303338; background: #232529; }
+.padgrid button.pad:hover { border-color: var(--grey); }
+.push-btns { display: flex; flex-direction: column; gap: 6px; flex: 1 1 200px; max-width: 280px; }
+.push-btns .seg { flex-direction: column; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+@media (max-width: 520px) { dl { grid-template-columns: 1fr; gap: 2px 0; } dt { margin-top: 10px; } }
+</style>
+</head><body>
+
+<main class="wrap">
+
+<header>
+  <p class="eyebrow">Galerna 0.25 &middot; the device running here</p>
+  <h1>How Galerna Moves</h1>
+  <p class="lede">16 fixed bandpass filters across the spectrum, each with its own level. The sweep
+  window, the tilt, the two filter slopes, the morph between two curves and the two halves gating each
+  other all do one thing: decide which bands reach the output and how loudly. Everything below runs the
+  device's own filter maths, so what you see and hear here is what the device does.</p>
+</header>
+
+<section class="tour" aria-label="Guided tour">
+  <div class="tour-head">
+    <p class="eyebrow" id="tour-count">Tour</p>
+    <div class="seg">
+      <button type="button" id="tour-back">Back</button>
+      <button type="button" id="tour-next">Next</button>
+      <button type="button" id="tour-free" aria-pressed="false">Free play</button>
+    </div>
+  </div>
+  <h2 id="tour-title"></h2>
+  <p id="tour-text" aria-live="polite"></p>
+</section>
+
+<section class="sim" aria-label="Interactive response">
+  <div class="plot-box"><canvas id="plot" role="img"
+    aria-label="Frequency response of the filterbank with the current settings"></canvas></div>
+  <div class="strip-box"><canvas id="strip" tabindex="0" role="application"
+    aria-label="Band levels" aria-describedby="strip-help"></canvas></div>
+  <div class="strip-box"><canvas id="env" aria-label="Envelope follower level of each band"></canvas></div>
+  <p class="readout" id="readout" aria-live="polite"></p>
+
+  <div class="transport">
+    <button type="button" id="play" aria-pressed="false">Play</button>
+    <div class="seg" id="c-source" role="group" aria-labelledby="lbl-source">
+      <span id="lbl-source" class="sr-only">Sound source</span>
+      <button type="button" data-source="noise">Noise</button>
+      <button type="button" data-source="chord">Chord</button>
+    </div>
+    <div class="vol">
+      <label for="c-vol">Volume</label>
+      <input type="range" id="c-vol" min="0" max="100" step="1" value="60">
+    </div>
+  </div>
+  <div class="controls">
+    <div class="ctl">
+      <div class="ctl-head"><label for="c-att">Attack</label><output id="o-att"></output></div>
+      <input type="range" id="c-att" min="0.1" max="500" step="0.1" value="5">
+    </div>
+    <div class="ctl">
+      <div class="ctl-head"><label for="c-rel">Release</label><output id="o-rel"></output></div>
+      <input type="range" id="c-rel" min="1" max="2000" step="1" value="80">
+    </div>
+  </div>
+  <p class="note" id="audio-note">The sound runs through the same 16 filters at the same frequencies
+  and Q as the curve, so what you hear is what the plot draws. The FOLLOWERS row above is live while
+  it plays: each bar is that band's envelope, with the Attack and Release below. Starts quiet; turn it
+  up from there.</p>
+
+  <div class="presets" id="presets">
+    <button type="button" data-preset="flat">Flat</button>
+    <button type="button" data-preset="window">Sweep window</button>
+    <button type="button" data-preset="notch">Moving notch</button>
+    <button type="button" data-preset="sweep" aria-pressed="false">Sweep it</button>
+    <button type="button" data-preset="odd">Odd bands</button>
+    <button type="button" data-preset="stab">Dub stab</button>
+    <button type="button" data-preset="resonant">Resonant</button>
+    <button type="button" data-preset="morph">Two curves</button>
+    <button type="button" data-preset="cross">Cross</button>
+  </div>
+
+  <div class="controls">
+    <div class="ctl">
+      <div class="ctl-head"><span class="ctl-label" id="lbl-range">Range</span></div>
+      <div class="seg" id="c-range" role="group" aria-labelledby="lbl-range">
+        <button type="button" data-range="0">250–10k Hz</button>
+        <button type="button" data-range="1">60–12k Hz</button>
+        <button type="button" data-range="2">40–2k Hz</button>
+      </div>
+    </div>
+    <div class="ctl">
+      <div class="ctl-head"><span class="ctl-label" id="lbl-mode">Mode</span></div>
+      <div class="seg" id="c-mode" role="group" aria-labelledby="lbl-mode">
+        <button type="button" data-mode="0">All</button>
+        <button type="button" data-mode="1">Odd</button>
+        <button type="button" data-mode="2">Even</button>
+      </div>
+    </div>
+    <div class="ctl">
+      <div class="ctl-head"><span class="ctl-label" id="lbl-poles">Poles</span></div>
+      <div class="seg" id="c-poles" role="group" aria-labelledby="lbl-poles">
+        <button type="button" data-poles="2">2p</button>
+        <button type="button" data-poles="4">4p</button>
+      </div>
+    </div>
+    <div class="ctl">
+      <div class="ctl-head"><label for="c-q">Q</label><output id="o-q"></output></div>
+      <input type="range" id="c-q" min="0.25" max="8" step="0.05" value="1">
+    </div>
+    <div class="ctl">
+      <div class="ctl-head"><label for="c-sweep">Sweep</label><output id="o-sweep"></output></div>
+      <input type="range" id="c-sweep" min="1" max="16" step="0.1" value="8.5">
+    </div>
+    <div class="ctl">
+      <div class="ctl-head"><label for="c-width">Width</label><output id="o-width"></output></div>
+      <input type="range" id="c-width" min="0" max="8" step="0.1" value="0">
+    </div>
+    <div class="ctl">
+      <div class="ctl-head"><label for="c-depth">Depth</label><output id="o-depth"></output></div>
+      <input type="range" id="c-depth" min="-100" max="100" step="1" value="100">
+    </div>
+    <div class="ctl">
+      <div class="ctl-head"><label for="c-tilt">Tilt</label><output id="o-tilt"></output></div>
+      <input type="range" id="c-tilt" min="-12" max="12" step="0.5" value="0">
+    </div>
+    <div class="ctl">
+      <div class="ctl-head"><label for="c-cross">Cross</label><output id="o-cross"></output></div>
+      <input type="range" id="c-cross" min="0" max="100" step="1" value="0">
+    </div>
+    <div class="ctl">
+      <div class="ctl-head"><label for="c-mix">Mix</label><output id="o-mix"></output></div>
+      <input type="range" id="c-mix" min="0" max="100" step="1" value="100">
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="ctl">
+      <div class="ctl-head"><span class="ctl-label" id="lbl-curves">Two curves</span></div>
+      <div class="seg" id="c-curves" role="group" aria-labelledby="lbl-curves">
+        <button type="button" data-curve="store">Store as B</button>
+        <button type="button" data-curve="swap">A &lt;&gt; B</button>
+      </div>
+    </div>
+    <div class="ctl">
+      <div class="ctl-head"><label for="c-morph">Morph</label><output id="o-morph"></output></div>
+      <input type="range" id="c-morph" min="0" max="100" step="1" value="0">
+    </div>
+    <div class="ctl">
+      <div class="ctl-head"><span class="ctl-label" id="lbl-clock">Clock</span></div>
+      <div class="seg" id="c-clock" role="group" aria-labelledby="lbl-clock">
+        <button type="button" data-clock="0">off</button>
+        <button type="button" data-clock="1">free</button>
+      </div>
+    </div>
+    <div class="ctl">
+      <div class="ctl-head"><span class="ctl-label" id="lbl-move">Move</span></div>
+      <div class="seg" id="c-move" role="group" aria-labelledby="lbl-move">
+        <button type="button" data-move="0">ramp</button>
+        <button type="button" data-move="1">swing</button>
+        <button type="button" data-move="2">step</button>
+      </div>
+    </div>
+    <div class="ctl">
+      <div class="ctl-head"><label for="c-rate">Rate</label><output id="o-rate"></output></div>
+      <input type="range" id="c-rate" min="0.1" max="30" step="0.1" value="2">
+    </div>
+  </div>
+
+  <div class="devrow" role="group" aria-label="Random, init and undo, as on the device's BANDS header">
+    <button type="button" data-dev="new">new</button>
+    <button type="button" data-dev="vary">vary</button>
+    <button type="button" data-dev="drift">drift</button>
+    <button type="button" data-dev="init">init</button>
+    <button type="button" data-dev="zero">0 dB</button>
+    <button type="button" data-dev="undo">undo</button>
+    <div class="ctl amt">
+      <div class="ctl-head"><label for="c-rndamt">Rnd Amount</label><output id="o-rndamt"></output></div>
+      <input type="range" id="c-rndamt" min="0" max="100" step="1" value="100">
+    </div>
+  </div>
+
+  <div class="push" aria-label="Push pads">
+    <div class="push-top">
+      <h3>On Push</h3>
+      <p class="note" id="push-layer" aria-live="polite"></p>
+    </div>
+    <div class="push-body">
+      <div class="padgrid" id="padgrid" role="group" aria-label="The 8 by 8 pads. Rows 1 to 8 from the top, pads 1 to 8 from the left"></div>
+      <div class="push-btns">
+        <button type="button" id="pb-shift" aria-pressed="false">Shift</button>
+        <button type="button" id="pb-select-tap">Select: tap</button>
+        <button type="button" id="pb-select" aria-pressed="false">Select: hold</button>
+        <button type="button" id="pb-delete" aria-pressed="false">Delete</button>
+        <button type="button" id="pb-undo">Undo</button>
+        <p class="note">Shift, Select: hold and Delete stay down until you click them again, so one mouse can do what
+        two fingers do. Bands knob page:</p>
+        <div class="seg" id="pb-knobs" role="group" aria-label="Which Bands knob page a knob is turned on">
+          <button type="button" data-knob="0">turn a knob on Bands 1-8</button>
+          <button type="button" data-knob="1">turn a knob on Bands 9-16</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="note" id="strip-help">The strip is the device's own band display. Drag a column to set one
+  band, or double-click it to put it back to 0 dB. With the strip focused, left and right choose a
+  band, up and down change it, Home sets 0 dB and End mutes it. The faint curves behind the white one
+  are the 16 bands on their own; the short marks across the columns are curve B.</p>
+</section>
+
+<hr class="rule">
+
+<section>
+  <h2>The bank</h2>
+  <p>16 bandpass filters sit at fixed frequencies, spaced evenly in octaves between the two ends of the
+  Range. Each one has a level in dB, and the bank is the sum of all 16. With every band at 0 dB the sum
+  is flat to within about 1.5 dB across the range, which is the point the Q is tuned to.</p>
+  <p>A band at &minus;60 dB is off. Pull most of them down and you are left with a window onto a few
+  frequencies: that is the sound of a filterbank rather than an EQ, because the bands in between are
+  gone rather than turned down.</p>
+  <p class="note">One band on its own sits about 5 dB below unity. Galerna normalises the bank so that
+  all 16 together come out at 0 dB, which leaves each band holding its own share of the signal.</p>
+</section>
+
+<section>
+  <h2>Sweep, Width and Depth</h2>
+  <p>Width opens a window over the band numbers; Sweep slides it. At Width 0 the window is off and every
+  band passes. Sweeping Sweep across the bank is the device's main move: it steps through the spectrum
+  band by band instead of gliding the way a filter does. The window is a raised cosine, so a band fades
+  in and out rather than switching.</p>
+  <p>Depth decides what the window <em>does</em> to the bands it covers, and it is what makes one
+  control into two effects. At <code>+100</code> only the window passes — a moving band-pass. At
+  <code>&minus;100</code> only the window is removed — a moving notch, with everything else untouched.
+  At <code>0</code> the window does nothing at all. In between, <code>+50</code> halves the bands
+  outside rather than silencing them, which is the difference between a sweep that cuts and one that
+  leans.</p>
+</section>
+
+<section>
+  <h2>Q</h2>
+  <p>Q sets how narrow every band is. At 1 the bands overlap exactly enough that their sum is flat.
+  Raise it and each band becomes a resonant peak with gaps between, which is more character and less
+  neutrality. Lower it and the bands blur into each other, which sounds smoother and quietly raises the
+  overall level because neighbouring bands reinforce.</p>
+  <p>Q matters twice over, because it also decides how articulate the vocoder is. At Q 1 a band is only
+  about 2.5&times; louder than its neighbours two along; at Q 4 that is 31&times; and at Q 12 it is
+  155&times;. The flattest filterbank is the vaguest vocoder.</p>
+</section>
+
+<section>
+  <h2>Tilt</h2>
+  <p>Tilt leans the whole bank: band 1 goes to &minus;Tilt dB and band 16 to +Tilt dB, with a straight
+  line between them. It is the fastest way to make a sweep sweep darker at the bottom or brighter at the
+  top without touching sixteen levels.</p>
+</section>
+
+<section>
+  <h2>Odd, Even and the two slopes</h2>
+  <p>Odd passes bands 1, 3, 5 and so on; Even passes the others. Each is a comb through the same
+  settings, and switching between them on a sustained sound gives two voicings of the same material.
+  Added together they rebuild the full bank exactly.</p>
+  <p>2p is the softer slope, with wide skirts and bands blending into each other. 4p runs each band
+  through two stages, which halves the bandwidth and steepens the edges. In 4p the device flips the
+  polarity of every other band so that neighbours still add instead of cancelling. Without that the sum
+  would be full of deep notches. Switch between 2p and 4p above and watch the skirts, not the plateau:
+  both stay flat.</p>
+</section>
+
+<section>
+  <h2>Two curves and the morph</h2>
+  <p>The bank holds a second set of 16 levels alongside the one on the faders. <b>Morph</b> crossfades
+  every band from A to B at once, in dB — a band at 0 in A and &minus;60 in B passes &minus;30 dB
+  halfway. A band that is off in both stays off all the way across. Press <b>Store as B</b> above,
+  change the curve, then sweep Morph: the whole response travels between the two shapes rather than
+  sixteen faders moving one at a time.</p>
+  <p>In the device these are eight stored slots rather than one spare curve, and the morph runs between
+  any two of them.</p>
+  <h3>The clock</h3>
+  <p>Set <b>Clock</b> to <code>free</code> and the morph drives itself, one cycle every <b>Rate</b>
+  seconds. <b>Move</b> decides what happens inside a cycle: <code>ramp</code> goes A to B and jumps
+  back, <code>swing</code> goes there and returns so the cycle ends where it began, and
+  <code>step</code> does not glide at all — it alternates A and B once per cycle, which is how you get
+  a preset that changes on the bar rather than a sweep.</p>
+  <p class="note">The device has a third setting this page cannot have: <code>sync</code>, locked to
+  Live's transport, with the cycle set in bars. Everything else about it is the same. In the device the
+  clock is a signal into the DSP rather than a timer writing parameters, so a four-bar morph costs no
+  parameter changes and records nothing into an armed automation lane.</p>
+</section>
+
+<section>
+  <h2>Cross</h2>
+  <p>Each band is opened by the follower of the band <b>eight along</b>, wrapping round: band 1 by band
+  9, band 9 by band 1. What the bass is doing opens the top of the bank, and what the top is doing opens
+  the bass. It needs no second input, because the input is both sides of the trade.</p>
+  <p>Turn Cross up with the chord playing and watch the plot move: the response is no longer a fixed
+  shape but one the signal is redrawing continuously. On a full mix it behaves like a frequency-dependent
+  ducking — a kick opens the air bands on every hit, hats open the low end.</p>
+  <p class="note">On a part with energy in only one half it closes the bank almost completely. That is
+  correct rather than a fault: cross <em>gates</em> a band by its opposite's envelope, it does not move
+  energy up there, so it needs content in both halves to do anything.</p>
+</section>
+
+<section>
+  <h2>The followers</h2>
+  <p>Every band measures its own level, all the time, whatever the band is set to. That measurement is a
+  follower: rectify the band, then let it rise at the Attack time and fall at the Release time. The
+  FOLLOWERS row shows all 16 while the sound plays.</p>
+  <p>On the device's ENV page each of those 16 can be pointed at any parameter in the Live set, with an
+  <b>offset</b> and an <b>amount</b>. The offset is where the parameter sits when the band is silent,
+  0 to 100 % of its range; the amount is how far it moves from there and which way, &minus;200 to
+  +200 %. Offset 0 with amount +100 opens from the bottom; offset 100 with amount &minus;100 rests at
+  the top and ducks. Above 100 % the follower is scaled up before it clips, which is how a quiet band
+  still reaches the whole range of what it drives. At 0 the band lets go of the parameter. A seventeenth lane, <b>SUM</b>, is the
+  mean of all 16 — the overall loudness of the part rather than one slice of it.</p>
+  <p>Two controls shape every follower at once. <b>Decay</b> tilts the release across the bank, as if
+  every band had its own decay control and you turned them in a slope: negative holds the low bands and keeps the top
+  snappy. <b>Pre-emphasis</b> tilts what the followers <em>hear</em>, never the audio, so a quiet top
+  band can still drive something hard.</p>
+  <p class="note">A long Release on a band with little energy is the easy mistake: the follower never
+  falls back and the parameter sits still. Watch the bars before blaming the mapping.</p>
+</section>
+
+<section>
+  <h2>The vocoder</h2>
+  <p>The followers already measure the signal band by band. Point those measurements at a second bank
+  fed by a carrier generated inside the device and the filterbank becomes a 16-band vocoder — no
+  sidechain and no second track. The carrier is a sawtooth, noise, or both; <b>Shift</b> moves the
+  formants by up to fifteen bands, so each carrier band is opened by a different input band.</p>
+  <p>Everything on this page still applies to it. The band levels, the two curves and the morph shape the
+  vocoder exactly as they shape the filterbank, so a clocked morph becomes two vocoder responses
+  alternating on the bar. Pre-emphasis is what makes consonants read, and the decay tilt is what lets low
+  bands hang while the top stays crisp.</p>
+  <p class="note">This page does not play the vocoder — it would need a second bank of sixteen filters
+  and a carrier. Load the device for that.</p>
+</section>
+
+<section>
+  <h2>Random, init and undo</h2>
+  <p>The device's BANDS header has five buttons, and they are under the strip above. <b>new</b> draws a fresh
+  curve, every band between &minus;30 and +6&nbsp;dB. <b>vary</b> stays within 6&nbsp;dB of the curve that was there
+  when you first pressed it. <b>drift</b> moves every band by up to 2&nbsp;dB from where it is, so repeated presses
+  walk. <b>Rnd Amount</b> scales all three: at 50&nbsp;% a roll goes half as far. <b>init</b> puts every control back
+  to its default, and <b>undo</b> takes back the last roll, init or 0&nbsp;dB. These buttons run the device's own
+  script, so a roll here is the roll the device makes.</p>
+</section>
+
+<section>
+  <h2>On Push</h2>
+  <p>With Galerna's track selected the 8&times;8 pads are the filterbank: eight columns are eight bands and height
+  is level. Rows are counted 1-8 from the top, pads 1-8 from the left. Press a pad and that band goes to that row:
+  row 1 is +6&nbsp;dB, row 2 is 0&nbsp;dB, then &minus;6, &minus;12, &minus;18, &minus;24, &minus;36, and row 8 is
+  off. The white pad on each column is the signal in that band while the sound plays. The pads above are driven by
+  the device's own Push script.</p>
+  <dl>
+    <dt>Shift</dt><dd>The bars go dark and the pads are the menu. Row 1: pad 1 VIEW, pad 2 CONTROL, pad 4 bands
+    1-8, pad 5 bands 9-16. Rows 3 and 4: sixteen bar colours. Row 6: pad 1 dim, pad 2 bright.</dd>
+    <dt>Shift + Select</dt><dd>Tap Select: every band rolls the way you rolled last. Hold Select: the random page.
+    Rows 1-2 are NEW, VARY and DRIFT, row 4 is Rnd Amount, row 8 pad 8 is undo.</dd>
+    <dt>Shift + Delete</dt><dd>Every pad turns white. Any pad: init. Let go and nothing is reset.</dd>
+    <dt>Knobs</dt><dd>The pads follow the knobs: turn a knob on the Bands 9-16 page and the pads show bands 9-16.</dd>
+  </dl>
+</section>
+
+<section>
+  <h2>Mix</h2>
+  <p>Mix crossfades between the input and the bank. At 0 % the input passes untouched, which makes it a
+  clean A/B against whatever the bank is doing. At 100 % you hear the bank alone. In between, a narrow
+  sweep window becomes a resonance on top of the dry sound rather than a replacement for it.</p>
+</section>
+
+<hr class="rule">
+
+<section>
+  <h2>Things to try</h2>
+  <dl>
+    <dt>Dub stab</dt>
+    <dd>Range 60–12k, 4p, Width 2, Depth +100, Q 1.5, Tilt &minus;3, and Sweep on a slow LFO. You hear one
+    group of the chord's harmonics at a time instead of a filter sweeping across all of them.</dd>
+    <dt>Moving notch</dt>
+    <dd>The same window with Depth &minus;100. Everything passes except a travelling hole, which is a very
+    different thing to automate.</dd>
+    <dt>Two voicings on the bar</dt>
+    <dd>Carve a curve, Store as B, carve another, then Clock free with Move step. The bank edits itself
+    rather than sweeping.</dd>
+    <dt>Drone</dt>
+    <dd>Width 0, Q 3 or 4, a handful of bands up and the rest off. The bank stops being an EQ and becomes
+    a set of resonators.</dd>
+  </dl>
+</section>
+
+<section>
+  <h2>Band frequencies</h2>
+  <div class="table-box" tabindex="0" role="region" aria-label="Band frequencies for each range">
+    <table id="freq-table">
+      <thead><tr><th scope="col">Band</th><th scope="col" class="num">250–10k Hz</th><th scope="col" class="num">60–12k Hz</th><th scope="col" class="num">40–2k Hz</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <p class="note">Spacing is 0.35 of an octave on 250–10k, 0.51 on 60–12k and 0.38 on 40–2k.</p>
+</section>
+
+</main>
+
+<script>
+(function () {
+  'use strict';
+
+  var RANGES = [[250, 10000], [60, 12000], [40, 2000]];
+  var NB = 16, DBMIN = -60, DBMAX = 6;      // the device's band range is -60..+6 dB (this page let a band reach +12 until 0.25.2)
+
+  var state = {
+    range: 0, poles: 2, mode: 0,
+    q: 1, sweep: 8.5, width: 0, depth: 100, tilt: 0, mix: 100, att: 5, rel: 80,
+    cross: 0, morph: 0, clock: 0, move: 0, rate: 2,
+    levels: new Array(NB).fill(0),
+    levelsB: new Array(NB).fill(0)
+  };
+
+  // ---- the device's maths (mirrors src/core.genexpr) ----
+  function spacing() {
+    var r = RANGES[state.range];
+    return (Math.log(r[1] / r[0]) / Math.LN2) / 15;
+  }
+  function centres() {
+    var r = RANGES[state.range], sp = spacing(), out = [], i;
+    for (i = 0; i < NB; i++) { out.push(r[0] * Math.pow(2, sp * i)); }
+    return out;
+  }
+  function qVal() {
+    var sp = spacing();
+    return (0.8 / (Math.pow(2, sp / 2) - Math.pow(2, -sp / 2))) * state.q;
+  }
+  // one band's analog prototype at f, as [real, imag]
+  function bandH(f, fc, Q, poles, i) {
+    var x = f / fc, dr = 1 - x * x, di = x / Q, dd = dr * dr + di * di;
+    var hr = (di * di) / dd, hi = (di * dr) / dd, tr, ti;
+    if (poles > 3) {
+      tr = hr * hr - hi * hi; ti = 2 * hr * hi; hr = tr; hi = ti;
+      if (i % 2 === 1) { hr = -hr; hi = -hi; }
+    }
+    return [hr, hi];
+  }
+  function makeup(fc, Q) {
+    var r = RANGES[state.range], sp = spacing(), acc = 0, t, i, ft, re, im, h;
+    for (t = 0; t < 3; t++) {
+      ft = r[0] * Math.pow(2, sp * (7 + t * 0.5));
+      re = 0; im = 0;
+      for (i = 0; i < NB; i++) {
+        h = bandH(ft, fc[i], Q, state.poles, i);
+        re += h[0]; im += h[1];
+      }
+      acc += Math.sqrt(re * re + im * im);
+    }
+    return 3 / acc;
+  }
+  // the raised-cosine window itself, 0..1
+  function winAmt(i) {
+    if (state.width <= 0) { return 1; }
+    var d = Math.abs((i + 1) - state.sweep);
+    if (d >= state.width) { return 0; }
+    return 0.5 * (1 + Math.cos(Math.PI * d / state.width));
+  }
+  // what the window DOES, once Depth has had its say
+  function windowMul(i) {
+    if (state.width <= 0) { return 1; }
+    var ww = winAmt(i), sd = state.depth / 100;
+    if (sd > 0) { return 1 - sd * (1 - ww); }
+    if (sd < 0) { return 1 + sd * ww; }
+    return 1;
+  }
+  function passes(i) {
+    if (state.mode === 1 && i % 2 === 1) { return 0; }
+    if (state.mode === 2 && i % 2 === 0) { return 0; }
+    return 1;
+  }
+  // a band that is visibly held back, for the drawing: the window at full depth, or the mode
+  function audible(i) {
+    return passes(i) && windowMul(i) > 0.001;
+  }
+  // the morph: every band crossfaded from A to B in dB, which is what the device does
+  function effLevel(i) {
+    var m = state.morph * 0.01;
+    return state.levels[i] * (1 - m) + state.levelsB[i] * m;
+  }
+  // cross: this band is gated by the follower of the band eight along, wrapping
+  function crossMul(i) {
+    if (state.cross <= 0) { return 1; }
+    var j = (i + 8) % NB;
+    var e = (AU && AU.bands[j]) ? Math.max(0, Math.min(1, AU.bands[j].env * 4)) : 0;
+    var d = state.cross / 100;
+    return (1 - d) + d * e;
+  }
+  function gains() {
+    var out = [], i, lev, db, g;
+    for (i = 0; i < NB; i++) {
+      lev = effLevel(i);
+      if (lev <= DBMIN + 0.01) { out.push(0); continue; }
+      db = lev + state.tilt * ((i - 7.5) / 7.5);
+      g = Math.pow(10, db / 20) * windowMul(i) * passes(i) * crossMul(i);
+      out.push(g);
+    }
+    return out;
+  }
+  // total response in dB at f, plus each band's own contribution
+  function response(freqs) {
+    var fc = centres(), Q = qVal(), mk = makeup(fc, Q), g = gains();
+    var wm = state.mix / 100;
+    var total = [], perBand = [], i, k;
+    for (i = 0; i < NB; i++) { perBand.push([]); }
+    for (k = 0; k < freqs.length; k++) {
+      var f = freqs[k], re = (1 - wm), im = 0;
+      for (i = 0; i < NB; i++) {
+        var h = bandH(f, fc[i], Q, state.poles, i);
+        var gr = h[0] * g[i] * mk * wm, gi = h[1] * g[i] * mk * wm;
+        re += gr; im += gi;
+        perBand[i].push(20 * Math.log10(Math.sqrt(gr * gr + gi * gi) + 1e-9));
+      }
+      total.push(20 * Math.log10(Math.sqrt(re * re + im * im) + 1e-9));
+    }
+    return { total: total, perBand: perBand, fc: fc, Q: Q, mk: mk };
+  }
+
+  // ---- canvas sizing: back the canvas with real device pixels and draw in CSS px ----
+  function fit(cv, cssW, cssH) {
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    cv.width = Math.max(1, Math.round(cssW * dpr));
+    cv.height = Math.max(1, Math.round(cssH * dpr));
+    cv.style.height = cssH + 'px';
+    var ctx = cv.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return ctx;
+  }
+
+  // ---- plot ----
+  var plot = document.getElementById('plot');
+  var pctx = plot.getContext('2d');
+  var FMIN = 20, FMAX = 20000, YMIN = -36, YMAX = 18;
+  var PAD = { l: 34, r: 8, t: 10, b: 20 };
+  var plotW = 720, plotH = 300;
+  var FREQS = (function () {
+    var out = [], n = 480, i;
+    for (i = 0; i < n; i++) { out.push(FMIN * Math.pow(FMAX / FMIN, i / (n - 1))); }
+    return out;
+  })();
+
+  function cssVar(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+  var COL = {};
+  function readColours() {
+    COL.bg = cssVar('--bg'); COL.border = cssVar('--border'); COL.edge = cssVar('--edge');
+    COL.label = cssVar('--label'); COL.text = cssVar('--text'); COL.accent = cssVar('--accent');
+    COL.surface = cssVar('--surface'); COL.muted = cssVar('--muted'); COL.grey = cssVar('--grey');
+    COL.accentDark = cssVar('--accent-dark');
+  }
+
+  function sizePlot() {
+    plotW = Math.max(240, plot.parentNode.clientWidth || 720);
+    plotH = Math.max(200, Math.min(300, Math.round(plotW * 0.42)));
+    pctx = fit(plot, plotW, plotH);
+  }
+  function px(f) {
+    var t = Math.log(f / FMIN) / Math.log(FMAX / FMIN);
+    return PAD.l + t * (plotW - PAD.l - PAD.r);
+  }
+  function py(db) {
+    var t = (db - YMIN) / (YMAX - YMIN);
+    return plotH - PAD.b - t * (plotH - PAD.t - PAD.b);
+  }
+
+  function drawPlot(res) {
+    var i, k;
+    pctx.clearRect(0, 0, plotW, plotH);
+    pctx.fillStyle = COL.bg; pctx.fillRect(0, 0, plotW, plotH);
+
+    pctx.font = '500 11px Inter, system-ui, sans-serif';
+    pctx.textBaseline = 'middle';
+    pctx.lineWidth = 1;
+    var ticks = [20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000];
+    var named = { 100: '100', 1000: '1k', 10000: '10k' };
+    for (i = 0; i < ticks.length; i++) {
+      var x = px(ticks[i]);
+      pctx.strokeStyle = named[ticks[i]] ? COL.muted : COL.border;
+      pctx.beginPath(); pctx.moveTo(x, PAD.t); pctx.lineTo(x, plotH - PAD.b); pctx.stroke();
+      if (named[ticks[i]]) {
+        pctx.fillStyle = COL.label; pctx.textAlign = 'center';
+        pctx.fillText(named[ticks[i]], x, plotH - PAD.b + 10);
+      }
+    }
+    for (k = YMIN; k <= YMAX; k += 12) {
+      var y = py(k);
+      pctx.strokeStyle = k === 0 ? COL.muted : COL.border;
+      pctx.beginPath(); pctx.moveTo(PAD.l, y); pctx.lineTo(plotW - PAD.r, y); pctx.stroke();
+      pctx.fillStyle = COL.label; pctx.textAlign = 'right';
+      pctx.fillText((k > 0 ? '+' : '') + k, PAD.l - 6, y);
+    }
+
+    // the sixteen bands on their own
+    pctx.lineWidth = 1;
+    pctx.strokeStyle = COL.muted;
+    for (i = 0; i < NB; i++) {
+      pctx.beginPath();
+      var started = false;
+      for (k = 0; k < FREQS.length; k++) {
+        var v = res.perBand[i][k];
+        if (v < YMIN - 6) { started = false; continue; }
+        var X = px(FREQS[k]), Y = py(Math.max(YMIN - 2, v));
+        if (!started) { pctx.moveTo(X, Y); started = true; } else { pctx.lineTo(X, Y); }
+      }
+      pctx.stroke();
+    }
+
+    // sweep window marks, behind the total
+    if (state.width > 0 && state.depth !== 0) {
+      pctx.strokeStyle = COL.accent; pctx.lineWidth = 1;
+      pctx.setLineDash([4, 4]);
+      for (i = 0; i < NB; i++) {
+        if (winAmt(i) > 0.001 && passes(i)) {
+          var xb = px(res.fc[i]);
+          pctx.beginPath(); pctx.moveTo(xb, PAD.t); pctx.lineTo(xb, plotH - PAD.b); pctx.stroke();
+        }
+      }
+      pctx.setLineDash([]);
+    }
+
+    pctx.lineWidth = 2;
+    pctx.strokeStyle = COL.text;
+    pctx.beginPath();
+    for (k = 0; k < FREQS.length; k++) {
+      var Xt = px(FREQS[k]), Yt = py(Math.max(YMIN - 2, Math.min(YMAX + 2, res.total[k])));
+      if (k === 0) { pctx.moveTo(Xt, Yt); } else { pctx.lineTo(Xt, Yt); }
+    }
+    pctx.stroke();
+  }
+
+  // ---- band strip (the device's own display) ----
+  var strip = document.getElementById('strip');
+  var sctx = strip.getContext('2d');
+  var stripW = 352, stripH = 140, COLW = 22;
+  var BAR_Y = 16, BAR_H = 100, VAL_Y = 132;
+  var focusIdx = 0, stripFocused = false;
+
+  function sizeStrip() {
+    stripW = Math.max(240, strip.parentNode.clientWidth || 352);
+    COLW = stripW / NB;
+    sctx = fit(strip, stripW, stripH);
+  }
+
+  function fmtHz(f) {
+    if (f >= 1000) { var k = f / 1000; return (k < 10 ? Math.round(k * 10) / 10 : Math.round(k)) + 'k'; }
+    return String(Math.round(f));
+  }
+  function fmtDb(v) {
+    var r = Math.round(v);          // as the device prints it under the bars: whole dB, -60 = off
+    return String(r);
+  }
+  function levelY(v) { return BAR_Y + BAR_H * (1 - (v - DBMIN) / (DBMAX - DBMIN)); }
+
+  function drawStrip() {
+    var fc = centres(), i;
+    var fs = Math.max(8, Math.min(11, COLW * 0.46));
+    sctx.clearRect(0, 0, stripW, stripH);
+    sctx.fillStyle = COL.bg; sctx.fillRect(0, 0, stripW, stripH);
+    sctx.font = '500 ' + fs.toFixed(1) + 'px Inter, system-ui, sans-serif';
+    sctx.textAlign = 'center';
+    sctx.textBaseline = 'alphabetic';
+    var y0 = levelY(0);
+    var barW = Math.max(6, Math.min(10, COLW * 0.42));
+    var fillW = barW - 2;
+
+    // if the labels would touch, print every other one
+    var widest = 0;
+    for (i = 0; i < NB; i++) { widest = Math.max(widest, sctx.measureText(fmtHz(fc[i])).width); }
+    var step = widest + 4 > COLW ? 2 : 1;
+
+    for (i = 0; i < NB; i++) {
+      var cx = i * COLW + COLW / 2;
+      var on = audible(i);
+
+      if (i % step === 0) {
+        sctx.fillStyle = on ? COL.label : COL.muted;
+        sctx.fillText(fmtHz(fc[i]), cx, 10);
+      }
+
+      sctx.fillStyle = COL.surface;
+      sctx.fillRect(cx - barW / 2, BAR_Y, barW, BAR_H);
+      sctx.strokeStyle = COL.border; sctx.lineWidth = 1;
+      sctx.strokeRect(cx - barW / 2 - 0.5, BAR_Y - 0.5, barW + 1, BAR_H + 1);
+      sctx.fillStyle = COL.border;
+      sctx.fillRect(cx - barW / 2 - 3, y0, barW + 6, 1);
+
+      // the device draws levels in the accent at one of three brightnesses: bright when a band is
+      // doing something, dimmer when it is held back. Grey is never data.
+      var v = effLevel(i);
+      if (v > DBMIN + 0.01) {
+        var yv = levelY(v);
+        sctx.fillStyle = on ? COL.accent : COL.accentDark;
+        sctx.fillRect(cx - fillW / 2, yv, fillW, BAR_Y + BAR_H - yv);
+      }
+      // curve B, as a mark across the column
+      if (state.levelsB[i] > DBMIN + 0.01) {
+        sctx.fillStyle = COL.accentDark;
+        sctx.fillRect(cx - barW / 2 - 2, levelY(state.levelsB[i]), barW + 4, 1);
+      }
+      if (!on) {
+        sctx.strokeStyle = COL.muted; sctx.lineWidth = 1;
+        sctx.beginPath();
+        sctx.moveTo(cx - barW / 2 - 2, BAR_Y + BAR_H / 2);
+        sctx.lineTo(cx + barW / 2 + 2, BAR_Y + BAR_H / 2);
+        sctx.stroke();
+      }
+      if (i % step === 0) {
+        sctx.fillStyle = v <= DBMIN + 0.01 ? COL.label : (on ? COL.text : COL.muted);
+        sctx.fillText(fmtDb(v), cx, VAL_Y);
+      }
+
+      if (stripFocused && i === focusIdx) {
+        sctx.strokeStyle = COL.accent; sctx.lineWidth = 1;
+        sctx.strokeRect(i * COLW + 0.5, 0.5, COLW - 1, stripH - 1);
+      }
+    }
+  }
+
+  // strip interaction
+  var dragIdx = -1;
+  function stripPos(ev) {
+    var r = strip.getBoundingClientRect();
+    return { x: (ev.clientX - r.left) * (stripW / r.width), y: (ev.clientY - r.top) * (stripH / r.height) };
+  }
+  function setBand(i, v) {
+    state.levels[i] = Math.max(DBMIN, Math.min(DBMAX, v));
+    render();
+  }
+  function valAt(y) {
+    var t = (BAR_Y + BAR_H - y) / BAR_H;
+    return DBMIN + Math.max(0, Math.min(1, t)) * (DBMAX - DBMIN);
+  }
+  strip.addEventListener('pointerdown', function (ev) {
+    var p = stripPos(ev), i = Math.floor(p.x / COLW);
+    if (i < 0 || i >= NB) { return; }
+    dragIdx = i; focusIdx = i;
+    strip.setPointerCapture(ev.pointerId);
+    strip.focus();
+    setBand(i, valAt(p.y));
+  });
+  strip.addEventListener('pointermove', function (ev) {
+    if (dragIdx < 0) { return; }
+    setBand(dragIdx, valAt(stripPos(ev).y));
+  });
+  strip.addEventListener('pointerup', function () { dragIdx = -1; });
+  strip.addEventListener('pointercancel', function () { dragIdx = -1; });
+  strip.addEventListener('dblclick', function (ev) {
+    var i = Math.floor(stripPos(ev).x / COLW);
+    if (i >= 0 && i < NB) { setBand(i, 0); }
+  });
+  strip.addEventListener('focus', function () { stripFocused = true; render(); });
+  strip.addEventListener('blur', function () { stripFocused = false; render(); });
+  strip.addEventListener('keydown', function (ev) {
+    var k = ev.key, step = ev.shiftKey ? 0.5 : 2;
+    if (k === 'ArrowLeft') { focusIdx = Math.max(0, focusIdx - 1); }
+    else if (k === 'ArrowRight') { focusIdx = Math.min(NB - 1, focusIdx + 1); }
+    else if (k === 'ArrowUp') { setBand(focusIdx, state.levels[focusIdx] + step); }
+    else if (k === 'ArrowDown') { setBand(focusIdx, state.levels[focusIdx] - step); }
+    else if (k === 'Home') { setBand(focusIdx, 0); }
+    else if (k === 'End') { setBand(focusIdx, DBMIN); }
+    else { return; }
+    ev.preventDefault();
+    render();
+  });
+
+  window.addEventListener('resize', function () { sizePlot(); sizeStrip(); sizeEnv(); render(); drawEnv(); });
+
+  // ---- controls ----
+  function seg(id, attr, key, cast, after) {
+    var box = document.getElementById(id);
+    box.addEventListener('click', function (ev) {
+      var b = ev.target.closest('button');
+      if (!b) { return; }
+      state[key] = cast(b.getAttribute(attr));
+      if (after) { after(); }
+      render();
+    });
+  }
+  seg('c-range', 'data-range', 'range', Number);
+  seg('c-mode', 'data-mode', 'mode', Number);
+  seg('c-poles', 'data-poles', 'poles', Number);
+  seg('c-clock', 'data-clock', 'clock', Number, function () { syncClock(); });
+  seg('c-move', 'data-move', 'move', Number);
+
+  var sliders = [['c-q', 'q'], ['c-sweep', 'sweep'], ['c-width', 'width'], ['c-depth', 'depth'],
+                 ['c-tilt', 'tilt'], ['c-mix', 'mix'], ['c-att', 'att'], ['c-rel', 'rel'],
+                 ['c-cross', 'cross'], ['c-rate', 'rate']];
+  sliders.forEach(function (s) {
+    document.getElementById(s[0]).addEventListener('input', function (ev) {
+      state[s[1]] = parseFloat(ev.target.value);
+      stopSweep();
+      render();
+    });
+  });
+  document.getElementById('c-morph').addEventListener('input', function (ev) {
+    state.morph = parseFloat(ev.target.value);
+    if (state.clock) { state.clock = 0; syncClock(); }
+    render();
+  });
+  document.getElementById('c-curves').addEventListener('click', function (ev) {
+    var b = ev.target.closest('button'), i, t;
+    if (!b) { return; }
+    if (b.getAttribute('data-curve') === 'store') {
+      state.levelsB = state.levels.slice();
+    } else {
+      for (i = 0; i < NB; i++) { t = state.levels[i]; state.levels[i] = state.levelsB[i]; state.levelsB[i] = t; }
+    }
+    render();
+  });
+
+  var PRESETS = {
+    flat: { levels: 0, range: 0, poles: 2, mode: 0, q: 1, width: 0, depth: 100, sweep: 8.5, tilt: 0, mix: 100, cross: 0, morph: 0, clock: 0 },
+    window: { levels: 0, width: 2, depth: 100, sweep: 8, mode: 0, q: 1, tilt: 0, mix: 100, cross: 0, morph: 0, clock: 0 },
+    notch: { levels: 0, width: 2, depth: -100, sweep: 8, mode: 0, q: 1, tilt: 0, mix: 100, cross: 0, morph: 0, clock: 0 },
+    odd: { levels: 0, width: 0, mode: 1, q: 1.6, tilt: 0, mix: 100, poles: 4, cross: 0, morph: 0, clock: 0 },
+    stab: { levels: 0, range: 1, poles: 4, mode: 0, q: 1.5, width: 2, depth: 100, sweep: 6, tilt: -3, mix: 100, cross: 0, morph: 0, clock: 0 },
+    resonant: { levels: 'sparse', width: 0, mode: 0, q: 4, tilt: 0, mix: 100, poles: 2, cross: 0, morph: 0, clock: 0 },
+    morph: { levels: 'scoop', levelsB: 'air', width: 0, mode: 0, q: 1, tilt: 0, mix: 100, cross: 0,
+             clock: 1, move: 1, rate: 5, poles: 2, range: 1 },
+    cross: { levels: 0, range: 1, width: 0, mode: 0, q: 1, tilt: 0, mix: 100, cross: 80, morph: 0, clock: 0, poles: 2 }
+  };
+  var SHAPES = {
+    scoop: [2, 1, 0, -3, -8, -14, -18, -18, -14, -8, -3, 0, 1, 2, 3, 3],
+    air: [-30, -27, -24, -21, -18, -15, -12, -9, -6, -4, -2, 0, 2, 4, 5, 6],
+    sparse: null
+  };
+  function applyShape(which) {
+    if (which === 'sparse') {
+      return state.levels.map(function (_, i) {
+        return [2, 5, 8, 11, 14].indexOf(i) >= 0 ? 6 : DBMIN;
+      });
+    }
+    if (SHAPES[which]) { return SHAPES[which].slice(); }
+    return new Array(NB).fill(which);
+  }
+  document.getElementById('presets').addEventListener('click', function (ev) {
+    var b = ev.target.closest('button');
+    if (!b) { return; }
+    var name = b.getAttribute('data-preset');
+    if (name === 'sweep') { toggleSweep(); return; }
+    stopSweep();
+    var p = PRESETS[name], k;
+    for (k in p) {
+      if (k === 'levels') { state.levels = applyShape(p.levels); }
+      else if (k === 'levelsB') { state.levelsB = applyShape(p.levelsB); }
+      else { state[k] = p[k]; }
+    }
+    if (name !== 'morph') { state.levelsB = state.levelsB || new Array(NB).fill(0); }
+    syncClock();
+    render();
+  });
+
+  // sweep animation
+  var sweepId = null, sweepT = 0;
+  var REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function toggleSweep() {
+    if (REDUCED) { state.width = state.width > 0 ? state.width : 2; state.sweep = 8.5; render(); return; }
+    if (sweepId) { stopSweep(); return; }
+    if (state.width <= 0) { state.width = 2; }
+    sweepT = performance.now();
+    document.querySelector('[data-preset="sweep"]').setAttribute('aria-pressed', 'true');
+    var step = function (now) {
+      var cycle = 6000, t = ((now - sweepT) % cycle) / cycle;
+      var tri = t < 0.5 ? t * 2 : 2 - t * 2;
+      state.sweep = 1 + tri * 15;
+      document.getElementById('c-sweep').value = String(state.sweep);
+      render();
+      sweepId = requestAnimationFrame(step);
+    };
+    sweepId = requestAnimationFrame(step);
+  }
+  function stopSweep() {
+    if (!sweepId) { return; }
+    cancelAnimationFrame(sweepId);
+    sweepId = null;
+    document.querySelector('[data-preset="sweep"]').setAttribute('aria-pressed', 'false');
+  }
+  if (REDUCED) {
+    var sb = document.querySelector('[data-preset="sweep"]');
+    sb.textContent = 'Centre the window';
+    sb.removeAttribute('aria-pressed');
+  }
+
+  // ---- the morph clock ----
+  // The device runs this as a signal inside the DSP; here it is one animation frame loop, which is
+  // the same shape: a 0..1 phase, then ramp / swing / step off it.
+  var clockId = null, clockT = 0, stepTog = 0, lastPhase = 0;
+  function clockStep(now) {
+    var cyc = state.rate * 1000;
+    var ph = ((now - clockT) % cyc) / cyc;
+    if (ph < lastPhase) { stepTog = 1 - stepTog; }
+    lastPhase = ph;
+    if (state.move === 0) { state.morph = ph * 100; }
+    else if (state.move === 1) { state.morph = (1 - Math.abs(2 * ph - 1)) * 100; }
+    else { state.morph = stepTog * 100; }
+    render();
+    clockId = requestAnimationFrame(clockStep);
+  }
+  function syncClock() {
+    if (state.clock && !clockId && !REDUCED) {
+      clockT = performance.now();
+      lastPhase = 0;
+      clockId = requestAnimationFrame(clockStep);
+    } else if ((!state.clock || REDUCED) && clockId) {
+      cancelAnimationFrame(clockId);
+      clockId = null;
+    }
+    if (REDUCED && state.clock) { state.morph = 50; }
+  }
+
+  // ---- the follower meters: the device's ENV page, one bar per band ----
+  var envc = document.getElementById('env');
+  var ectx = envc.getContext('2d');
+  var envW = 352, envH = 58;
+  function sizeEnv() {
+    envW = Math.max(240, envc.parentNode.clientWidth || 352);
+    ectx = fit(envc, envW, envH);
+  }
+  function drawEnv() {
+    var cw = envW / NB, i, bw = Math.max(6, Math.min(10, cw * 0.42));
+    ectx.clearRect(0, 0, envW, envH);
+    ectx.fillStyle = COL.bg; ectx.fillRect(0, 0, envW, envH);
+    ectx.font = '500 9px Inter, system-ui, sans-serif';
+    ectx.textAlign = 'left';
+    ectx.textBaseline = 'alphabetic';
+    ectx.fillStyle = COL.label;
+    ectx.fillText('FOLLOWERS', 0, 9);
+    for (i = 0; i < NB; i++) {
+      var cx = i * cw + cw / 2;
+      var on = audible(i);
+      ectx.fillStyle = COL.surface;
+      ectx.fillRect(cx - bw / 2, 14, bw, 40);
+      ectx.strokeStyle = COL.border;
+      ectx.lineWidth = 1;
+      ectx.strokeRect(cx - bw / 2 - 0.5, 13.5, bw + 1, 41);
+      var e = AU && AU.bands[i] ? Math.max(0, Math.min(1, AU.bands[i].env)) : 0;
+      if (e > 0.005) {
+        ectx.fillStyle = on ? COL.accent : COL.accentDark;
+        ectx.fillRect(cx - bw / 2 + 1, 14 + 40 - e * 40, bw - 2, e * 40);
+      }
+    }
+  }
+
+  // ---- sound: the same bank, built out of Web Audio nodes ----
+  // Each band is one bandpass biquad (two in series for 4p), with the same centre frequency and Q
+  // the plot uses, into a gain that carries level, tilt, the sweep window, the mode, the morph and
+  // cross. 4p flips the polarity of every other band, exactly as the device does.
+  var AU = null;
+  var playing = false;
+  var source = 'noise';
+
+  function noiseBuffer(ctx) {
+    var n = ctx.sampleRate * 2, buf = ctx.createBuffer(1, n, ctx.sampleRate), d = buf.getChannelData(0), i;
+    for (i = 0; i < n; i++) { d[i] = Math.random() * 2 - 1; }
+    return buf;
+  }
+
+  function buildSource() {
+    var ctx = AU.ctx, nodes = [];
+    if (source === 'noise') {
+      var sn = ctx.createBufferSource();
+      sn.buffer = noiseBuffer(ctx);
+      sn.loop = true;
+      sn.connect(AU.input);
+      sn.start();
+      nodes.push(sn);
+      return nodes;
+    }
+    // a sustained minor-ninth chord, two detuned saws per note, gentle top
+    var notes = [110, 164.81, 220, 261.63, 329.63], k;
+    var tone = ctx.createBiquadFilter();
+    tone.type = 'lowpass'; tone.frequency.value = 3500; tone.Q.value = 0.7;
+    tone.connect(AU.input);
+    for (k = 0; k < notes.length; k++) {
+      var det = [-6, 6], j;
+      for (j = 0; j < det.length; j++) {
+        var o = ctx.createOscillator();
+        o.type = 'sawtooth';
+        o.frequency.value = notes[k];
+        o.detune.value = det[j];
+        var g = ctx.createGain();
+        g.gain.value = 0.1 / notes.length;
+        o.connect(g); g.connect(tone);
+        o.start();
+        nodes.push(o);
+      }
+    }
+    return nodes;
+  }
+
+  function buildBands() {
+    var ctx = AU.ctx, fc = centres(), Q = qVal(), i;
+    AU.bands.forEach(function (b) { b.first.disconnect(); b.gain.disconnect(); });
+    AU.bands = [];
+    for (i = 0; i < NB; i++) {
+      var f1 = ctx.createBiquadFilter();
+      f1.type = 'bandpass'; f1.frequency.value = fc[i]; f1.Q.value = Q;
+      var last = f1;
+      if (state.poles > 3) {
+        var f2 = ctx.createBiquadFilter();
+        f2.type = 'bandpass'; f2.frequency.value = fc[i]; f2.Q.value = Q;
+        f1.connect(f2);
+        last = f2;
+      }
+      var g = ctx.createGain();
+      g.gain.value = 0;
+      last.connect(g);
+      g.connect(AU.wet);
+      AU.input.connect(f1);
+      // the follower taps the band itself, before its level: that is where the device takes it too
+      var an = ctx.createAnalyser();
+      an.fftSize = 256;
+      an.smoothingTimeConstant = 0;
+      last.connect(an);
+      AU.bands.push({ first: f1, gain: g, an: an, buf: new Float32Array(an.fftSize), env: 0 });
+    }
+    AU.poles = state.poles;
+    AU.range = state.range;
+  }
+
+  function ensureAudio() {
+    if (AU) { return; }
+    var Ctor = window.AudioContext || window.webkitAudioContext;
+    if (!Ctor) { return; }
+    var ctx = new Ctor();
+    AU = { ctx: ctx, bands: [], nodes: [], poles: null, range: null };
+    AU.input = ctx.createGain();
+    AU.wet = ctx.createGain();
+    AU.dry = ctx.createGain();
+    AU.master = ctx.createGain();
+    AU.master.gain.value = 0;
+    AU.input.connect(AU.dry);
+    AU.wet.connect(AU.master);
+    AU.dry.connect(AU.master);
+    AU.master.connect(ctx.destination);
+    buildBands();
+  }
+
+  function updateAudio() {
+    if (!AU) { return; }
+    if (AU.poles !== state.poles || AU.range !== state.range) { buildBands(); }
+    var fc = centres(), Q = qVal(), mk = makeup(fc, Q), g = gains(), i, t = AU.ctx.currentTime;
+    for (i = 0; i < NB; i++) {
+      var b = AU.bands[i];
+      b.first.frequency.setTargetAtTime(fc[i], t, 0.01);
+      b.first.Q.setTargetAtTime(Q, t, 0.01);
+      var sign = (state.poles > 3 && i % 2 === 1) ? -1 : 1;
+      b.gain.gain.setTargetAtTime(g[i] * mk * sign, t, 0.02);
+    }
+    var wm = state.mix / 100;
+    AU.wet.gain.setTargetAtTime(wm, t, 0.02);
+    AU.dry.gain.setTargetAtTime(1 - wm, t, 0.02);
+    var vol = parseFloat(document.getElementById('c-vol').value) / 100;
+    AU.master.gain.setTargetAtTime(playing ? vol * vol * 0.5 : 0, t, 0.05);
+    if (!playing) {
+      var z;
+      for (z = 0; z < NB; z++) { if (AU.bands[z]) { AU.bands[z].env = 0; } }
+      drawEnv();
+    }
+  }
+
+  // Follower: full-wave rectify, then a one-pole with separate attack and release, exactly as the
+  // codebox does. Run off the animation frame, so it only costs anything while the page is open.
+  var follow = { id: null, last: 0 };
+  function followerStep(now) {
+    follow.id = requestAnimationFrame(followerStep);
+    if (!AU || !playing) { return; }
+    var dt = follow.last ? Math.min(0.1, (now - follow.last) / 1000) : 0.016;
+    follow.last = now;
+    var ac = Math.exp(-dt / (state.att / 1000));
+    var rc = Math.exp(-dt / (state.rel / 1000));
+    var i, b, k, peak, v;
+    for (i = 0; i < NB; i++) {
+      b = AU.bands[i];
+      if (!b || !b.an) { continue; }
+      b.an.getFloatTimeDomainData(b.buf);
+      peak = 0;
+      for (k = 0; k < b.buf.length; k++) {
+        v = Math.abs(b.buf[k]);
+        if (v > peak) { peak = v; }
+      }
+      b.env = peak + (b.env - peak) * (peak > b.env ? ac : rc);
+    }
+    drawEnv();
+    // cross reads the followers, so while it is up the response is being redrawn by the signal
+    if (state.cross > 0) { render(); }
+  }
+  function startFollower() {
+    if (follow.id === null) { follow.last = 0; follow.id = requestAnimationFrame(followerStep); }
+  }
+
+  function stopNodes() {
+    if (!AU) { return; }
+    AU.nodes.forEach(function (n) { try { n.stop(); } catch (e) {} try { n.disconnect(); } catch (e) {} });
+    AU.nodes = [];
+  }
+
+  function setPlaying(on) {
+    ensureAudio();
+    if (!AU) { return; }
+    playing = on;
+    var btn = document.getElementById('play');
+    btn.setAttribute('aria-pressed', String(on));
+    btn.textContent = on ? 'Stop' : 'Play';
+    if (on) {
+      if (AU.ctx.state === 'suspended') { AU.ctx.resume(); }
+      stopNodes();
+      AU.nodes = buildSource();
+      startFollower();
+    } else {
+      // let the master fade before the sources go
+      updateAudio();
+      window.setTimeout(stopNodes, 200);
+      return;
+    }
+    updateAudio();
+  }
+
+  document.getElementById('play').addEventListener('click', function () { setPlaying(!playing); });
+  document.getElementById('c-source').addEventListener('click', function (ev) {
+    var b = ev.target.closest('button');
+    if (!b) { return; }
+    source = b.getAttribute('data-source');
+    Array.prototype.forEach.call(this.querySelectorAll('button'), function (x) {
+      x.setAttribute('aria-pressed', String(x.getAttribute('data-source') === source));
+    });
+    if (playing) { stopNodes(); AU.nodes = buildSource(); }
+  });
+  document.getElementById('c-vol').addEventListener('input', updateAudio);
+
+  // ---- render ----
+  function pressed(id, attr, value) {
+    var btns = document.getElementById(id).querySelectorAll('button');
+    Array.prototype.forEach.call(btns, function (b) {
+      b.setAttribute('aria-pressed', String(Number(b.getAttribute(attr)) === value));
+    });
+  }
+  function render() {
+    var res = response(FREQS);
+    drawPlot(res);
+    drawStrip();
+    updateAudio();
+    pressed('c-range', 'data-range', state.range);
+    pressed('c-mode', 'data-mode', state.mode);
+    pressed('c-poles', 'data-poles', state.poles);
+    pressed('c-clock', 'data-clock', state.clock);
+    pressed('c-move', 'data-move', state.move);
+    document.getElementById('o-q').textContent = state.q.toFixed(2);
+    document.getElementById('o-sweep').textContent = state.sweep.toFixed(1) + ' bd';
+    document.getElementById('o-width').textContent = state.width.toFixed(1) + ' bd';
+    document.getElementById('o-depth').textContent = (state.depth > 0 ? '+' : '') + Math.round(state.depth) + ' %';
+    document.getElementById('o-tilt').textContent = (state.tilt > 0 ? '+' : '') + state.tilt.toFixed(1) + ' dB';
+    document.getElementById('o-mix').textContent = state.mix + ' %';
+    document.getElementById('o-cross').textContent = Math.round(state.cross) + ' %';
+    document.getElementById('o-morph').textContent = Math.round(state.morph) + ' %';
+    document.getElementById('o-rate').textContent = state.rate.toFixed(1) + ' s';
+    document.getElementById('o-att').textContent = state.att < 10 ? state.att.toFixed(1) + ' ms' : Math.round(state.att) + ' ms';
+    document.getElementById('o-rel').textContent = Math.round(state.rel) + ' ms';
+    document.getElementById('c-att').value = String(state.att);
+    document.getElementById('c-rel').value = String(state.rel);
+    document.getElementById('c-q').value = String(state.q);
+    document.getElementById('c-sweep').value = String(state.sweep);
+    document.getElementById('c-width').value = String(state.width);
+    document.getElementById('c-depth').value = String(state.depth);
+    document.getElementById('c-tilt').value = String(state.tilt);
+    document.getElementById('c-mix').value = String(state.mix);
+    document.getElementById('c-cross').value = String(state.cross);
+    document.getElementById('c-morph').value = String(state.morph);
+    document.getElementById('c-rate').value = String(state.rate);
+
+    // readout: band Q, and the ripple across the bank
+    var lo = res.fc[0], hi = res.fc[NB - 1], k, vals = [];
+    for (k = 0; k < FREQS.length; k++) {
+      if (FREQS[k] >= lo && FREQS[k] <= hi) { vals.push(res.total[k]); }
+    }
+    if (window.__galernaSync) { window.__galernaSync(); }
+    if (sweepId || clockId) { return; }
+    var mx = Math.max.apply(null, vals), mn = Math.min.apply(null, vals);
+    document.getElementById('readout').innerHTML =
+      '<span>Band Q <b>' + res.Q.toFixed(2) + '</b></span>' +
+      '<span>Bands <b>' + fmtHz(lo) + ' – ' + fmtHz(hi) + '</b></span>' +
+      '<span>Across the bank <b>' + (mx - mn).toFixed(1) + ' dB</b> of ripple</span>';
+  }
+
+  // frequency table
+  (function () {
+    var body = document.querySelector('#freq-table tbody'), i, j, tr, td;
+    var cols = RANGES.map(function (r) {
+      var sp = (Math.log(r[1] / r[0]) / Math.LN2) / 15, out = [], k;
+      for (k = 0; k < NB; k++) { out.push(r[0] * Math.pow(2, sp * k)); }
+      return out;
+    });
+    for (i = 0; i < NB; i++) {
+      tr = document.createElement('tr');
+      td = document.createElement('th'); td.setAttribute('scope', 'row'); td.textContent = String(i + 1); tr.appendChild(td);
+      for (j = 0; j < cols.length; j++) {
+        td = document.createElement('td');
+        td.className = 'num';
+        td.textContent = fmtHz(cols[j][i]);
+        tr.appendChild(td);
+      }
+      body.appendChild(tr);
+    }
+  })();
+
+  Array.prototype.forEach.call(document.querySelectorAll('#c-source button'), function (x) {
+    x.setAttribute('aria-pressed', String(x.getAttribute('data-source') === source));
+  });
+  readColours();
+  sizePlot();
+  sizeStrip();
+  sizeEnv();
+  render();
+  drawEnv();
+
+  // test hook: test/check_guide.js compares this page's curve with the Python measurements
+  window.__galerna = {
+    state: state, response: response, render: render, freqs: FREQS,
+    audio: function () { return AU; },
+    syncClock: syncClock, stopSweep: stopSweep, toggleSweep: toggleSweep,
+    isPlaying: function () { return playing; },
+    effLevels: function () {
+      var out = [], i;
+      for (i = 0; i < NB; i++) { out.push(effLevel(i)); }
+      return out;
+    },
+    // what the plot says each band's gain is, for comparing against the audio graph
+    gainsNow: function () {
+      var fc = centres(), Q = qVal(), mk = makeup(fc, Q), g = gains(), i, out = [];
+      for (i = 0; i < NB; i++) {
+        var sign = (state.poles > 3 && i % 2 === 1) ? -1 : 1;
+        out.push(g[i] * mk * sign);
+      }
+      return out;
+    }
+  };
+})();
+</script>
+<script>
+// Galerna — Virtual guide: the pads, random / init / undo and the tour (0.25.2).
+//
+// The page above this script is the filter maths. This part runs the device's OWN two scripts, unchanged, exactly
+// as the release ships them (obfuscated): gl_push.js, the Push adapter, and gl_disp.js, which owns random, init and
+// undo. Each runs in a small sandbox that gives it what Max gives it (outlet, patcher, mgraphics, messagename).
+// So a roll here is the device's roll and a pad here lights as the device lights it; nothing is re-implemented.
+//   pads  -> gl_push.js "key"            -> "wsetband" / "wrnd" / "winit" / ... -> gl_disp.js -> a parameter write
+//   a parameter write -> the page's state (the strip, the plot, the sound) and back to gl_push.js ("band", "padcol")
+(function () {
+  'use strict';
+  var G = window.__galerna, S = G.state, NB = 16;
+  var SRC = {"push": "// \u00a9 thopa 2026. All rights reserved.\nautowatch=0x0,inlets=0x1,outlets=0x2;var NB=0x10,STEPS=[-0x3c,-0x24,-0x18,-0x12,-0xc,-0x6,0x0,0x6],P_OFF=0x75,P_DIM=0x7c,P_CAP=0x7a,P_SW_OFF=0x7c,P_PAGE=0x7d,PAL=[[0x43,0x2],[0x46,0x3],[0x50,0x9],[0x56,0x20],[0x5e,0xf],[0x64,0x13],[0x6e,0x17],[0x72,0x1a],[0x42,0x1],[0x48,0x6],[0x52,0xa],[0x5a,0xd],[0x60,0x10],[0x6c,0x16],[0x4b,0x19],[0x7c,0x24]],padCol=0x3,padLit=0x0;function barIdx(){return PAL[padCol][padLit];}var P_AMBER=0x8,RND_TAP_MS=0x15e,KINDS=['new','vary','drift'],rndAvail=0x0,rndHeld=0x0,rndBy='',rndTouched=0x0,rndT0=0x0,rndKind=0x0,rndAmt=0x64;function armed(){return shiftHeld&&delHeld&&!rndHeld;}function overlay(){return shiftHeld||rndHeld;}function kindAt(_0x1e93ea){return _0x1e93ea<=0x1?0x0:_0x1e93ea===0x3||_0x1e93ea===0x4?0x1:_0x1e93ea>=0x6?0x2:-0x1;}function rndPad(_0x3dfed5,_0x151b82){var _0x16ca91;if(_0x151b82<=0x1)return _0x16ca91=kindAt(_0x3dfed5),_0x16ca91<0x0?P_OFF:_0x16ca91===rndKind?P_CAP:P_AMBER;if(_0x151b82===0x3)return _0x3dfed5<=Math['round'](rndAmt/0x64*0x8)-0x1?P_AMBER:P_DIM;if(_0x151b82===0x7&&_0x3dfed5===0x7)return P_DIM;return P_OFF;}var levels=[],env=[],sent=[],mode=0x1,pageN=0x0,shiftHeld=0x0,grabbedNow=0x0,delHeld=0x0,i0;for(i0=0x0;i0<NB;i0++){levels[i0]=0x0,env[i0]=0x0;}for(i0=0x0;i0<0x40;i0++){sent[i0]=-0x1;}function barOf(_0x19a067){var _0x575eeb=0x0,_0x2139d6;if(_0x19a067<=-59.5)return 0x0;for(_0x2139d6=0x0;_0x2139d6<0x8;_0x2139d6++){if(_0x2139d6===0x7||_0x19a067<(STEPS[_0x2139d6]+STEPS[_0x2139d6+0x1])/0x2){_0x575eeb=_0x2139d6+0x1;break;}}return _0x575eeb;}function capOf(_0x520ac3){var _0x1f1808=Math['round'](Math['max'](0x0,Math['min'](0x1,_0x520ac3))*0x8);return _0x1f1808;}function put(_0x28ac11,_0x18d28e,_0x18e8f8){var _0x45a85e=_0x18d28e*0x8+_0x28ac11;if(sent[_0x45a85e]===_0x18e8f8)return;sent[_0x45a85e]=_0x18e8f8,outlet(0x0,'led',_0x28ac11,_0x18d28e,_0x18e8f8);}function drawCol(_0x563b48){var _0x63b8aa=pageN*0x8+_0x563b48,_0x33f7fc,_0x5a2cd4,_0x245e16,_0x54d121,_0x4a0a5c;_0x245e16=mode===0x1?barOf(levels[_0x63b8aa]):capOf(env[_0x63b8aa]),_0x54d121=mode===0x1?capOf(env[_0x63b8aa]):barOf(levels[_0x63b8aa]);for(_0x33f7fc=0x0;_0x33f7fc<0x8;_0x33f7fc++){_0x5a2cd4=0x8-_0x33f7fc,_0x4a0a5c=P_OFF,_0x5a2cd4<=_0x245e16&&(_0x4a0a5c=barIdx()),_0x54d121>0x0&&_0x5a2cd4===_0x54d121&&(_0x4a0a5c=mode===0x1?P_CAP:P_DIM),put(_0x563b48,_0x33f7fc,_0x4a0a5c);}}function menuPad(_0xb3a4bb,_0xce1fc3){if(_0xce1fc3===0x0){if(_0xb3a4bb===0x0)return mode===0x0?P_CAP:P_SW_OFF;if(_0xb3a4bb===0x1)return mode===0x1?P_CAP:P_SW_OFF;if(_0xb3a4bb===0x3)return pageN===0x0?P_PAGE:P_SW_OFF;if(_0xb3a4bb===0x4)return pageN===0x1?P_PAGE:P_SW_OFF;if(_0xb3a4bb===0x7&&!rndAvail)return P_AMBER;return P_OFF;}if(_0xce1fc3===0x2||_0xce1fc3===0x3)return PAL[(_0xce1fc3-0x2)*0x8+_0xb3a4bb][0x1];if(_0xce1fc3===0x5){if(_0xb3a4bb===0x0)return PAL[padCol][0x0];if(_0xb3a4bb===0x1)return PAL[padCol][0x1];if(_0xb3a4bb>=0x3)return barIdx();}return P_OFF;}function drawMenu(){var _0x4b0155,_0x4001d1;for(_0x4001d1=0x0;_0x4001d1<0x8;_0x4001d1++){for(_0x4b0155=0x0;_0x4b0155<0x8;_0x4b0155++){put(_0x4b0155,_0x4001d1,menuPad(_0x4b0155,_0x4001d1));}}}function drawAll(){var _0xfae4b9,_0x149929;if(!grabbedNow)return;if(rndHeld){for(_0x149929=0x0;_0x149929<0x8;_0x149929++){for(_0xfae4b9=0x0;_0xfae4b9<0x8;_0xfae4b9++){put(_0xfae4b9,_0x149929,rndPad(_0xfae4b9,_0x149929));}}return;}if(armed()){for(_0x149929=0x0;_0x149929<0x8;_0x149929++){for(_0xfae4b9=0x0;_0xfae4b9<0x8;_0xfae4b9++){put(_0xfae4b9,_0x149929,P_CAP);}}return;}if(shiftHeld){drawMenu();return;}for(_0xfae4b9=0x0;_0xfae4b9<0x8;_0xfae4b9++){drawCol(_0xfae4b9);}}function grabbed(_0x4015e4){var _0x3cd4df;grabbedNow=_0x4015e4?0x1:0x0;!grabbedNow&&(shiftHeld=0x0,delHeld=0x0,rndHeld=0x0,rndBy='');for(_0x3cd4df=0x0;_0x3cd4df<0x40;_0x3cd4df++){sent[_0x3cd4df]=-0x1;}outlet(0x1,'pads',grabbedNow),drawAll();}function paint(){var _0x561796;for(_0x561796=0x0;_0x561796<0x40;_0x561796++){sent[_0x561796]=-0x1;}drawAll();}function shift(_0x3913fb){shiftHeld=_0x3913fb?0x1:0x0,drawAll();}function rndavail(_0x482c77){rndAvail=_0x482c77!=0x0?0x1:0x0,shiftHeld&&drawAll();}function rndamt(_0x5a5040){rndAmt=Math['max'](0x0,Math['min'](0x64,_0x5a5040)),rndHeld&&drawAll();}function rnd(_0x1e4637){if(_0x1e4637!=0x0){if(rndHeld){rndEnd();return;}shiftHeld&&rndDown('btn');}else rndBy==='btn'&&rndUp();}function rndDown(_0xb6f43f){if(!grabbedNow)return;if(rndHeld){rndEnd();return;}rndHeld=0x1,rndBy=_0xb6f43f,rndTouched=0x0,rndT0=now(),drawAll();}function rndUp(){var _0x3437c9;if(!rndHeld)return;_0x3437c9=!rndTouched&&now()-rndT0<=RND_TAP_MS,rndEnd(),_0x3437c9&&outlet(0x1,'wrnd',rndKind);}function rndEnd(){if(!rndHeld)return;rndHeld=0x0,rndBy='',drawAll();}function rndKey(_0x18a3a6,_0x5ba697){var _0x17ddc1;rndTouched=0x1;if(_0x5ba697<=0x1){if(rndBy==='pad'&&_0x18a3a6===0x7&&_0x5ba697===0x0)return;_0x17ddc1=kindAt(_0x18a3a6);if(_0x17ddc1<0x0)return;rndKind=_0x17ddc1,outlet(0x1,'wrnd',_0x17ddc1),drawAll();}else{if(_0x5ba697===0x3)outlet(0x1,'wrndamt',Math['round']((_0x18a3a6+0x1)/0x8*0x64));else _0x5ba697===0x7&&_0x18a3a6===0x7&&outlet(0x1,'wundo');}}function key(_0x3d377a,_0x3c5e82,_0x3d100c){var _0x5573bb,_0x45db1c,_0x3a9bf3,_0xf870e;_0x3d377a=Math['floor'](_0x3d377a),_0x3c5e82=Math['floor'](_0x3c5e82);if(_0x3d377a<0x0||_0x3d377a>0x7||_0x3c5e82<0x0||_0x3c5e82>0x7)return;if(rndHeld){if(_0x3d100c>0x0)rndKey(_0x3d377a,_0x3c5e82);else rndBy==='pad'&&_0x3d377a===0x7&&_0x3c5e82===0x0&&rndUp();return;}if(!(_0x3d100c>0x0))return;if(armed()){outlet(0x1,'winit');return;}if(shiftHeld){if(_0x3c5e82===0x2||_0x3c5e82===0x3){outlet(0x1,'wpadcol',(_0x3c5e82-0x2)*0x8+_0x3d377a);return;}if(_0x3c5e82===0x5&&_0x3d377a<0x2){outlet(0x1,'wpadlit',_0x3d377a);return;}if(_0x3c5e82!==0x0)return;if(_0x3d377a===0x7&&!rndAvail){rndDown('pad');return;}if(_0x3d377a===0x0)mode=0x0;else{if(_0x3d377a===0x1)mode=0x1;else{if(_0x3d377a===0x3)pageN=0x0;else{if(_0x3d377a===0x4)pageN=0x1;else return;}}}drawAll();return;}if(mode!==0x1)return;_0x5573bb=pageN*0x8+_0x3d377a,_0x45db1c=0x8-_0x3c5e82,_0x3a9bf3=barOf(levels[_0x5573bb]),_0xf870e=_0x45db1c===_0x3a9bf3?-0x3c:STEPS[_0x45db1c-0x1],levels[_0x5573bb]=_0xf870e,outlet(0x1,'wsetband',_0x5573bb,_0xf870e),drawCol(_0x3d377a);}var FOLLOW_MS=0x28,GAP_MS=0x78,burstT0=0x0,burstLast=0x0,burstBands=[];function now(){return new Date()['getTime']();}function noteChange(_0x45b820){var _0x3f1140=now(),_0xc65bae;burstBands['length']&&_0x3f1140-burstLast>GAP_MS&&(burstBands=[]);!burstBands['length']&&(burstT0=_0x3f1140);burstLast=_0x3f1140;for(_0xc65bae=0x0;_0xc65bae<burstBands['length'];_0xc65bae++){if(burstBands[_0xc65bae]===_0x45b820)return;}burstBands['push'](_0x45b820);}function follow(){var _0x318f22;if(!burstBands['length']||now()-burstT0<FOLLOW_MS)return;_0x318f22=Math['floor'](burstBands[0x0]/0x8);if(burstBands['length']===0x1&&_0x318f22!==pageN&&!overlay()){pageN=_0x318f22,burstBands=[],drawAll();return;}burstBands=[];}function band(_0x456750,_0xebcec2){_0x456750=Math['floor'](_0x456750);if(_0x456750<0x0||_0x456750>=NB)return;if(levels[_0x456750]===_0xebcec2)return;noteChange(_0x456750),levels[_0x456750]=_0xebcec2,grabbedNow&&!overlay()&&Math['floor'](_0x456750/0x8)===pageN&&drawCol(_0x456750%0x8);}function anything(){var _0x5276da=arrayfromargs(arguments),_0xfb1b6a,_0x24b410;if(messagename==='levels'){burstBands=[];for(_0xfb1b6a=0x0;_0xfb1b6a<NB&&_0xfb1b6a<_0x5276da['length'];_0xfb1b6a++){levels[_0xfb1b6a]=_0x5276da[_0xfb1b6a];}drawAll();return;}if(messagename==='env'){follow(),_0x24b410=Math['floor'](_0x5276da[0x0])-0x1;if(_0x24b410<0x0||_0x24b410>=NB)return;env[_0x24b410]=_0x5276da[0x1];grabbedNow&&!overlay()&&Math['floor'](_0x24b410/0x8)===pageN&&drawCol(_0x24b410%0x8);return;}}function padcol(_0x40a2fa){_0x40a2fa=Math['floor'](_0x40a2fa);if(!(_0x40a2fa>=0x0&&_0x40a2fa<PAL['length'])||_0x40a2fa===padCol)return;padCol=_0x40a2fa,drawAll();}function padlit(_0x12d357){_0x12d357=_0x12d357>0x0?0x1:0x0;if(_0x12d357===padLit)return;padLit=_0x12d357,drawAll();}function del(_0x557d32){var _0xb0a907=armed();delHeld=_0x557d32>0x0?0x1:0x0,_0xb0a907!==armed()&&drawAll();}function undo(){outlet(0x1,'wundo');}\n", "disp": "// \u00a9 thopa 2026. All rights reserved.\nautowatch=0x0,mgraphics['init'](),mgraphics['relative_coords']=0x0,mgraphics['autofill']=0x0;var PAT=this['patcher'],VERSION='0.25.3',RANGES=[[0xfa,0x2710],[0x3c,0x2ee0],[0x28,0x7d0]],NB=0x10,NL=0x11,SUM=0x10,RAIL_W=0x17,VAL_TOP=0x98,HEAD_H=0x12,X0=0x1c,COLW=0x16,RAIL_Y0=0x20,RAIL_PITCH=0x17,COL1=0x22,COL2L=0x8c,COL2=0xb2,VCOL1=0x32,VCOL2L=0xac,VCOL2=0xd4,VGAIN_W=0x2c;function pageRight(){if(page===0x2)return X0+(NS-0x1)*PS_PITCH+PS_W;return X0+(NB-0x1)*COLW+COLW/0x2+0x5;}function pageMid(){return(X0+pageRight())/0x2;}var HDR=[[['new',0x18,'new'],['vary',0x18,'vary'],['drift',0x1a,'drift'],['init',0x16,'init'],['zero',0x20,'0\\x20dB']],[['sum',0x24,'SUM'],['pop',0xe,'']],[['store',0x24,'store'],['swap',0x24,'A\\x20<>\\x20B']],[['voc',0x38,'vocode\\x20off']]],HDR_GAP=[0x2,0x4,0x4,0x0];function hdrButtons(){var _0x4f8410=HDR[page],_0x24ac8f=pageRight(),_0x518f04=[],_0x3b9e39;for(_0x3b9e39=_0x4f8410['length']-0x1;_0x3b9e39>=0x0;_0x3b9e39--){_0x24ac8f-=_0x4f8410[_0x3b9e39][0x1],_0x518f04['unshift']([_0x4f8410[_0x3b9e39][0x0],_0x24ac8f,_0x4f8410[_0x3b9e39][0x1],_0x4f8410[_0x3b9e39][0x2]]),_0x24ac8f-=HDR_GAP[page];}return _0x518f04;}function hdrAt(_0x106842){var _0x4c13cd=hdrButtons(),_0x5dc833;for(_0x5dc833=0x0;_0x5dc833<_0x4c13cd['length'];_0x5dc833++){if(_0x106842>=_0x4c13cd[_0x5dc833][0x1]&&_0x106842<_0x4c13cd[_0x5dc833][0x1]+_0x4c13cd[_0x5dc833][0x2])return _0x4c13cd[_0x5dc833][0x0];}return'';}var DBMIN=-0x3c,DBMAX=0x6,AMIN=-0xc8,AMAX=0xc8,C_BG=[0.08,0.08,0.09],C_CTRL=[0.19,0.2,0.22],C_BORDER=[0.27,0.28,0.3],C_LABEL=[0.56,0.57,0.6],C_TEXT=[0.84,0.86,0.88],C_ACCENT=[0.66,0.88,0.37],C_STORED=[0.32,0.42,0.19],C_MUTED=[0.45,0.46,0.49],C_FAINT=[0.2,0.26,0.13],FONT='Ableton\\x20Sans\\x20Medium',levels=[],amounts=[],meters=[],tnames=[],stored=[],offsets=[],NS=0x8,SLOT_TAG=0x1b62,FACTORY=[[0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0],[0x6,0x5,0x4,0x2,0x0,-0x2,-0x4,-0x6,-0x9,-0xc,-0xf,-0x12,-0x15,-0x18,-0x1b,-0x1e],[-0x1e,-0x1b,-0x18,-0x15,-0x12,-0xf,-0xc,-0x9,-0x6,-0x4,-0x2,0x0,0x2,0x4,0x5,0x6],[0x2,0x1,0x0,-0x3,-0x8,-0xe,-0x12,-0x12,-0xe,-0x8,-0x3,0x0,0x1,0x2,0x3,0x3],[-0x18,-0x12,-0xc,-0x6,-0x2,0x0,0x0,0x0,0x0,-0x2,-0x6,-0xc,-0x12,-0x18,-0x1e,-0x24],[0x0,-0x12,0x0,-0x12,0x0,-0x12,0x0,-0x12,0x0,-0x12,0x0,-0x12,0x0,-0x12,0x0,-0x12],[0x0,0x0,-0x3c,-0x3c,0x0,0x0,-0x3c,-0x3c,0x0,0x0,-0x3c,-0x3c,0x0,0x0,-0x3c,-0x3c],[0x0,0x0,0x0,-0x2,-0x6,-0xc,-0x14,-0x1e,-0x28,-0x32,-0x3c,-0x3c,-0x3c,-0x3c,-0x3c,-0x3c]],slots=[];(function(){var _0x4cda1e,_0x326d5b,_0x336a08;for(_0x4cda1e=0x0;_0x4cda1e<NS;_0x4cda1e++){_0x336a08=[];for(_0x326d5b=0x0;_0x326d5b<NB;_0x326d5b++){_0x336a08['push'](FACTORY[_0x4cda1e][_0x326d5b]);}slots['push'](_0x336a08);}}());var slotA=0x1,slotB=0x1,slotTok=0x0,storeArm=0x0,lastWrote=null,clockIdx=0x0,moveIdx=0x0,rateVal=0x2,divIdx=0x2,morphLive=0x0,vocOn=0x0,carrier=0x0,pitch=0x37,shiftV=0x0,vgainV=0xc,crossV=0x0,winOpen=0x0,scopeOpen=0x0,CARLAB=['saw','noise','both'],DIVLAB=['1\\x20beat','1/2\\x20bar','1\\x20bar','2\\x20bars','4\\x20bars','8\\x20bars'],CLKLAB=['off','free','sync'],MOVLAB=['ramp','swing','step'],i0;for(i0=0x0;i0<NB;i0++){levels[i0]=0x0,stored[i0]=0x0;}for(i0=0x0;i0<NL;i0++){amounts[i0]=0x0,offsets[i0]=0x0,meters[i0]=0x0,tnames[i0]='-';}function amtName(_0x3126d6){return _0x3126d6===SUM?'Sum_Amount':'B'+(_0x3126d6+0x1)+'_Amt';}var rangeIdx=0x0,modeIdx=0x0,page=0x0,sel=0x0,armedLane=0x0,soloIdx=0x0,dragIdx=-0x1,dragWhat='',dragStartY=0x0,dragStartV=0x0,flashKey='',flashTask=null;function flash(_0x2798bf){flashKey=_0x2798bf,mgraphics['redraw'](),flashTask&&flashTask['cancel'](),flashTask=new Task(function(){flashKey='',mgraphics['redraw']();},this),flashTask['schedule'](0x8c);}function notifydeleted(){try{flashTask&&(flashTask['cancel'](),flashTask['freepeer']());}catch(_0x2e1fad){}}function gn(_0x25c02e){try{return PAT['getnamed'](_0x25c02e);}catch(_0x1ae518){return null;}}function num(_0x16c155){if(_0x16c155 instanceof Array)return _0x16c155[0x0];return _0x16c155;}function setp(_0x70d100,_0x3ec82c){var _0x286216=gn(_0x70d100);_0x286216&&_0x286216['message']('float',_0x3ec82c);}function centres(){var _0x20f247=RANGES[rangeIdx];!_0x20f247&&(_0x20f247=RANGES[0x0]);var _0x2b4d29=Math['log'](_0x20f247[0x1]/_0x20f247[0x0])/Math['LN2']/0xf,_0xd93e73=[],_0x1b6082;for(_0x1b6082=0x0;_0x1b6082<NB;_0x1b6082++){_0xd93e73[_0x1b6082]=_0x20f247[0x0]*Math['pow'](0x2,_0x2b4d29*_0x1b6082);}return _0xd93e73;}function fmtHz(_0x46276d){if(_0x46276d>=0x3e8){var _0x4668f4=_0x46276d/0x3e8;return(_0x4668f4<0xa?Math['round'](_0x4668f4*0xa)/0xa:Math['round'](_0x4668f4))+'k';}return''+Math['round'](_0x46276d);}function fmtDb(_0xbf09d){if(_0xbf09d<=DBMIN+0.01)return'off';var _0x5c9f14=Math['round'](_0xbf09d);return(_0x5c9f14>0x0?'+':'')+_0x5c9f14;}function fmtMs(_0xed03c1){if(_0xed03c1>=0x3e8)return Math['round'](_0xed03c1/0x64)/0xa+'\\x20s';if(_0xed03c1>=0x64)return Math['round'](_0xed03c1)+'\\x20ms';if(_0xed03c1>=0xa)return Math['round'](_0xed03c1*0xa)/0xa+'\\x20ms';return Math['round'](_0xed03c1*0x64)/0x64+'\\x20ms';}function fmtSigned(_0x10c6de){var _0x38d6f0=Math['round'](_0x10c6de);return(_0x38d6f0>0x0?'+':'')+_0x38d6f0;}function fmtTimes(_0x1336e5){var _0x26f3fb=Math['pow'](0x4,Math['abs'](_0x1336e5)*0.01);return(_0x26f3fb<0xa?_0x26f3fb['toFixed'](0x1):Math['round'](_0x26f3fb))+'x';}function fmtAmt(_0x5c7dc7){var _0x23ac7d=Math['round'](_0x5c7dc7);if(_0x23ac7d===0x0)return'-';return(_0x23ac7d>0x0?'+':'')+_0x23ac7d;}function passes(_0x11a093){if(modeIdx==0x1&&_0x11a093%0x2==0x1)return 0x0;if(modeIdx==0x2&&_0x11a093%0x2==0x0)return 0x0;if(soloIdx>0x0&&!soloed(_0x11a093))return 0x0;if(modeIdx>0x2)return modeIdx===0x3===(_0x11a093%0x2===0x0)?0x1:0x0;return 0x1;}function soloed(_0x2edd63){return Math['floor'](soloIdx/Math['pow'](0x2,_0x2edd63))%0x2>=0x1;}function windowAt(_0x1ebce6){if(sweepW<=0x0)return 0x1;var _0xfe1c1e=Math['abs'](_0x1ebce6+0x1-sweepP);if(_0xfe1c1e>=sweepW)return 0x0;return 0.5*(0x1+Math['cos'](Math['PI']*_0xfe1c1e/sweepW));}var sweepP=8.5,sweepW=0x0,sweepD=0x64,morphPos=0x0,att=0x5,rel=0x50;function text(_0x123167,_0x53d832,_0x4af96f,_0x367355,_0x368b2c,_0x322c2a){mgraphics['select_font_face'](FONT),mgraphics['set_font_size'](_0x368b2c||0x8);var _0x1ed18a=mgraphics['text_measure'](_0x123167),_0x59bbc9=_0x53d832;return _0x322c2a==='c'&&(_0x59bbc9=_0x53d832-_0x1ed18a[0x0]/0x2),_0x322c2a==='r'&&(_0x59bbc9=_0x53d832-_0x1ed18a[0x0]),mgraphics['set_source_rgba'](_0x367355[0x0],_0x367355[0x1],_0x367355[0x2],0x1),mgraphics['move_to'](_0x59bbc9,_0x4af96f),mgraphics['text_path'](_0x123167),mgraphics['fill'](),_0x1ed18a[0x0];}function trim(_0x2a1fbb,_0x3c7986,_0x5a06de){mgraphics['select_font_face'](FONT),mgraphics['set_font_size'](_0x5a06de||0x8);var _0x2aaad2=String(_0x2a1fbb);if(mgraphics['text_measure'](_0x2aaad2)[0x0]<=_0x3c7986)return _0x2aaad2;while(_0x2aaad2['length']>0x1&&mgraphics['text_measure'](_0x2aaad2+'.')[0x0]>_0x3c7986){_0x2aaad2=_0x2aaad2['substring'](0x0,_0x2aaad2['length']-0x1);}return _0x2aaad2+'.';}function rect(_0x18c85c,_0x599ad1,_0x560cfb,_0x2ebe6d,_0x4ab395){mgraphics['set_source_rgba'](_0x4ab395[0x0],_0x4ab395[0x1],_0x4ab395[0x2],0x1),mgraphics['rectangle'](_0x18c85c,_0x599ad1,_0x560cfb,_0x2ebe6d),mgraphics['fill']();}function frame(_0x5e88e4,_0x477a46,_0x3d2d15,_0x22da50,_0xdff542){mgraphics['set_line_width'](0x1),mgraphics['set_source_rgba'](_0xdff542[0x0],_0xdff542[0x1],_0xdff542[0x2],0x1),mgraphics['rectangle'](_0x5e88e4+0.5,_0x477a46+0.5,_0x3d2d15-0x1,_0x22da50-0x1),mgraphics['stroke']();}function drawRail(){var _0x2e2646,_0x1e7339,_0x4f1b0b,_0x4af249;for(_0x2e2646=0x0;_0x2e2646<0x4;_0x2e2646++){_0x1e7339=RAIL_Y0+_0x2e2646*RAIL_PITCH,_0x4f1b0b=page===_0x2e2646,_0x4af249=_0x4f1b0b?C_ACCENT:C_LABEL,mgraphics['set_line_width'](0x1),mgraphics['set_source_rgba'](_0x4af249[0x0],_0x4af249[0x1],_0x4af249[0x2],0x1);if(_0x2e2646===0x0){var _0x1bd096=[0x4,0x8,0xb,0x7,0x5],_0x483d9f;for(_0x483d9f=0x0;_0x483d9f<_0x1bd096['length'];_0x483d9f++){mgraphics['rectangle'](0x4+_0x483d9f*0x3,_0x1e7339+0xd-_0x1bd096[_0x483d9f],0x2,_0x1bd096[_0x483d9f]),mgraphics['fill']();}}else{if(_0x2e2646===0x1)mgraphics['move_to'](0x4,_0x1e7339+0xd),mgraphics['line_to'](0x7,_0x1e7339+0x2),mgraphics['line_to'](0xa,_0x1e7339+0x8),mgraphics['line_to'](0x11,_0x1e7339+0xd),mgraphics['stroke']();else{if(_0x2e2646===0x2){var _0x39895c;for(_0x39895c=0x0;_0x39895c<0x3;_0x39895c++){mgraphics['rectangle'](0x4+_0x39895c*0x5,_0x1e7339+0x3,0x4,0x9),mgraphics['stroke']();}}else mgraphics['move_to'](0x4,_0x1e7339+0x7),mgraphics['curve_to'](0x8,_0x1e7339+0x1,0xe,_0x1e7339+0x1,0x12,_0x1e7339+0x7),mgraphics['curve_to'](0xe,_0x1e7339+0xd,0x8,_0x1e7339+0xd,0x4,_0x1e7339+0x7),mgraphics['stroke']();}}}rect(RAIL_W,HEAD_H,0x1,mgraphics['size'][0x1]-HEAD_H,C_BORDER);}function drawHeader(){var _0x5a932=hdrButtons(),_0x24abac,_0x3fd333;_0x3fd333=text('GALERNA\\x20'+VERSION,X0,0xc,C_TEXT,0xb),text(['BANDS','ENV','PRESETS','VOC'][page],pageMid(),0xc,C_LABEL,0x8,'c');for(_0x24abac=0x0;_0x24abac<_0x5a932['length'];_0x24abac++){if(_0x5a932[_0x24abac][0x0]==='pop')popIcon(_0x5a932[_0x24abac][0x1],0x1,0x10,winOpen);else{if(_0x5a932[_0x24abac][0x0]==='voc')btn('voc',_0x5a932[_0x24abac][0x1],_0x5a932[_0x24abac][0x2],vocOn?'VOCODE\\x20ON':'vocode\\x20off',vocOn);else{if(_0x5a932[_0x24abac][0x0]==='sum')btn('sum',_0x5a932[_0x24abac][0x1],_0x5a932[_0x24abac][0x2],'SUM',sel===SUM);else _0x5a932[_0x24abac][0x0]==='store'?btn('store',_0x5a932[_0x24abac][0x1],_0x5a932[_0x24abac][0x2],'store',storeArm):btn(_0x5a932[_0x24abac][0x0],_0x5a932[_0x24abac][0x1],_0x5a932[_0x24abac][0x2],_0x5a932[_0x24abac][0x3]);}}}popIcon(0x3,0x1,0x10,scopeOpen),page===0x0&&morphNow()>0.005&&text('m\\x20'+Math['round'](morphNow()*0x64)+'\\x20%',X0+_0x3fd333+0x8,0xc,C_ACCENT,0x8);}function popIcon(_0x3ab8e8,_0x195389,_0x1ab190,_0x4a548c){var _0x36f9fb=_0x1ab190/0x10,_0x224669=_0x4a548c?C_ACCENT:C_LABEL;function _0x516fb4(_0x210c38){return _0x3ab8e8+_0x210c38*_0x36f9fb;}function _0x3e46e4(_0x55660e){return _0x195389+_0x55660e*_0x36f9fb;}mgraphics['set_source_rgba'](_0x224669[0x0],_0x224669[0x1],_0x224669[0x2],0x1),mgraphics['set_line_width'](Math['max'](0x1,1.3*_0x36f9fb)),mgraphics['rectangle'](_0x516fb4(2.5),_0x3e46e4(0x5),8.5*_0x36f9fb,8.5*_0x36f9fb),mgraphics['stroke'](),mgraphics['move_to'](_0x516fb4(7.5),_0x3e46e4(8.5)),mgraphics['line_to'](_0x516fb4(13.5),_0x3e46e4(2.5)),mgraphics['stroke'](),mgraphics['move_to'](_0x516fb4(9.5),_0x3e46e4(2.5)),mgraphics['line_to'](_0x516fb4(13.5),_0x3e46e4(2.5)),mgraphics['line_to'](_0x516fb4(13.5),_0x3e46e4(6.5)),mgraphics['stroke']();}function btn(_0x4e7b05,_0x49d1df,_0x58788e,_0x22854a,_0xdebe63){var _0x91bc00=flashKey===_0x4e7b05||_0xdebe63;rect(_0x49d1df,0x2,_0x58788e,0xe,_0x91bc00?C_ACCENT:C_CTRL),frame(_0x49d1df,0x2,_0x58788e,0xe,_0x91bc00?C_ACCENT:C_BORDER),text(_0x22854a,_0x49d1df+_0x58788e/0x2,0xc,_0x91bc00?C_BG:C_LABEL,0x8,'c');}function morphNow(){if(clockIdx>0x0)return morphLive;return morphPos*0.01;}function drawBands(){var _0x21aa88=centres(),_0x3b7635,_0x404095=0x22,_0x2258e7=0x64,_0x4f0d42=_0x404095+_0x2258e7*(0x1-(0x0-DBMIN)/(DBMAX-DBMIN));for(_0x3b7635=0x0;_0x3b7635<NB;_0x3b7635++){var _0x5b41c5=X0+_0x3b7635*COLW+COLW/0x2,_0x16c139=windowAt(_0x3b7635),_0x427b08=passes(_0x3b7635)&&_0x16c139>0.001;soloed(_0x3b7635)&&frame(_0x5b41c5-0xa,0x13,0x14,0xc,C_ACCENT);text(fmtHz(_0x21aa88[_0x3b7635]),_0x5b41c5,0x1c,soloed(_0x3b7635)?C_ACCENT:_0x427b08?C_LABEL:C_MUTED,0x8,'c');sweepW>0x0&&Math['abs'](sweepD)>0.5&&(rect(_0x5b41c5-(COLW-0x8)/0x2,0x1e,COLW-0x8,0x3,C_CTRL),_0x16c139>0.001&&rect(_0x5b41c5-(COLW-0x8)*_0x16c139/0x2,0x1e,(COLW-0x8)*_0x16c139,0x3,sweepD>0x0?C_ACCENT:C_STORED));rect(_0x5b41c5-0x4,_0x404095,0x8,_0x2258e7,C_CTRL),frame(_0x5b41c5-0x5,_0x404095-0x1,0xa,_0x2258e7+0x2,C_BORDER),rect(_0x5b41c5-0x7,_0x4f0d42,0xe,0x1,C_BORDER);var _0x39acd6=modeIdx>0x2,_0x4545ed=stored[_0x3b7635],_0x29916d=_0x404095+_0x2258e7*(0x1-(_0x4545ed-DBMIN)/(DBMAX-DBMIN));rect(_0x5b41c5-0x8,_0x29916d,0x10,0x1,C_STORED);var _0x1a4663=morphNow();if(_0x1a4663>0.005){var _0x50ecbc=levels[_0x3b7635]*(0x1-_0x1a4663)+_0x4545ed*_0x1a4663,_0x55d138=_0x404095+_0x2258e7*(0x1-(_0x50ecbc-DBMIN)/(DBMAX-DBMIN));rect(_0x5b41c5-0x8,_0x55d138-0x1,0x10,0x2,C_ACCENT);}var _0x18a6b6=levels[_0x3b7635];if(_0x18a6b6>DBMIN+0.01){var _0x426f56=_0x404095+_0x2258e7*(0x1-(_0x18a6b6-DBMIN)/(DBMAX-DBMIN));rect(_0x5b41c5-0x3,_0x426f56,0x6,_0x404095+_0x2258e7-_0x426f56,_0x39acd6?C_BORDER:_0x427b08?C_TEXT:C_MUTED),_0x18a6b6>0.01&&rect(_0x5b41c5-0x3,_0x426f56,0x6,_0x4f0d42-_0x426f56,_0x39acd6?C_BORDER:_0x427b08?C_ACCENT:C_STORED);}_0x39acd6&&_0x427b08&&rect(_0x5b41c5-0x5,_0x404095,0xa,0x2,C_ACCENT),!_0x427b08&&(mgraphics['set_line_width'](0x1),mgraphics['set_source_rgba'](C_MUTED[0x0],C_MUTED[0x1],C_MUTED[0x2],0x1),mgraphics['move_to'](_0x5b41c5-0x7,_0x404095+_0x2258e7/0x2),mgraphics['line_to'](_0x5b41c5+0x7,_0x404095+_0x2258e7/0x2),mgraphics['stroke']()),Math['round'](amounts[_0x3b7635])!==0x0&&rect(_0x5b41c5-0x3,_0x404095+_0x2258e7+0x3,0x6,0x2,C_STORED),(_0x18a6b6<=DBMIN+0.01||!_0x427b08)&&rect(_0x5b41c5-0x6,VAL_TOP+0xd,0xc,0x1,C_MUTED);}}var MET_Y=0x22,MET_H=0x30,AMT_Y=0x62,FOL_Y=0x68,decay=0x0,preemp=0x0;function drawEnv(){var _0x274c87=centres(),_0xd5a738;for(_0xd5a738=0x0;_0xd5a738<NB;_0xd5a738++){var _0x1fa3f4=X0+_0xd5a738*COLW+COLW/0x2,_0x3ca5d=tnames[_0xd5a738]!=='-'&&tnames[_0xd5a738]!=='',_0x425734=Math['round'](amounts[_0xd5a738])!==0x0&&_0x3ca5d;text(fmtHz(_0x274c87[_0xd5a738]),_0x1fa3f4,0x1c,_0xd5a738===sel?C_TEXT:C_LABEL,0x8,'c'),rect(_0x1fa3f4-0x4,MET_Y,0x8,MET_H,C_CTRL),frame(_0x1fa3f4-0x5,MET_Y-0x1,0xa,MET_H+0x2,C_BORDER);var _0x3a34e6=Math['max'](0x0,Math['min'](0x1,meters[_0xd5a738]));_0x3a34e6>0.005&&rect(_0x1fa3f4-0x3,MET_Y+MET_H-_0x3a34e6*MET_H,0x6,_0x3a34e6*MET_H,_0x425734?C_ACCENT:C_STORED),_0x3ca5d&&rect(_0x1fa3f4-0x5,MET_Y+MET_H+0x3,0xa,0x2,_0x425734?C_STORED:C_BORDER),text(fmtAmt(amounts[_0xd5a738]),_0x1fa3f4,AMT_Y,Math['round'](amounts[_0xd5a738])===0x0?C_MUTED:C_TEXT,0x8,'c'),_0xd5a738===sel&&frame(X0+_0xd5a738*COLW,HEAD_H,COLW,AMT_Y+0x4-HEAD_H,C_STORED);}if(sel===SUM){var _0x1e7acf=pageRight(),_0x502a47=Math['max'](0x0,Math['min'](0x1,meters[SUM]));frame(X0,HEAD_H,_0x1e7acf-X0,AMT_Y+0x4-HEAD_H,C_STORED);var _0x3afc2c=MET_Y+MET_H-_0x502a47*MET_H;rect(X0+0x2,_0x3afc2c-0x1,_0x1e7acf-X0-0x4,0x2,C_ACCENT),text('sum\\x20'+Math['round'](_0x502a47*0x64)+'\\x20%',_0x1e7acf-0x4,Math['max'](MET_Y+0xb,_0x3afc2c-0x3),C_ACCENT,0x8,'r');}drawFollower(),drawEditor();}function drawFollower(){var _0x4b03de;for(_0x4b03de=0x0;_0x4b03de<FOL_HITS['length'];_0x4b03de++){var _0x3b7d07=FOL_HITS[_0x4b03de];valbox(_0x3b7d07[0x3],_0x3b7d07[0x4](),X0+_0x3b7d07[0x1],_0x3b7d07[0x2],FOL_Y,dragWhat===_0x3b7d07[0x0]);}}var ED_Y=0x64,MAP_W=0x22,CLR_W=0xc,AMT_HITS=[{'what':'amt','x':0x0,'bx':0x14,'bw':0x6e,'vx':0xa0,'lo':0x0,'hi':0xa6},{'what':'off','x':0xb0,'bx':0xc4,'bw':0x6e,'vx':0x15a,'lo':0xac,'hi':0x15a}];function drawEditor(){var _0xa05fb4=centres(),_0x6c398b=mgraphics['size'][0x0],_0x2d745b=pageRight();rect(X0,ED_Y,_0x2d745b-X0,0x1,C_BORDER);sel===SUM?(text('SUM',X0,ED_Y+0xe,C_ACCENT,9.5),text('all\\x2016',X0+0x34,ED_Y+0xe,C_LABEL,0x8)):(text('BAND\\x20'+(sel+0x1),X0,ED_Y+0xe,C_TEXT,9.5),text(fmtHz(_0xa05fb4[sel]),X0+0x34,ED_Y+0xe,C_LABEL,0x8));var _0x5a8dc2=ED_Y+0x14,_0x224c5c=armedLane===sel+0x1;rect(X0,_0x5a8dc2,MAP_W,0xf,_0x224c5c?C_ACCENT:C_CTRL),frame(X0,_0x5a8dc2,MAP_W,0xf,_0x224c5c?C_ACCENT:C_BORDER),text('map',X0+MAP_W/0x2,_0x5a8dc2+0xb,_0x224c5c?C_BG:C_TEXT,0x8,'c');var _0xb32840=X0+MAP_W+0x6,_0x5a9bbe=_0x2d745b-_0xb32840-CLR_W-0x6;rect(_0xb32840,_0x5a8dc2,_0x5a9bbe,0xf,C_CTRL);var _0x245d69=tnames[sel],_0x1c1f5a=_0x245d69!=='-'&&_0x245d69!=='';text(trim(_0x224c5c?'click\\x20a\\x20parameter\\x20in\\x20Live':_0x245d69,_0x5a9bbe-0x8,8.5),_0xb32840+0x4,_0x5a8dc2+0xb,_0x1c1f5a?C_TEXT:C_LABEL,8.5);var _0xb37bc4=_0x2d745b-CLR_W;rect(_0xb37bc4,_0x5a8dc2,CLR_W,0xf,C_CTRL),frame(_0xb37bc4,_0x5a8dc2,CLR_W,0xf,C_BORDER),text('x',_0xb37bc4+CLR_W/0x2,_0x5a8dc2+0xb,_0x1c1f5a?C_TEXT:C_MUTED,0x8,'c');var _0x359154=_0x5a8dc2+0xe,_0x1308c0=(_0x2d745b-X0-0xa)/0x2,_0x3559de=AMT_HITS[0x0],_0x4a860f=AMT_HITS[0x1];text('AMT',X0+_0x3559de['x'],_0x359154+0xb,C_LABEL,0x8);var _0x1c11f2=X0+_0x3559de['bx'],_0x91763e=_0x3559de['bw'];rect(_0x1c11f2,_0x359154+0x3,_0x91763e,0x8,C_CTRL);var _0x29ad0c=_0x1c11f2+_0x91763e/0x2;rect(_0x29ad0c,_0x359154+0x1,0x1,0xc,C_BORDER);var _0x4943ec=amounts[sel]/AMAX;if(Math['abs'](_0x4943ec)>0.002){var _0x400cbc=Math['abs'](_0x4943ec)*(_0x91763e/0x2);rect(_0x4943ec>0x0?_0x29ad0c:_0x29ad0c-_0x400cbc,_0x359154+0x3,_0x400cbc,0x8,_0x1c1f5a?C_ACCENT:C_STORED);}text(fmtAmt(amounts[sel]),X0+_0x3559de['vx'],_0x359154+0xb,Math['round'](amounts[sel])===0x0?C_MUTED:C_TEXT,8.5,'r'),text('OFF',X0+_0x4a860f['x'],_0x359154+0xb,C_LABEL,0x8);var _0x1ffa42=X0+_0x4a860f['bx'],_0x4b61bb=_0x4a860f['bw'];rect(_0x1ffa42,_0x359154+0x3,_0x4b61bb,0x8,C_CTRL);var _0x56da37=offsets[sel]/0x64;_0x56da37>0.002&&rect(_0x1ffa42,_0x359154+0x3,_0x56da37*_0x4b61bb,0x8,_0x1c1f5a?C_ACCENT:C_STORED),text(Math['round'](offsets[sel])+'',X0+_0x4a860f['vx'],_0x359154+0xb,Math['round'](offsets[sel])===0x0?C_MUTED:C_TEXT,8.5,'r');}var PS_Y=0x1a,PS_H=0x2c,PS_W=0x28,PS_PITCH=0x2c,PR_AB=0x4e,PR_CLK=0x66,PR_RATE=0x7e,PR_ROW=0x10;function segs(_0x35c37d,_0x4c0ded,_0x3c4aca,_0xf54ebb,_0x988bd3){var _0x422ab9;for(_0x422ab9=0x0;_0x422ab9<_0x35c37d['length'];_0x422ab9++){var _0x14c3fc=_0x422ab9===_0xf54ebb;rect(_0x4c0ded+_0x422ab9*(_0x3c4aca+0x1),_0x988bd3,_0x3c4aca,0xe,_0x14c3fc?C_ACCENT:C_CTRL),frame(_0x4c0ded+_0x422ab9*(_0x3c4aca+0x1),_0x988bd3,_0x3c4aca,0xe,_0x14c3fc?C_ACCENT:C_BORDER),text(_0x35c37d[_0x422ab9],_0x4c0ded+_0x422ab9*(_0x3c4aca+0x1)+_0x3c4aca/0x2,_0x988bd3+0xa,_0x14c3fc?C_BG:C_LABEL,0x8,'c');}}function valbox(_0x16bf82,_0x4bca5b,_0x28528c,_0xd2a264,_0x481db5,_0x1e67d8,_0x4c540a){rect(_0x28528c,_0x481db5,_0xd2a264,0xe,C_CTRL),frame(_0x28528c,_0x481db5,_0xd2a264,0xe,_0x1e67d8?C_ACCENT:C_BORDER),text(_0x4bca5b,_0x28528c+_0xd2a264/0x2,_0x481db5+0xa,_0x1e67d8?C_ACCENT:C_TEXT,0x8,'c'),_0x16bf82&&(_0x4c540a===undefined?text(_0x16bf82,_0x28528c-0x3,_0x481db5+0xa,C_LABEL,0x8,'r'):text(_0x16bf82,_0x4c540a,_0x481db5+0xa,C_LABEL,0x8));}function slotEdited(_0x2589a5){var _0x1f78e5,_0x2fc518=slots[_0x2589a5-0x1];for(_0x1f78e5=0x0;_0x1f78e5<NB;_0x1f78e5++){if(Math['abs'](_0x2fc518[_0x1f78e5]-levels[_0x1f78e5])>0.05)return 0x1;}return 0x0;}function drawPresets(){var _0x4bff61,_0x3c8cb9,_0x5702b5=pageRight();for(_0x4bff61=0x0;_0x4bff61<NS;_0x4bff61++){var _0x484693=X0+_0x4bff61*PS_PITCH,_0x4f6907=_0x4bff61+0x1===slotA,_0x2c6dbe=_0x4bff61+0x1===slotB;rect(_0x484693,PS_Y,PS_W,PS_H,C_CTRL),frame(_0x484693,PS_Y,PS_W,PS_H,storeArm?C_ACCENT:_0x4f6907?C_ACCENT:_0x2c6dbe?C_STORED:C_BORDER),text(String(_0x4bff61+0x1),_0x484693+0x3,PS_Y+0xa,_0x4f6907?C_ACCENT:C_LABEL,0x8);if(_0x4f6907&&_0x2c6dbe)text('AB',_0x484693+PS_W-0x3,PS_Y+0xa,C_ACCENT,0x8,'r');else{if(_0x4f6907)text('A',_0x484693+PS_W-0x3,PS_Y+0xa,C_ACCENT,0x8,'r');else _0x2c6dbe&&text('B',_0x484693+PS_W-0x3,PS_Y+0xa,C_STORED,0x8,'r');}var _0x576ad9=PS_Y+0xd,_0x4834e8=PS_H-0x10;for(_0x3c8cb9=0x0;_0x3c8cb9<NB;_0x3c8cb9++){var _0x58823e=slots[_0x4bff61][_0x3c8cb9],_0x8a3ad4=Math['round'](_0x4834e8*(_0x58823e-DBMIN)/(DBMAX-DBMIN));_0x8a3ad4<0x1&&(_0x8a3ad4=0x1),rect(_0x484693+0x3+_0x3c8cb9*2.125,_0x576ad9+_0x4834e8-_0x8a3ad4,1.6,_0x8a3ad4,_0x4f6907?C_ACCENT:_0x2c6dbe?C_STORED:C_FAINT);}_0x4f6907&&slotEdited(_0x4bff61+0x1)&&text('*',_0x484693+0xb,PS_Y+0xa,C_TEXT,0x8);}valbox('A',String(slotA),X0+COL1,0x16,PR_AB,0x1,X0),valbox('B',String(slotB),X0+COL1+0x2a,0x16,PR_AB,0x0),text('MORPH',X0+COL2L,PR_AB+0xa,C_LABEL,0x8);var _0x1258ef=morphNow(),_0x3a982b=X0+COL2,_0x5dd5f9=_0x5702b5-_0x3a982b-0x22;rect(_0x3a982b,PR_AB+0x4,_0x5dd5f9,0x6,C_CTRL),frame(_0x3a982b,PR_AB+0x4,_0x5dd5f9,0x6,C_BORDER),rect(_0x3a982b,PR_AB+0x4,Math['round'](_0x5dd5f9*_0x1258ef),0x6,clockIdx>0x0?C_ACCENT:C_STORED),text(Math['round'](_0x1258ef*0x64)+'\\x20%',_0x5702b5,PR_AB+0xa,clockIdx>0x0?C_ACCENT:C_TEXT,0x8,'r'),text('CLOCK',X0,PR_CLK+0xa,C_LABEL,0x8),segs(CLKLAB,X0+COL1,0x20,clockIdx,PR_CLK),text('MOVE',X0+COL2L,PR_CLK+0xa,C_LABEL,0x8),segs(MOVLAB,X0+COL2,0x22,moveIdx,PR_CLK),valbox('RATE',rateVal['toFixed'](rateVal<0xa?0x2:0x1)+'\\x20s',X0+COL1,0x30,PR_RATE,clockIdx===0x1,X0),valbox('DIV',DIVLAB[divIdx],X0+COL2,0x38,PR_RATE,clockIdx===0x2,X0+COL2L);var _0x376b16='click:\\x20A\\x20\\x20shift-click:\\x20B';if(storeArm)_0x376b16='click\\x20a\\x20slot\\x20to\\x20store';else{if(clockIdx===0x1)_0x376b16=MOVLAB[moveIdx]+'\\x20every\\x20'+rateVal['toFixed'](0x2)+'\\x20s';else clockIdx===0x2&&(_0x376b16=MOVLAB[moveIdx]+'\\x20every\\x20'+DIVLAB[divIdx]);}text(trim(_0x376b16,_0x5702b5-(X0+COL2+0x38)-0x8,0x8),_0x5702b5,PR_RATE+0xa,storeArm?C_ACCENT:C_LABEL,0x8,'r');}var VOC_CTL=0x70,VOC_CTL2=0x86;function srcBand(_0x5f593c){var _0x4c0541=_0x5f593c-shiftV;return _0x4c0541<0x0&&(_0x4c0541=0x0),_0x4c0541>NB-0x1&&(_0x4c0541=NB-0x1),_0x4c0541;}function drawVoc(){var _0x998908=centres(),_0x294094,_0x2530ab=pageRight();for(_0x294094=0x0;_0x294094<NB;_0x294094++){var _0x2b4a97=X0+_0x294094*COLW+COLW/0x2,_0x33c2d5=srcBand(_0x294094),_0x5cbbf1=_0x33c2d5!==_0x294094-shiftV;text(fmtHz(_0x998908[_0x294094]),_0x2b4a97,0x1c,C_LABEL,0x8,'c'),rect(_0x2b4a97-0x4,MET_Y,0x8,MET_H,C_CTRL),frame(_0x2b4a97-0x5,MET_Y-0x1,0xa,MET_H+0x2,C_BORDER);var _0x53afdd=Math['max'](0x0,Math['min'](0x1,meters[_0x33c2d5]));levels[_0x294094]<=DBMIN+0.01&&(_0x53afdd=0x0),_0x53afdd>0.005&&rect(_0x2b4a97-0x3,MET_Y+MET_H-_0x53afdd*MET_H,0x6,_0x53afdd*MET_H,vocOn?C_ACCENT:C_STORED),text(_0x5cbbf1?'-':String(_0x33c2d5+0x1),_0x2b4a97,MET_Y+MET_H+0xc,_0x5cbbf1?C_MUTED:_0x33c2d5===_0x294094?C_LABEL:C_STORED,0x8,'c');}rect(X0,VOC_CTL-0x8,_0x2530ab-X0,0x1,C_BORDER),text('CARRIER',X0,VOC_CTL+0xa,C_LABEL,0x8),segs(CARLAB,X0+VCOL1,0x22,carrier,VOC_CTL),valbox('PITCH',Math['round'](pitch)+'\\x20Hz',X0+VCOL2,0x34,VOC_CTL,dragWhat==='pitch',X0+VCOL2L),valbox('GAIN',fmtSigned(vgainV)+'\\x20dB',_0x2530ab-VGAIN_W,VGAIN_W,VOC_CTL,dragWhat==='vgain'),valbox('SHIFT',fmtSigned(shiftV),X0+VCOL1,0x28,VOC_CTL2,dragWhat==='shift',X0),valbox('CROSS',Math['round'](crossV)+'\\x20%',X0+VCOL2,0x34,VOC_CTL2,dragWhat==='cross',X0+VCOL2L);var _0x584ea1='band\\x20for\\x20band';shiftV>0x0&&(_0x584ea1='formants\\x20up\\x20'+shiftV),shiftV<0x0&&(_0x584ea1='formants\\x20down\\x20'+-shiftV),!vocOn&&(_0x584ea1='vocode\\x20off'),crossV>0.5&&(_0x584ea1='cross\\x20gate\\x20'+Math['round'](crossV)+'\\x20%'),text(trim(_0x584ea1,_0x2530ab-(X0+VCOL2+0x34)-0xa,0x8),_0x2530ab,VOC_CTL2+0xa,vocOn||crossV>0.5?C_LABEL:C_MUTED,0x8,'r');}function drawFooter(){var _0x1f6b44=pageRight(),_0x17852c,_0x246ec4;rect(X0,VAL_TOP-0x2,_0x1f6b44-X0,0x1,C_BORDER),text('dB',X0-0x16,VAL_TOP+0xb,C_LABEL,0x8);for(_0x17852c=0x0;_0x17852c<NB;_0x17852c++){_0x246ec4=Math['round'](levels[_0x17852c]),text(_0x246ec4===0x0?'0':String(_0x246ec4),X0+_0x17852c*COLW+0xb,VAL_TOP+0xb,C_TEXT,0x8,'c');}}function paint(){drawHeader(),drawRail(),drawFooter();if(page===0x0)drawBands();else{if(page===0x1)drawEnv();else page===0x2?drawPresets():drawVoc();}}function colAt(_0x59dbf7){var _0x50b386=Math['floor']((_0x59dbf7-X0)/COLW);if(_0x50b386<0x0||_0x50b386>=NB)return-0x1;return _0x50b386;}function setBand(_0x4a550b,_0x6052e7){_0x6052e7<DBMIN&&(_0x6052e7=DBMIN),_0x6052e7>DBMAX&&(_0x6052e7=DBMAX),levels[_0x4a550b]=_0x6052e7,setp('Band_'+(_0x4a550b+0x1),_0x6052e7),mgraphics['redraw']();}function setSolo(_0x213323){soloIdx=_0x213323,setp('Solo',_0x213323),mgraphics['redraw']();}function setStored(_0x6c3950,_0x1c81e0){_0x1c81e0<DBMIN&&(_0x1c81e0=DBMIN),_0x1c81e0>DBMAX&&(_0x1c81e0=DBMAX),stored[_0x6c3950]=_0x1c81e0,setp('Store_'+(_0x6c3950+0x1),_0x1c81e0),mgraphics['redraw']();}function offName(_0x529fa4){return _0x529fa4===SUM?'Sum_Offs':'B'+(_0x529fa4+0x1)+'_Offs';}function setOff(_0x96a626,_0x39fdfc){_0x39fdfc<0x0&&(_0x39fdfc=0x0),_0x39fdfc>0x64&&(_0x39fdfc=0x64),offsets[_0x96a626]=_0x39fdfc,setp(offName(_0x96a626),_0x39fdfc),mgraphics['redraw']();}function setAmt(_0x485e75,_0x5b33b3){_0x5b33b3<AMIN&&(_0x5b33b3=AMIN),_0x5b33b3>AMAX&&(_0x5b33b3=AMAX),amounts[_0x485e75]=_0x5b33b3,setp(amtName(_0x485e75),_0x5b33b3),mgraphics['redraw']();}function loadA(_0x4df670){var _0x1f3c72;rndOrigin=null,slotA=_0x4df670,setp('Slot_A',_0x4df670);for(_0x1f3c72=0x0;_0x1f3c72<NB;_0x1f3c72++){setBand(_0x1f3c72,slots[_0x4df670-0x1][_0x1f3c72]);}}function loadB(_0x5eb36a){var _0x59cfec;slotB=_0x5eb36a,setp('Slot_B',_0x5eb36a);for(_0x59cfec=0x0;_0x59cfec<NB;_0x59cfec++){setStored(_0x59cfec,slots[_0x5eb36a-0x1][_0x59cfec]);}}function storeInto(_0xebe69f){var _0x4d9bf6;rndOrigin=null;for(_0x4d9bf6=0x0;_0x4d9bf6<NB;_0x4d9bf6++){slots[_0xebe69f-0x1][_0x4d9bf6]=levels[_0x4d9bf6];}slotTok<=0x0&&(slotTok=0x1+Math['floor'](Math['random']()*0xf423e),setp('Slots_Ready',slotTok)),sendSlots(),slotA=_0xebe69f,setp('Slot_A',_0xebe69f),_0xebe69f===slotB&&loadB(_0xebe69f),sendState(),mgraphics['redraw']();}function sendSlots(){var _0x4af69f=['slotset',SLOT_TAG,slotTok],_0x2645e6,_0x11783f;for(_0x2645e6=0x0;_0x2645e6<NS;_0x2645e6++){for(_0x11783f=0x0;_0x11783f<NB;_0x11783f++){_0x4af69f['push'](slots[_0x2645e6][_0x11783f]);}}lastWrote=_0x4af69f['slice'](0x1)['join']('\\x20'),outlet(0x0,_0x4af69f),post('Galerna:\\x20slots\\x20written\\x20\u2014\\x20'+(_0x4af69f['length']-0x2)+'\\x20values,\\x20token\\x20'+slotTok+'\\x0a');}function setClock(_0x3a5d24){clockIdx=_0x3a5d24,setp('Clock',_0x3a5d24),pushMeters(),mgraphics['redraw']();}function valAt(_0x55e806){var _0x276a28=(0x22+0x64-_0x55e806)/0x64;return _0x276a28<0x0&&(_0x276a28=0x0),_0x276a28>0x1&&(_0x276a28=0x1),DBMIN+_0x276a28*(DBMAX-DBMIN);}function onclick(_0x447234,_0x35e2e8,_0x8805b5,_0x49d70d,_0x55c8ba){dragIdx=-0x1,dragWhat='';if(_0x35e2e8<HEAD_H){var _0x27e823=hdrAt(_0x447234);if(_0x447234<RAIL_W){scopeOpen=scopeOpen?0x0:0x1,outlet(0x0,'scope',scopeOpen),pushMeters();scopeOpen&&(sendFreqs(),sendLevels(),sendState());mgraphics['redraw']();return;}if(_0x27e823==='pop'){winOpen=winOpen?0x0:0x1,outlet(0x0,'win',winOpen),pushMeters();winOpen&&sendFreqs();mgraphics['redraw']();return;}if(_0x27e823==='sum'){sel=sel===SUM?0x0:SUM,setp('Env_Select',sel+0x1),flash('sum');return;}if(_0x27e823==='voc'){vocOn=vocOn?0x0:0x1,setp('Vocode',vocOn),flash('voc');return;}if(_0x27e823==='store'){storeArm=storeArm?0x0:0x1,flash('store'),mgraphics['redraw']();return;}if(_0x27e823==='swap'){flash('swap'),swapAB();return;}if(_0x27e823==='zero')flash('zero'),wzero();else{if(_0x27e823==='init')flash('init'),winit();else{if(_0x27e823==='drift')flash('drift'),wrnd(0x2);else{if(_0x27e823==='vary')flash('vary'),wrnd(0x1);else _0x27e823==='new'&&(flash('new'),wrnd(0x0));}}}return;}if(_0x447234<RAIL_W){var _0xeed0c9=_0x35e2e8<RAIL_Y0-0x5?-0x1:Math['floor']((_0x35e2e8-(RAIL_Y0-0x5))/RAIL_PITCH);_0xeed0c9>0x3&&(_0xeed0c9=-0x1);_0xeed0c9>=0x0&&_0xeed0c9!==page&&setPage(_0xeed0c9);return;}if(page===0x0){var _0x55fe3f=colAt(_0x447234);if(_0x55fe3f<0x0)return;if(_0x35e2e8<0x1f){var _0x4cfe9f=Math['pow'](0x2,_0x55fe3f);_0x55c8ba?setSolo(soloed(_0x55fe3f)?soloIdx-_0x4cfe9f:soloIdx+_0x4cfe9f):setSolo(soloIdx===_0x4cfe9f?0x0:_0x4cfe9f);return;}if(_0x35e2e8>=VAL_TOP)return;dragIdx=_0x55fe3f,dragWhat='band',dragStartY=_0x35e2e8,dragStartV=levels[_0x55fe3f];!_0x55c8ba&&setBand(_0x55fe3f,valAt(_0x35e2e8));mgraphics['redraw']();return;}if(page===0x2){clickPresets(_0x447234,_0x35e2e8,_0x55c8ba);return;}if(page===0x3){clickVoc(_0x447234,_0x35e2e8,_0x55c8ba);return;}var _0x28428c=pageRight(),_0x14b557=ED_Y+0x14;if(_0x35e2e8>=FOL_Y-0x2&&_0x35e2e8<FOL_Y+0x10){clickFollower(_0x447234,_0x35e2e8);return;}if(_0x35e2e8<AMT_Y+0x4){var _0x5c46f2=colAt(_0x447234);_0x5c46f2>=0x0&&(sel=_0x5c46f2,setp('Env_Select',sel+0x1),mgraphics['redraw']());return;}if(_0x35e2e8>=_0x14b557&&_0x35e2e8<_0x14b557+0xf){if(_0x447234>=X0&&_0x447234<X0+MAP_W){outlet(0x0,'map',sel+0x1,armedLane===sel+0x1?0x0:0x1);return;}if(_0x447234>=_0x28428c-CLR_W){outlet(0x0,'unmap',sel+0x1),tnames[sel]='-',mgraphics['redraw']();return;}return;}if(_0x35e2e8>=_0x14b557+0xe&&_0x35e2e8<VAL_TOP){var _0x5acb42=_0x447234-X0,_0x7daf3a=AMT_HITS[0x0];_0x5acb42>=AMT_HITS[0x1]['lo']&&(_0x7daf3a=AMT_HITS[0x1]),dragIdx=sel,dragWhat=_0x7daf3a['what'],dragStartY=_0x35e2e8,dragStartV=_0x7daf3a['what']==='off'?offsets[sel]:amounts[sel];}}var FOL_HITS=[['att',0x62,0x2e,'ATT',function(){return fmtMs(att);}],['rel',0xae,0x2e,'REL',function(){return fmtMs(rel);}],['decay',0xf6,0x28,'DEC',function(){return fmtSigned(decay);}],['pre',0x136,0x24,'PRE',function(){return fmtSigned(preemp);}]];function hitFollower(_0x27d53e){var _0x33f2d1;for(_0x33f2d1=0x0;_0x33f2d1<FOL_HITS['length'];_0x33f2d1++){if(_0x27d53e>=X0+FOL_HITS[_0x33f2d1][0x1]&&_0x27d53e<X0+FOL_HITS[_0x33f2d1][0x1]+FOL_HITS[_0x33f2d1][0x2])return FOL_HITS[_0x33f2d1][0x0];}return'';}function clickFollower(_0x57729c,_0x5f299d){var _0x5142b9=hitFollower(_0x57729c);if(!_0x5142b9)return;dragIdx=0x0,dragWhat=_0x5142b9,dragStartY=_0x5f299d,dragStartV=_0x5142b9==='att'?att:_0x5142b9==='rel'?rel:_0x5142b9==='decay'?decay:preemp,mgraphics['redraw']();}function setDecay(_0x32e328){decay=Math['max'](-0x64,Math['min'](0x64,_0x32e328)),setp('Decay',decay),mgraphics['redraw']();}function setPre(_0x50b0b9){preemp=Math['max'](-0xc,Math['min'](0xc,_0x50b0b9)),setp('Pre',preemp),mgraphics['redraw']();}function clickVoc(_0x2376e,_0x2db674,_0x44f18b){var _0x2e4939;if(_0x2db674>=VOC_CTL&&_0x2db674<VOC_CTL+0xe){_0x2e4939=Math['floor']((_0x2376e-(X0+VCOL1))/0x23);if(_0x2376e>=X0+VCOL1&&_0x2e4939>=0x0&&_0x2e4939<0x3){carrier=_0x2e4939,setp('Carrier',_0x2e4939),mgraphics['redraw']();return;}if(_0x2376e>=X0+VCOL2&&_0x2376e<X0+VCOL2+0x34){dragIdx=0x0,dragWhat='pitch',dragStartY=_0x2db674,dragStartV=pitch;return;}_0x2376e>=pageRight()-VGAIN_W&&_0x2376e<pageRight()&&(dragIdx=0x0,dragWhat='vgain',dragStartY=_0x2db674,dragStartV=vgainV);return;}if(_0x2db674>=VOC_CTL2&&_0x2db674<VOC_CTL2+0xe){if(_0x2376e>=X0+VCOL1&&_0x2376e<X0+VCOL1+0x28)dragIdx=0x0,dragWhat='shift',dragStartY=_0x2db674,dragStartV=shiftV;else _0x2376e>=X0+VCOL2&&_0x2376e<X0+VCOL2+0x34&&(dragIdx=0x0,dragWhat='cross',dragStartY=_0x2db674,dragStartV=crossV);}}function setVoc(_0x3318ea,_0x46f83c,_0x4f1952,_0x4077f2,_0x260536){var _0x102d26=Math['max'](_0x4f1952,Math['min'](_0x4077f2,_0x46f83c));_0x260536==='pitch'&&(pitch=_0x102d26),_0x260536==='vgain'&&(vgainV=_0x102d26),_0x260536==='shift'&&(shiftV=Math['round'](_0x102d26),_0x102d26=shiftV),_0x260536==='cross'&&(crossV=_0x102d26),setp(_0x3318ea,_0x102d26),mgraphics['redraw']();}function swapAB(){var _0x269c1b=slotA,_0x2f8086=slotB;loadA(_0x2f8086),loadB(_0x269c1b),mgraphics['redraw']();}function clickPresets(_0x5c75d5,_0x3ad4b4,_0x537a7c){var _0x4d41d3=pageRight(),_0x5aeddf;if(_0x3ad4b4>=PS_Y&&_0x3ad4b4<PS_Y+PS_H){_0x5aeddf=Math['floor']((_0x5c75d5-X0)/PS_PITCH);if(_0x5aeddf<0x0||_0x5aeddf>=NS||_0x5c75d5>X0+_0x5aeddf*PS_PITCH+PS_W)return;if(storeArm)storeArm=0x0,storeInto(_0x5aeddf+0x1);else _0x537a7c?loadB(_0x5aeddf+0x1):loadA(_0x5aeddf+0x1);mgraphics['redraw']();return;}if(_0x3ad4b4>=PR_AB&&_0x3ad4b4<PR_AB+0xe){if(_0x5c75d5>=X0+COL1&&_0x5c75d5<X0+COL1+0x16){loadA(slotA%NS+0x1),mgraphics['redraw']();return;}if(_0x5c75d5>=X0+COL1+0x2a&&_0x5c75d5<X0+COL1+0x40){loadB(slotB%NS+0x1),mgraphics['redraw']();return;}if(_0x5c75d5>=X0+COL2&&_0x5c75d5<_0x4d41d3-0x22){if(clockIdx>0x0)return;dragIdx=0x0,dragWhat='morph',setMorph((_0x5c75d5-(X0+COL2))/(_0x4d41d3-0x22-(X0+COL2))*0x64);}return;}if(_0x3ad4b4>=PR_CLK&&_0x3ad4b4<PR_CLK+0xe){_0x5aeddf=Math['floor']((_0x5c75d5-(X0+COL1))/0x21);if(_0x5c75d5>=X0+COL1&&_0x5aeddf>=0x0&&_0x5aeddf<0x3){setClock(_0x5aeddf);return;}_0x5aeddf=Math['floor']((_0x5c75d5-(X0+COL2))/0x23);_0x5c75d5>=X0+COL2&&_0x5aeddf>=0x0&&_0x5aeddf<0x3&&(moveIdx=_0x5aeddf,setp('Move',_0x5aeddf),mgraphics['redraw']());return;}if(_0x3ad4b4>=PR_RATE&&_0x3ad4b4<PR_RATE+0xe){if(_0x5c75d5>=X0+COL1&&_0x5c75d5<X0+COL1+0x30){dragIdx=0x0,dragWhat='rate',dragStartY=_0x3ad4b4,dragStartV=rateVal;return;}_0x5c75d5>=X0+COL2&&_0x5c75d5<X0+COL2+0x38&&(divIdx=_0x537a7c?(divIdx+DIVLAB['length']-0x1)%DIVLAB['length']:(divIdx+0x1)%DIVLAB['length'],setp('Div',divIdx),mgraphics['redraw']());}}function setMorph(_0x39ac9b){morphPos=Math['max'](0x0,Math['min'](0x64,_0x39ac9b)),setp('Morph',morphPos),mgraphics['redraw']();}function ondrag(_0xacd982,_0x2b356f,_0x7918e5,_0x5584f5,_0x271dd1){if(dragIdx<0x0)return;if(_0x7918e5===0x0){dragIdx=-0x1,mgraphics['redraw']();return;}var _0x4f8f68;if(dragWhat==='att'||dragWhat==='rel'){var _0x446268=Math['exp']((dragStartY-_0x2b356f)*(_0x271dd1?0.004:0.016));dragWhat==='att'?(att=Math['max'](0.1,Math['min'](0x1f4,dragStartV*_0x446268)),setp('Attack',att)):(rel=Math['max'](0x1,Math['min'](0x7d0,dragStartV*_0x446268)),setp('Release',rel));mgraphics['redraw']();return;}if(dragWhat==='pitch'){setVoc('Pitch',dragStartV*Math['exp']((dragStartY-_0x2b356f)*(_0x271dd1?0.004:0.016)),0x14,0x190,'pitch');return;}if(dragWhat==='vgain'){setVoc('Voc_Gain',dragStartV+(dragStartY-_0x2b356f)*(_0x271dd1?0.1:0.4),-0xc,0x24,'vgain');return;}if(dragWhat==='shift'){setVoc('Shift',dragStartV+(dragStartY-_0x2b356f)*0.12,-0xf,0xf,'shift');return;}if(dragWhat==='cross'){setVoc('Cross',dragStartV+(dragStartY-_0x2b356f)*(_0x271dd1?0.2:0.8),0x0,0x64,'cross');return;}if(dragWhat==='decay'){setDecay(dragStartV+(dragStartY-_0x2b356f)*(_0x271dd1?0.5:0x2));return;}if(dragWhat==='pre'){setPre(dragStartV+(dragStartY-_0x2b356f)*(_0x271dd1?0.05:0.25));return;}if(dragWhat==='morph'){var _0x5a98e6=pageRight(),_0x459088=X0+COL2;setMorph((_0xacd982-_0x459088)/(_0x5a98e6-0x22-_0x459088)*0x64);return;}if(dragWhat==='rate'){rateVal=Math['max'](0.1,Math['min'](0x1e,dragStartV*Math['exp']((dragStartY-_0x2b356f)*(_0x271dd1?0.004:0.016)))),setp('Rate',rateVal),mgraphics['redraw']();return;}if(dragWhat==='band'){_0x271dd1?(_0x4f8f68=(dragStartY-_0x2b356f)/0x64*(DBMAX-DBMIN)*0.25,setBand(dragIdx,dragStartV+_0x4f8f68)):setBand(dragIdx,valAt(_0x2b356f));return;}if(dragWhat==='off'){setOff(dragIdx,dragStartV+(dragStartY-_0x2b356f)*(_0x271dd1?0.25:0x1));return;}_0x4f8f68=(dragStartY-_0x2b356f)*(_0x271dd1?0x1:0x4),setAmt(dragIdx,dragStartV+_0x4f8f68);}function ondblclick(_0x46c81f,_0x48ef4f){if(_0x46c81f<RAIL_W)return;if(_0x48ef4f<HEAD_H)return;if(page===0x3){if(_0x48ef4f>=VOC_CTL&&_0x48ef4f<VOC_CTL+0xe){if(_0x46c81f>=X0+VCOL2&&_0x46c81f<X0+VCOL2+0x34)setVoc('Pitch',0x37,0x14,0x190,'pitch');else _0x46c81f>=pageRight()-VGAIN_W&&_0x46c81f<pageRight()&&setVoc('Voc_Gain',0xc,-0xc,0x24,'vgain');}else{if(_0x48ef4f>=VOC_CTL2&&_0x48ef4f<VOC_CTL2+0xe){if(_0x46c81f>=X0+VCOL1&&_0x46c81f<X0+VCOL1+0x28)setVoc('Shift',0x0,-0xf,0xf,'shift');else _0x46c81f>=X0+VCOL2&&_0x46c81f<X0+VCOL2+0x34&&setVoc('Cross',0x0,0x0,0x64,'cross');}}return;}if(page===0x2){_0x48ef4f>=PR_AB&&_0x48ef4f<PR_AB+0xe&&_0x46c81f>=X0+COL2&&clockIdx===0x0&&setMorph(0x0);_0x48ef4f>=PR_RATE&&_0x48ef4f<PR_RATE+0xe&&_0x46c81f>=X0+COL1&&_0x46c81f<X0+COL1+0x30&&(rateVal=0x2,setp('Rate',0x2),mgraphics['redraw']());return;}if(page===0x0){if(_0x48ef4f>=VAL_TOP)return;var _0x377df4=colAt(_0x46c81f);_0x377df4>=0x0&&setBand(_0x377df4,0x0);return;}if(_0x48ef4f>=FOL_Y-0x2&&_0x48ef4f<FOL_Y+0x10){var _0x3ef056=hitFollower(_0x46c81f);if(_0x3ef056==='att')att=0x5,setp('Attack',0x5);else{if(_0x3ef056==='rel')rel=0x50,setp('Release',0x50);else{if(_0x3ef056==='decay')setDecay(0x0);else _0x3ef056==='pre'&&setPre(0x0);}}mgraphics['redraw']();return;}_0x48ef4f>=ED_Y+0x20&&_0x48ef4f<VAL_TOP&&setAmt(sel,0x0);}function setPage(_0x58b992,_0x663573){page=Math['max'](0x0,Math['min'](0x3,Math['round'](_0x58b992))),!_0x663573&&setp('Page',page),pushMeters(),mgraphics['redraw']();}function pushMeters(){var _0x52b826=page>0x0||clockIdx>0x0||scopeOpen||winOpen||padsOn?0x1:0x0;outlet(0x0,'meters',_0x52b826);}var padsOn=0x0;function pads(_0x14b68b){padsOn=_0x14b68b?0x1:0x0,pushMeters(),padsOn&&sendLevels();}function sendLevels(){var _0x2cfecb=['levels'],_0xcf7925;for(_0xcf7925=0x0;_0xcf7925<NB;_0xcf7925++){_0x2cfecb['push'](levels[_0xcf7925]);}outlet(0x0,_0x2cfecb);}function page_(_0x247383){setPage(Math['round'](_0x247383),0x1);}function band(_0x32a599,_0x354f9b){var _0xe95110=Math['round'](_0x32a599);if(_0xe95110<0x0||_0xe95110>=NB||levels[_0xe95110]===_0x354f9b)return;levels[_0xe95110]=_0x354f9b,mgraphics['redraw']();}function amt(_0x1cca65,_0x2cf5a3){var _0x263674=Math['round'](_0x1cca65)-0x1;if(_0x263674<0x0||_0x263674>=NL||amounts[_0x263674]===_0x2cf5a3)return;amounts[_0x263674]=_0x2cf5a3,mgraphics['redraw']();}function off(_0x9a1524,_0x18af60){var _0xc43434=Math['round'](_0x9a1524)-0x1;if(_0xc43434<0x0||_0xc43434>=NL||offsets[_0xc43434]===_0x18af60)return;offsets[_0xc43434]=_0x18af60,mgraphics['redraw']();}function env(_0x569c1b,_0x11a917){var _0x4a6400=Math['round'](_0x569c1b)-0x1;if(_0x4a6400<0x0||_0x4a6400>=NL)return;meters[_0x4a6400]=_0x11a917,page===0x1&&mgraphics['redraw']();}function morph(_0x2f480b){if(_0x2f480b===morphPos)return;morphPos=_0x2f480b,clockIdx===0x0&&mgraphics['redraw']();}function mphd(_0x57fbe0){if(Math['abs'](_0x57fbe0-morphLive)<0.002)return;morphLive=_0x57fbe0,scopeOpen&&sendState(),clockIdx>0x0&&mgraphics['redraw']();}function slota(_0x468823){var _0x21ccb5=Math['round'](_0x468823),_0x4cc75f;if(_0x21ccb5<0x1||_0x21ccb5>NS||_0x21ccb5===slotA)return;slotA=_0x21ccb5;for(_0x4cc75f=0x0;_0x4cc75f<NB;_0x4cc75f++){setBand(_0x4cc75f,slots[_0x21ccb5-0x1][_0x4cc75f]);}sendLevels(),sendState(),mgraphics['redraw']();}function slotb(_0x2a0cca){var _0x4e8af=Math['round'](_0x2a0cca),_0x2f61e1;if(_0x4e8af<0x1||_0x4e8af>NS||_0x4e8af===slotB)return;slotB=_0x4e8af,sendState();for(_0x2f61e1=0x0;_0x2f61e1<NB;_0x2f61e1++){setStored(_0x2f61e1,slots[_0x4e8af-0x1][_0x2f61e1]);}mgraphics['redraw']();}function clock(_0xaa95d3){var _0x18e0eb=Math['round'](_0xaa95d3);if(_0x18e0eb===clockIdx)return;clockIdx=_0x18e0eb,pushMeters(),sendState(),mgraphics['redraw']();}function move(_0x613dbc){moveIdx=Math['round'](_0x613dbc),mgraphics['redraw']();}function rate(_0x2a988a){rateVal=_0x2a988a,mgraphics['redraw']();}function div(_0x2c2dc7){divIdx=Math['round'](_0x2c2dc7),mgraphics['redraw']();}function token(_0x42cc8c){slotTok=num(_0x42cc8c);}function wsetamt(_0x58af13,_0x3b8ce6){setAmt(Math['round'](_0x58af13)-0x1,_0x3b8ce6);}function wsetoff(_0x435e1b,_0x52e0d0){setOff(Math['round'](_0x435e1b)-0x1,_0x52e0d0);}function wsetband(_0x5dbc28,_0xb79994){setBand(Math['round'](_0x5dbc28),_0xb79994);}function wpadcol(_0x182e9a){_0x182e9a=Math['round'](_0x182e9a),_0x182e9a>=0x0&&_0x182e9a<=0xf&&setp('Pad_Colour',_0x182e9a);}function wpadlit(_0x37d5ec){setp('Pad_Light',_0x37d5ec>0x0?0x1:0x0);}function wzero(){undoable(function(){var _0x391033;for(_0x391033=0x0;_0x391033<NB;_0x391033++){setBand(_0x391033,0x0);}}),sendState();}var INIT={'Rnd_Amount':0x64,'Band_1':0x0,'B1_Amt':0x0,'B1_Offs':0x0,'Band_2':0x0,'B2_Amt':0x0,'B2_Offs':0x0,'Band_3':0x0,'B3_Amt':0x0,'B3_Offs':0x0,'Band_4':0x0,'B4_Amt':0x0,'B4_Offs':0x0,'Band_5':0x0,'B5_Amt':0x0,'B5_Offs':0x0,'Band_6':0x0,'B6_Amt':0x0,'B6_Offs':0x0,'Band_7':0x0,'B7_Amt':0x0,'B7_Offs':0x0,'Band_8':0x0,'B8_Amt':0x0,'B8_Offs':0x0,'Band_9':0x0,'B9_Amt':0x0,'B9_Offs':0x0,'Band_10':0x0,'B10_Amt':0x0,'B10_Offs':0x0,'Band_11':0x0,'B11_Amt':0x0,'B11_Offs':0x0,'Band_12':0x0,'B12_Amt':0x0,'B12_Offs':0x0,'Band_13':0x0,'B13_Amt':0x0,'B13_Offs':0x0,'Band_14':0x0,'B14_Amt':0x0,'B14_Offs':0x0,'Band_15':0x0,'B15_Amt':0x0,'B15_Offs':0x0,'Band_16':0x0,'B16_Amt':0x0,'B16_Offs':0x0,'Sum_Amount':0x0,'Sum_Offs':0x0,'Attack':0x5,'Release':0x50,'Decay':0x0,'Pre':0x0,'Vocode':0x0,'Carrier':0x0,'Pitch':0x37,'Shift':0x0,'Voc_Gain':0xc,'Cross':0x0,'Q':0x1,'Sweep':8.5,'Width':0x0,'Depth':0x64,'Tilt':0x0,'Mix':0x64,'Output':0x0,'Morph':0x0,'Clock':0x0,'Move':0x0,'Rate':0x2,'Div':0x2,'Range':0x0,'Solo':0x0,'Freeze':0x0,'Mode':0x0,'Poles':0x0},undoStack=[],UNDO_MAX=0x20,undoDepth=0x0;function snapAll(){var _0x46d35a={},_0x1a6c6c,_0x36a3a2;for(_0x1a6c6c in INIT){INIT['hasOwnProperty'](_0x1a6c6c)&&(_0x36a3a2=gn(_0x1a6c6c),_0x36a3a2&&(_0x46d35a[_0x1a6c6c]=num(_0x36a3a2['getvalueof']())));}return _0x46d35a;}function setAny(_0x419dad,_0x115511){var _0x1967c5=/^Band_(\\d+)$/['exec'](_0x419dad);_0x1967c5?setBand(Math['round'](_0x1967c5[0x1])-0x1,_0x115511):setp(_0x419dad,_0x115511);}function undoable(_0x2723e9){var _0x4b6596,_0x752680,_0x44c6cd,_0x8b15e7={},_0x3c9fb3=![];if(undoDepth){_0x2723e9();return;}_0x4b6596=snapAll(),undoDepth++;try{_0x2723e9();}finally{undoDepth--;}_0x752680=snapAll();for(_0x44c6cd in _0x4b6596){_0x4b6596['hasOwnProperty'](_0x44c6cd)&&Math['abs'](_0x4b6596[_0x44c6cd]-_0x752680[_0x44c6cd])>0.0001&&(_0x8b15e7[_0x44c6cd]=_0x4b6596[_0x44c6cd],_0x3c9fb3=!![]);}if(!_0x3c9fb3)return;undoStack['push'](_0x8b15e7),undoStack['length']>UNDO_MAX&&undoStack['shift']();}function wundo(){var _0x2d60c7=undoStack['pop'](),_0x43dc2c;if(!_0x2d60c7){post('Galerna:\\x20undo\\x20-\\x20nothing\\x20to\\x20undo\\x0a');return;}for(_0x43dc2c in _0x2d60c7){_0x2d60c7['hasOwnProperty'](_0x43dc2c)&&setAny(_0x43dc2c,_0x2d60c7[_0x43dc2c]);}rndOrigin=null,sendState(),post('Galerna:\\x20undo\\x20-\\x20'+undoStack['length']+'\\x20left\\x0a');}function winit(){undoable(function(){var _0x1c88f0,_0x3fafcb;for(_0x1c88f0 in INIT){if(!INIT['hasOwnProperty'](_0x1c88f0))continue;_0x3fafcb=gn(_0x1c88f0),_0x3fafcb&&Math['abs'](num(_0x3fafcb['getvalueof']())-INIT[_0x1c88f0])>0.0001&&setAny(_0x1c88f0,INIT[_0x1c88f0]);}}),rndOrigin=null,sendState();}var RND_LO=-0x1e,RND_HI=0x6,RND_VARY=0x6,RND_DRIFT=0x2,rndOrigin=null,rs=new Date()['getTime']()&0x7fffffff||0x1;function rr(){return rs=rs*0x41c64e6d+0x3039&0x7fffffff,rs/0x80000000;}function wseed(_0x30aa12){rs=Math['round'](_0x30aa12)||0x1;}var rndAmt=0x64;function rndamt(_0x31ec01){_0x31ec01=num(_0x31ec01),_0x31ec01>=0x0&&_0x31ec01<=0x64&&(rndAmt=_0x31ec01);}function wrndamt(_0x416739){_0x416739=Math['round'](_0x416739),_0x416739>=0x0&&_0x416739<=0x64&&setp('Rnd_Amount',_0x416739);}function wrnd(_0x5c79db){_0x5c79db=Math['round'](_0x5c79db);if(_0x5c79db<0x0||_0x5c79db>0x2)return;undoable(function(){var _0xe052c5,_0x450d56,_0xfefe81=rndAmt/0x64;_0x5c79db===0x1&&!rndOrigin&&(rndOrigin=levels['slice'](0x0,NB));for(_0xe052c5=0x0;_0xe052c5<NB;_0xe052c5++){if(_0x5c79db===0x0)_0x450d56=RND_LO+rr()*(RND_HI-RND_LO),_0x450d56=levels[_0xe052c5]+(_0x450d56-levels[_0xe052c5])*_0xfefe81;else _0x5c79db===0x1?_0x450d56=rndOrigin[_0xe052c5]+(rr()*0x2-0x1)*RND_VARY*_0xfefe81:_0x450d56=levels[_0xe052c5]+(rr()*0x2-0x1)*RND_DRIFT*_0xfefe81;_0x450d56<DBMIN&&(_0x450d56=DBMIN),_0x450d56>DBMAX&&(_0x450d56=DBMAX),setBand(_0xe052c5,Math['round'](_0x450d56*0xa)/0xa);}}),sendState();}function wslot(_0x13b4ca,_0x4fb8fc){Math['round'](_0x4fb8fc)?loadB(Math['round'](_0x13b4ca)):loadA(Math['round'](_0x13b4ca)),sendLevels(),sendState(),mgraphics['redraw']();}function wstore(_0x380e87){storeInto(Math['round'](_0x380e87)),sendState(),mgraphics['redraw']();}function wmorph(_0xf00090){setMorph(_0xf00090),sendState();}function wclock(_0x1c2c99){setClock(Math['round'](_0x1c2c99)),sendState();}function sendState(){outlet(0x0,['state',slotA,slotB,morphNow()*0x64,clockIdx]);}function wvis(_0x434f81){var _0x3b9f4d=Math['round'](_0x434f81)?0x1:0x0;if(_0x3b9f4d===winOpen)return;winOpen=_0x3b9f4d,pushMeters(),_0x3b9f4d&&sendFreqs(),mgraphics['redraw']();}function svis(_0x2efc68){var _0x4b77ff=Math['round'](_0x2efc68)?0x1:0x0;if(_0x4b77ff===scopeOpen)return;scopeOpen=_0x4b77ff,pushMeters(),_0x4b77ff&&(sendFreqs(),sendLevels(),sendState()),mgraphics['redraw']();}function sendFreqs(){var _0x20109f=centres(),_0x2051ec=['freqs'],_0x458cbd;for(_0x458cbd=0x0;_0x458cbd<NB;_0x458cbd++){_0x2051ec['push'](_0x20109f[_0x458cbd]);}outlet(0x0,_0x2051ec);}function vocode(_0x3de64a){vocOn=Math['round'](_0x3de64a),mgraphics['redraw']();}function carr(_0x4a8ca7){carrier=Math['round'](_0x4a8ca7),page===0x3&&mgraphics['redraw']();}function pit(_0x489f61){pitch=_0x489f61,page===0x3&&mgraphics['redraw']();}function shft(_0x1e64d5){shiftV=Math['round'](_0x1e64d5),page===0x3&&mgraphics['redraw']();}function vgn(_0x158658){vgainV=_0x158658,page===0x3&&mgraphics['redraw']();}function crss(_0x2060be){crossV=_0x2060be,page===0x3&&mgraphics['redraw']();}function stor(_0x371fb9,_0x288489){var _0x4b7858=Math['round'](_0x371fb9)-0x1;if(_0x4b7858<0x0||_0x4b7858>=NB||stored[_0x4b7858]===_0x288489)return;stored[_0x4b7858]=_0x288489,mgraphics['redraw']();}function rng(_0x2a39e9){sendFreqs();var _0x3fd0d5=Math['round'](_0x2a39e9);if(_0x3fd0d5<0x0||_0x3fd0d5>=RANGES['length']||_0x3fd0d5===rangeIdx)return;rangeIdx=_0x3fd0d5,mgraphics['redraw']();}function solo(_0xeb789d){var _0x20e25c=Math['round'](_0xeb789d);if(_0x20e25c===soloIdx)return;soloIdx=_0x20e25c,mgraphics['redraw']();}function sweep(_0x14dcf9){if(_0x14dcf9===sweepP)return;sweepP=_0x14dcf9,page===0x0&&sweepW>0x0&&mgraphics['redraw']();}function width(_0x382dd1){if(_0x382dd1===sweepW)return;sweepW=_0x382dd1,page===0x0&&mgraphics['redraw']();}function depth(_0x22f42b){if(_0x22f42b===sweepD)return;sweepD=_0x22f42b,page===0x0&&sweepW>0x0&&mgraphics['redraw']();}function att_(_0x3f9c00){att=_0x3f9c00,page===0x1&&mgraphics['redraw']();}function dcy(_0x2979cd){decay=_0x2979cd,page===0x1&&mgraphics['redraw']();}function pre(_0x1e560c){preemp=_0x1e560c,page===0x1&&mgraphics['redraw']();}function rel_(_0xe35d8){rel=_0xe35d8,page===0x1&&mgraphics['redraw']();}function md(_0x143ef6){var _0x4d3eea=Math['round'](_0x143ef6);if(_0x4d3eea===modeIdx)return;modeIdx=_0x4d3eea,mgraphics['redraw']();}function sel_(_0x17d1cc){var _0x2fa749=Math['round'](_0x17d1cc)-0x1;if(_0x2fa749<0x0||_0x2fa749>=NL)return;sel=_0x2fa749,mgraphics['redraw']();}function anything(){var _0x526730=arrayfromargs(arguments),_0x28c8b8,_0x89e737;if(messagename==='name'){_0x28c8b8=Math['round'](_0x526730[0x0])-0x1;if(_0x28c8b8<0x0||_0x28c8b8>=NB)return;tnames[_0x28c8b8]=_0x526730['slice'](0x1)['join']('\\x20');tnames[_0x28c8b8]===''&&(tnames[_0x28c8b8]='-');mgraphics['redraw']();return;}if(messagename==='armed'){armedLane=Math['round'](_0x526730[0x0]),mgraphics['redraw']();return;}if(messagename==='mapped'){_0x28c8b8=Math['round'](_0x526730[0x0])-0x1;_0x28c8b8>=0x0&&_0x28c8b8<NL&&Math['round'](amounts[_0x28c8b8])===0x0&&setAmt(_0x28c8b8,0x64);return;}if(messagename==='page'){setPage(_0x526730[0x0],0x1);return;}if(messagename==='sel'){sel_(_0x526730[0x0]);return;}if(messagename==='slots'){readSlots(_0x526730);return;}}function readSlots(_0x27625d){if(_0x27625d['length']<=0x1)return;if(_0x27625d['length']<0x2+NS*NB||Math['round'](_0x27625d[0x0])!==SLOT_TAG){post('Galerna:\\x20ignored\\x20a\\x20malformed\\x20slot\\x20blob\\x20('+_0x27625d['length']+'\\x20values,\\x20tag\\x20'+_0x27625d[0x0]+')\\x0a');return;}if(lastWrote!==null&&_0x27625d['join']('\\x20')===lastWrote)return;var _0x3c3810=gn('Slots_Ready'),_0x1178d4=_0x3c3810?num(_0x3c3810['getvalueof']()):0x0;if(_0x1178d4>0x0&&Math['abs'](_0x27625d[0x1]-_0x1178d4)<=0.5){takeSlots(_0x27625d,'token\\x20matched');return;}takeSlots(_0x27625d,_0x1178d4>0x0?'token\\x20'+_0x27625d[0x1]+'\\x20does\\x20not\\x20match\\x20the\\x20parameter\\x20('+_0x1178d4+')\\x20\u2014\\x20an\\x20undo\\x20after\\x20a\\x20store\\x20'+'does\\x20that;\\x20keeping\\x20the\\x20stored\\x20curves':'token\\x20parameter\\x20reads\\x200\\x20(not\\x20restored\\x20yet,\\x20or\\x20undone)\\x20\u2014\\x20keeping\\x20the\\x20stored\\x20curves');}function takeSlots(_0x587630,_0x33e6ee){var _0x26a694,_0x545f6e,_0x280a72=0x2;slotTok=num(_0x587630[0x1]);for(_0x26a694=0x0;_0x26a694<NS;_0x26a694++){for(_0x545f6e=0x0;_0x545f6e<NB;_0x545f6e++){slots[_0x26a694][_0x545f6e]=num(_0x587630[_0x280a72++]);}}post('Galerna:\\x20slots\\x20restored\\x20\u2014\\x20'+_0x33e6ee+'\\x0a'),mgraphics['redraw']();}function refresh(){var _0x4517a1,_0x2e03d4;for(_0x4517a1=0x0;_0x4517a1<NB;_0x4517a1++){_0x2e03d4=gn('Band_'+(_0x4517a1+0x1)),_0x2e03d4&&(levels[_0x4517a1]=num(_0x2e03d4['getvalueof']())),_0x2e03d4=gn('Store_'+(_0x4517a1+0x1)),_0x2e03d4&&(stored[_0x4517a1]=num(_0x2e03d4['getvalueof']()));}for(_0x4517a1=0x0;_0x4517a1<NL;_0x4517a1++){_0x2e03d4=gn(amtName(_0x4517a1)),_0x2e03d4&&(amounts[_0x4517a1]=num(_0x2e03d4['getvalueof']())),_0x2e03d4=gn(offName(_0x4517a1)),_0x2e03d4&&(offsets[_0x4517a1]=num(_0x2e03d4['getvalueof']()));}_0x2e03d4=gn('Range'),_0x2e03d4&&(rangeIdx=Math['round'](num(_0x2e03d4['getvalueof']()))),sendFreqs(),sendLevels(),_0x2e03d4=gn('Mode'),_0x2e03d4&&(modeIdx=Math['round'](num(_0x2e03d4['getvalueof']()))),_0x2e03d4=gn('Page'),_0x2e03d4&&(page=Math['max'](0x0,Math['min'](0x3,Math['round'](num(_0x2e03d4['getvalueof']()))))),_0x2e03d4=gn('Env_Select'),_0x2e03d4&&(sel=Math['max'](0x0,Math['round'](num(_0x2e03d4['getvalueof']()))-0x1)),_0x2e03d4=gn('Solo'),_0x2e03d4&&(soloIdx=Math['round'](num(_0x2e03d4['getvalueof']()))),_0x2e03d4=gn('Sweep'),_0x2e03d4&&(sweepP=num(_0x2e03d4['getvalueof']())),_0x2e03d4=gn('Width'),_0x2e03d4&&(sweepW=num(_0x2e03d4['getvalueof']())),_0x2e03d4=gn('Depth'),_0x2e03d4&&(sweepD=num(_0x2e03d4['getvalueof']())),_0x2e03d4=gn('Morph'),_0x2e03d4&&(morphPos=num(_0x2e03d4['getvalueof']())),_0x2e03d4=gn('Attack'),_0x2e03d4&&(att=num(_0x2e03d4['getvalueof']())),_0x2e03d4=gn('Release'),_0x2e03d4&&(rel=num(_0x2e03d4['getvalueof']())),_0x2e03d4=gn('Decay'),_0x2e03d4&&(decay=num(_0x2e03d4['getvalueof']())),_0x2e03d4=gn('Pre'),_0x2e03d4&&(preemp=num(_0x2e03d4['getvalueof']())),_0x2e03d4=gn('Slot_A'),_0x2e03d4&&(slotA=Math['round'](num(_0x2e03d4['getvalueof']()))),_0x2e03d4=gn('Slot_B'),_0x2e03d4&&(slotB=Math['round'](num(_0x2e03d4['getvalueof']()))),_0x2e03d4=gn('Clock'),_0x2e03d4&&(clockIdx=Math['round'](num(_0x2e03d4['getvalueof']()))),_0x2e03d4=gn('Move'),_0x2e03d4&&(moveIdx=Math['round'](num(_0x2e03d4['getvalueof']()))),_0x2e03d4=gn('Rate'),_0x2e03d4&&(rateVal=num(_0x2e03d4['getvalueof']())),_0x2e03d4=gn('Div'),_0x2e03d4&&(divIdx=Math['round'](num(_0x2e03d4['getvalueof']()))),_0x2e03d4=gn('Slots_Ready'),_0x2e03d4&&(slotTok=num(_0x2e03d4['getvalueof']())),_0x2e03d4=gn('Vocode'),_0x2e03d4&&(vocOn=Math['round'](num(_0x2e03d4['getvalueof']()))),_0x2e03d4=gn('Carrier'),_0x2e03d4&&(carrier=Math['round'](num(_0x2e03d4['getvalueof']()))),_0x2e03d4=gn('Pitch'),_0x2e03d4&&(pitch=num(_0x2e03d4['getvalueof']())),_0x2e03d4=gn('Shift'),_0x2e03d4&&(shiftV=Math['round'](num(_0x2e03d4['getvalueof']()))),_0x2e03d4=gn('Voc_Gain'),_0x2e03d4&&(vgainV=num(_0x2e03d4['getvalueof']())),_0x2e03d4=gn('Cross'),_0x2e03d4&&(crossV=num(_0x2e03d4['getvalueof']())),pushMeters(),mgraphics['redraw']();}function bang(){refresh();}function onresize(){mgraphics['redraw']();}\n"};
+
+  // ---- a Max-shaped sandbox for one script ----
+  function boot(src, exportsList, extra) {
+    var box = { autowatch: 0, inlets: 1, outlets: 1, messagename: '', jsarguments: ['virtual'],
+      post: function () {}, error: function () {}, arrayfromargs: function (a) { return Array.prototype.slice.call(a); },
+      Task: function () { this.schedule = this.cancel = this.repeat = this.freepeer = function () {}; },
+      LiveAPI: function () { this.id = '0'; this.get = function () { return ['']; }; this.call = this.set = function () {}; } };
+    var k;
+    for (k in extra) { if (extra.hasOwnProperty(k)) { box[k] = extra[k]; } }
+    var body = 'with (box) {\n' + src + '\n}\nreturn {' + exportsList.map(function (n) {
+      return n + ': (typeof ' + n + ' === "undefined") ? null : ' + n;
+    }).join(', ') + '};';
+    var api = (new Function('box', body)).call(box, box);
+    api.send = function (name, args) {
+      box.messagename = name;
+      var f = api[name] || api.anything;
+      if (f) { f.apply(null, args || []); }
+    };
+    return api;
+  }
+
+  // ---- gl_disp.js: the parameters it reads and writes are the page's own controls ----
+  var PARAM = {};                         // name -> value, as the device's parameters hold them
+  var MAP = {                             // device parameter -> [state key, to state, to device]
+    Q: ['q'], Sweep: ['sweep'], Width: ['width'], Depth: ['depth'], Tilt: ['tilt'], Mix: ['mix'],
+    Attack: ['att'], Release: ['rel'], Cross: ['cross'], Morph: ['morph'], Move: ['move'], Rate: ['rate'],
+    Range: ['range'],
+    Mode: ['mode', function (v) { return v > 2 ? 0 : v; }],
+    Poles: ['poles', function (v) { return v > 0 ? 4 : 2; }, function (v) { return v > 3 ? 1 : 0; }],
+    Clock: ['clock', function (v) { return v === 1 ? 1 : 0; }]
+  };
+  var applying = 0, last = [];
+  function fromDevice(name, v) {
+    var m = /^Band_(\d+)$/.exec(name), e;
+    PARAM[name] = v;
+    if (m) {
+      var i = Number(m[1]) - 1;
+      S.levels[i] = v; last[i] = v;
+      disp.send('band', [i, v]);
+      push.send('band', [i, v]);
+      return;
+    }
+    if (name === 'Pad_Colour') { push.send('padcol', [v]); return; }
+    if (name === 'Pad_Light') { push.send('padlit', [v]); return; }
+    if (name === 'Rnd_Amount') {
+      disp.send('rndamt', [v]); push.send('rndamt', [v]);
+      document.getElementById('c-rndamt').value = String(v);
+      document.getElementById('o-rndamt').textContent = Math.round(v) + ' %';
+      return;
+    }
+    e = MAP[name];
+    if (e) { S[e[0]] = e[1] ? e[1](v) : v; }
+  }
+  var patcher = { getnamed: function (n) {
+    return { getvalueof: function () { return PARAM[n] === undefined ? 0 : PARAM[n]; },
+      setvalueof: function (v) { PARAM[n] = v; },
+      message: function (sel, v) { if (sel === 'float' || sel === 'int') { fromDevice(n, v); } } };
+  } };
+  var mg = { size: [384, 169], relative_coords: 0, autofill: 0, text_measure: function (s) { return [String(s).length * 4.4, 8]; } };
+  ['init', 'redraw', 'select_font_face', 'set_font_size', 'set_source_rgba', 'set_line_width', 'move_to', 'line_to',
+   'curve_to', 'text_path', 'rectangle', 'fill', 'stroke'].forEach(function (n) { mg[n] = function () {}; });
+  var disp = boot(SRC.disp, ['band', 'wrnd', 'winit', 'wundo', 'wzero', 'wsetband', 'wpadcol', 'wpadlit', 'wrndamt',
+    'rndamt', 'pads', 'anything'], { patcher: patcher, mgraphics: mg, outlet: function () {} });
+
+  // ---- gl_push.js: outlet 0 = pads (led col row colour), outlet 1 = messages for the device ----
+  var pads = [];
+  function fromPush() {
+    var a = Array.prototype.slice.call(arguments);
+    if (a[0] === 0 && a[1] === 'led') { paintPad(a[2], a[3], a[4]); return; }
+    if (a[0] === 1) {
+      applying++;
+      try { disp.send(a[1], a.slice(2)); } finally { applying--; }
+      afterDevice();
+    }
+  }
+  var push = boot(SRC.push, ['grabbed', 'key', 'shift', 'del', 'undo', 'rnd', 'rndavail', 'rndamt', 'padcol', 'padlit',
+    'band', 'anything', 'paint'], { outlet: fromPush, outlets: 2 });
+
+  // ---- pad colours: Push palette index -> a colour on screen ----
+  var NAMES = ['#E0453A', '#F0802B', '#E8D23A', '#6FCB3F', '#3FD0D0', '#3F7BE8', '#8A55E0', '#D94FCB',
+               '#F08A7A', '#F0B030', '#B5E03A', '#62DDA0', '#74BDF0', '#5A5AE0', '#F07AB4', '#E6E6E6'];
+  var PALIDX = [[67, 2], [70, 3], [80, 9], [86, 32], [94, 15], [100, 19], [110, 23], [114, 26], [66, 1], [72, 6], [82, 10],
+                [90, 13], [96, 16], [108, 22], [75, 25], [124, 36]];
+  var CSS = { 117: '#232529', 122: '#F2F2F2', 124: '#62656C', 125: '#A9ADB5', 8: '#E0A030' };
+  function dim(hex) {
+    var n = parseInt(hex.slice(1), 16), r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+    return 'rgb(' + Math.round(r * 0.5) + ',' + Math.round(g * 0.5) + ',' + Math.round(b * 0.5) + ')';
+  }
+  PALIDX.forEach(function (p, i) { if (CSS[p[0]] === undefined) { CSS[p[0]] = dim(NAMES[i]); } CSS[p[1]] = NAMES[i]; });
+  function paintPad(col, row, idx) {
+    var b = pads[row * 8 + col];
+    if (b) { b.style.background = CSS[idx] || '#232529'; b.setAttribute('data-idx', String(idx)); }
+  }
+
+  // ---- build the grid ----
+  var grid = document.getElementById('padgrid'), r, c, el;
+  el = document.createElement('span'); grid.appendChild(el);
+  for (c = 0; c < 8; c++) { el = document.createElement('span'); el.className = 'n'; el.textContent = String(c + 1); grid.appendChild(el); }
+  for (r = 0; r < 8; r++) {
+    el = document.createElement('span'); el.className = 'n'; el.textContent = String(r + 1); grid.appendChild(el);
+    for (c = 0; c < 8; c++) {
+      el = document.createElement('button');
+      el.type = 'button'; el.className = 'pad';
+      el.setAttribute('aria-label', 'row ' + (r + 1) + ' pad ' + (c + 1));
+      el.setAttribute('data-col', String(c)); el.setAttribute('data-row', String(r));
+      grid.appendChild(el);
+      pads.push(el);
+    }
+  }
+  grid.addEventListener('pointerdown', function (ev) {
+    var b = ev.target.closest('button.pad');
+    if (!b) { return; }
+    push.send('key', [Number(b.getAttribute('data-col')), Number(b.getAttribute('data-row')), 100]);
+    layerText();
+  });
+  grid.addEventListener('pointerup', function (ev) {
+    var b = ev.target.closest('button.pad');
+    if (b) { push.send('key', [Number(b.getAttribute('data-col')), Number(b.getAttribute('data-row')), 0]); layerText(); }
+  });
+  grid.addEventListener('keydown', function (ev) {
+    var b = ev.target.closest('button.pad');
+    if (!b || (ev.key !== 'Enter' && ev.key !== ' ')) { return; }
+    ev.preventDefault();
+    push.send('key', [Number(b.getAttribute('data-col')), Number(b.getAttribute('data-row')), 100]);
+    push.send('key', [Number(b.getAttribute('data-col')), Number(b.getAttribute('data-row')), 0]);
+    layerText();
+  });
+
+  // ---- the Push buttons. One mouse cannot hold two buttons, so the modifiers latch. ----
+  var held = { shift: 0, select: 0, del: 0 };
+  function latch(id, key, msg) {
+    var b = document.getElementById(id);
+    b.addEventListener('click', function () {
+      held[key] = held[key] ? 0 : 1;
+      push.send(msg, [held[key]]);
+      refreshButtons(); layerText();
+    });
+  }
+  function refreshButtons() {
+    // the adapter can leave a layer by itself (a second Select press, a tap): ask it rather than assume
+    document.getElementById('pb-shift').setAttribute('aria-pressed', String(!!held.shift));
+    document.getElementById('pb-select').setAttribute('aria-pressed', String(!!held.select));
+    document.getElementById('pb-delete').setAttribute('aria-pressed', String(!!held.del));
+  }
+  latch('pb-shift', 'shift', 'shift');
+  latch('pb-delete', 'del', 'del');
+  // "Select: hold" latches. The adapter decides tap or hold by the clock (under 350 ms = a tap), and two mouse clicks
+  // can be faster than that, so letting go uses the adapter's own rule for a lost release: a second press closes the
+  // page without a roll. Select without Shift is Push's own: the latch does not take.
+  document.getElementById('pb-select').addEventListener('click', function () {
+    if (!held.select) {
+      if (!held.shift) { layerText('Select alone is Push\'s own button. Click Shift first.'); return; }
+      held.select = 1;
+      push.send('rnd', [1]);
+    } else {
+      held.select = 0;
+      push.send('rnd', [1]); push.send('rnd', [0]);
+    }
+    refreshButtons(); layerText();
+  });
+  document.getElementById('pb-select-tap').addEventListener('click', function () {
+    if (held.select) { return; }
+    if (!held.shift) { layerText('Select alone is Push\'s own button. Click Shift first.'); return; }
+    applying++;
+    try { push.send('rnd', [1]); push.send('rnd', [0]); } finally { applying--; }
+    afterDevice(); layerText();
+  });
+  document.getElementById('pb-undo').addEventListener('click', function () { push.send('undo', []); layerText(); });
+  document.getElementById('pb-knobs').addEventListener('click', function (ev) {
+    var b = ev.target.closest('button');
+    if (!b) { return; }
+    // turning one knob on a Bands page moves ONE band a little; the pads follow it to that page
+    var i = Number(b.getAttribute('data-knob')) * 8, v = Math.max(-60, Math.min(6, S.levels[i] + (S.levels[i] > 0 ? -1 : 1)));
+    applying++;
+    try { disp.send('wsetband', [i, v]); } finally { applying--; }
+    afterDevice();
+    window.setTimeout(function () { push.send('env', [17, 0]); layerText(); }, 80);   // the follower clock the adapter decides on
+  });
+  function layerText(msg) {
+    var t;
+    if (msg) { t = msg; }
+    else if (held.shift && held.del) { t = 'Shift + Delete: every pad is white. Any pad = init.'; }
+    else if (held.select) { t = 'Random page. Rows 1-2: NEW (pads 1-2), VARY (4-5), DRIFT (7-8). Row 4: Rnd Amount. Row 8 pad 8: undo.'; }
+    else if (held.shift) { t = 'Shift menu. Row 1: pad 1 VIEW, pad 2 CONTROL, pad 4 bands 1-8, pad 5 bands 9-16. Rows 3-4: bar colour. Row 6: pad 1 dim, pad 2 bright.'; }
+    else { t = 'Columns are bands, height is level. Row 1 = +6 dB, row 2 = 0 dB, row 8 = off. White = the signal (press Play).'; }
+    document.getElementById('push-layer').textContent = t;
+  }
+
+  // ---- the device's header buttons ----
+  document.querySelector('.devrow').addEventListener('click', function (ev) {
+    var b = ev.target.closest('button');
+    if (!b) { return; }
+    var k = b.getAttribute('data-dev');
+    applying++;
+    try {
+      if (k === 'new') { disp.send('wrnd', [0]); } else if (k === 'vary') { disp.send('wrnd', [1]); }
+      else if (k === 'drift') { disp.send('wrnd', [2]); } else if (k === 'init') { disp.send('winit', []); }
+      else if (k === 'zero') { disp.send('wzero', []); } else if (k === 'undo') { disp.send('wundo', []); }
+    } finally { applying--; }
+    afterDevice();
+  });
+  document.getElementById('c-rndamt').addEventListener('input', function (ev) { disp.send('wrndamt', [parseFloat(ev.target.value)]); });
+
+  function afterDevice() {
+    if (applying) { return; }
+    G.stopSweep(); G.syncClock(); G.render();
+  }
+
+  // ---- the page changed something (a drag on the strip, a slider, a preset): tell the two scripts ----
+  window.__galernaSync = function () {
+    var i, k, e, v;
+    if (applying) { return; }
+    for (i = 0; i < NB; i++) {
+      if (last[i] !== S.levels[i]) {
+        last[i] = S.levels[i]; PARAM['Band_' + (i + 1)] = S.levels[i];
+        disp.send('band', [i, S.levels[i]]); push.send('band', [i, S.levels[i]]);
+      }
+    }
+    for (k in MAP) { if (MAP.hasOwnProperty(k)) { e = MAP[k]; v = S[e[0]]; PARAM[k] = e[2] ? e[2](v) : v; } }
+  };
+
+  // ---- the followers on the pads (the white pad), while the sound plays ----
+  (function loop() {
+    window.requestAnimationFrame(loop);
+    var au = G.audio(), i;
+    if (!au || !G.isPlaying()) { return; }
+    for (i = 0; i < NB; i++) { if (au.bands[i]) { push.send('env', [i + 1, Math.max(0, Math.min(1, au.bands[i].env))]); } }
+  })();
+
+  // ---- start as a freshly dropped device with Push on its track ----
+  PARAM.Rnd_Amount = 100; PARAM.Pad_Colour = 3; PARAM.Pad_Light = 0;
+  window.__galernaSync();
+  disp.send('rndamt', [100]);
+  push.send('rndavail', [1]);
+  push.send('grabbed', [1]);
+  document.getElementById('o-rndamt').textContent = '100 %';
+  layerText();
+
+  // ---- the tour ----
+  var FLAT = function () { return new Array(NB).fill(0); };
+  var STOPS = [
+    { t: 'The bank', x: 'Press Play. All 16 bands are at 0 dB and the white curve is flat: the bank passes everything. This is the starting point, not a bypass.',
+      s: { levels: FLAT, range: 0, poles: 2, mode: 0, q: 1, width: 0, depth: 100, sweep: 8.5, tilt: 0, mix: 100, cross: 0, morph: 0, clock: 0 } },
+    { t: 'Carve', x: 'Five bands up, eleven off, Q at 4. Listen to what is missing: a filterbank removes bands, an EQ only turns them down. Drag any column on the strip.',
+      s: { levels: function () { return FLAT().map(function (_, i) { return [2, 5, 8, 11, 14].indexOf(i) >= 0 ? 6 : -60; }); }, q: 4, width: 0, mode: 0, tilt: 0, mix: 100, cross: 0, morph: 0, clock: 0 } },
+    { t: 'The sweep window', x: 'Width 2 opens a window three bands wide and Sweep moves it. Drag Sweep slowly from 1 to 16: the sound steps through the spectrum band by band.',
+      s: { levels: FLAT, q: 1, width: 2, depth: 100, sweep: 6, mode: 0, tilt: 0, mix: 100, cross: 0, morph: 0, clock: 0 } },
+    { t: 'The same window as a notch', x: 'Depth is now -100. Everything passes except the window: a hole that travels. Same two controls, the opposite effect.',
+      s: { levels: FLAT, q: 1, width: 2, depth: -100, sweep: 6, mode: 0, tilt: 0, mix: 100, cross: 0, morph: 0, clock: 0 } },
+    { t: 'Two curves and the clock', x: 'Curve A is a scoop, curve B is all top. The clock is on free with Move on swing, so the bank travels from one shape to the other and back by itself. Try Move on step.',
+      s: { levels: function () { return [2, 1, 0, -3, -8, -14, -18, -18, -14, -8, -3, 0, 1, 2, 3, 3]; },
+           levelsB: function () { return [-30, -27, -24, -21, -18, -15, -12, -9, -6, -4, -2, 0, 2, 4, 5, 6]; },
+           q: 1, width: 0, mode: 0, tilt: 0, mix: 100, cross: 0, clock: 1, move: 1, rate: 4, range: 1, poles: 2 } },
+    { t: 'Random, init, undo', x: 'Under the strip: press new, then drift a few times, then vary. Pull Rnd Amount to 30 % and roll again: gentler. undo takes back one step. init puts every control back.',
+      s: { levels: FLAT, q: 1, width: 0, mode: 0, tilt: 0, mix: 100, cross: 0, morph: 0, clock: 0, range: 0 } },
+    { t: 'The same from Push', x: 'The pads are the eight bands on the left of the strip. Press a pad: that band jumps to that row. Click Shift, then "Select: tap": a roll. Click "Select: hold": the random page. Click Shift and Delete: every pad white, any pad = init.',
+      s: { levels: function () { return [0, -6, -12, -18, -12, -6, 0, 6, 0, 0, 0, 0, 0, 0, 0, 0]; }, q: 1, width: 0, mode: 0, tilt: 0, mix: 100, cross: 0, morph: 0, clock: 0, range: 0 } }
+  ];
+  var stop = 0, free = false;
+  function showStop(apply) {
+    var st = STOPS[stop], k;
+    document.querySelector('.tour').classList.toggle('free', free);
+    document.getElementById('tour-free').setAttribute('aria-pressed', String(free));
+    document.getElementById('tour-free').textContent = free ? 'Back to the tour' : 'Free play';
+    document.getElementById('tour-count').textContent = free ? 'Free play: every control is open' : 'Tour · stop ' + (stop + 1) + ' of ' + STOPS.length;
+    document.getElementById('tour-title').textContent = st.t;
+    document.getElementById('tour-text').textContent = st.x;
+    document.getElementById('tour-back').disabled = stop === 0;
+    document.getElementById('tour-next').disabled = stop === STOPS.length - 1;
+    if (!apply || free) { return; }
+    G.stopSweep();
+    for (k in st.s) { if (st.s.hasOwnProperty(k)) { S[k] = (typeof st.s[k] === 'function') ? st.s[k]() : st.s[k]; } }
+    if (!st.s.levelsB) { S.levelsB = FLAT(); }
+    G.syncClock(); G.render();
+  }
+  document.getElementById('tour-next').addEventListener('click', function () { if (stop < STOPS.length - 1) { stop++; showStop(true); } });
+  document.getElementById('tour-back').addEventListener('click', function () { if (stop > 0) { stop--; showStop(true); } });
+  document.getElementById('tour-free').addEventListener('click', function () { free = !free; showStop(!free); });
+  showStop(false);
+
+  // test hook (test/check_virtual.js)
+  window.__galernaPads = { push: push, disp: disp, held: held, param: PARAM,
+    lit: function () { return pads.map(function (b) { return Number(b.getAttribute('data-idx') || 117); }); },
+    stops: STOPS.length };
+})();
+
+</script>
+
+</body></html>

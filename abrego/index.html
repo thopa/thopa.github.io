@@ -1,0 +1,1064 @@
+<title>How Abrego Moves</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a dark device-panel page; the signal runs top to bottom through stage cards (live canvas, device-style controls, a short "try" note), all driven by one simulated transport. Single dark look, like the device. */
+:root {
+  --bg: #121315;
+  --surface: #1a1b1e;
+  --raised: #26282c;
+  --line: #33363b;
+  --fg: #dfe1e4;
+  --muted: #8f9399;
+  --accent: #ffb500;
+  --accent-dim: #6d5010;
+  --turq: #3dd9d6;
+  --v1: #ffb500; --v2: #3dd9d6; --v3: #ff7d5c; --v4: #b5e05c; --v5: #c6a6ff;
+  --display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", sans-serif;
+  --body: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.55; margin: 0;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 32px 56px;
+}
+.wrap { max-width: 1120px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
+header { display: flex; flex-direction: column; gap: 10px; max-width: 72ch; }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); }
+h1 { font-family: var(--display); font-weight: 700; font-size: clamp(34px, 6vw, 58px); line-height: 1.02; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+h1 .pr { color: var(--accent); font-variant-numeric: tabular-nums; }
+.lead { color: var(--muted); margin: 0; font-size: 16px; }
+.lead b { color: var(--fg); font-weight: 500; }
+.bar {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; padding: 10px 12px;
+  border: 1px solid var(--line); border-radius: 10px; background: var(--surface);
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 14px 16px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.card.wide { grid-column: 1 / -1; }
+.card h2 { font-family: var(--display); font-weight: 700; font-size: 20px; margin: 0; letter-spacing: .02em; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.card h2 .n { font: 500 12px var(--mono); color: var(--accent); letter-spacing: .08em; }
+.card h2 .feeds { margin-left: auto; font: 400 11px var(--mono); color: var(--muted); letter-spacing: .06em; }
+.what { margin: 0; color: var(--muted); font-size: 14px; max-width: 80ch; }
+.what b { color: var(--fg); font-weight: 500; }
+.try { margin: 0; font-size: 13px; color: var(--fg); border-left: 2px solid var(--accent); padding: 2px 0 2px 10px; }
+.try > span:first-child { font: 500 11px var(--mono); color: var(--accent); letter-spacing: .1em; text-transform: uppercase; margin-right: 6px; }
+canvas { width: 100%; display: block; border-radius: 8px; background: var(--bg); touch-action: none; }
+canvas.edit { cursor: crosshair; }
+.ctl { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px 14px; }
+.ctl .sub { grid-column: 1 / -1; font: 500 11px var(--mono); color: var(--accent); letter-spacing: .1em; text-transform: uppercase; margin-top: 4px; display: flex; align-items: center; gap: 10px; }
+.f { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.f label, .f .lab { font: 400 11px var(--mono); color: var(--muted); display: flex; justify-content: space-between; gap: 8px; }
+.f output { color: var(--fg); font-variant-numeric: tabular-nums; }
+input[type=range] { width: 100%; accent-color: var(--accent); margin: 2px 0; }
+select {
+  font: 400 13px var(--mono); color: var(--fg); background: var(--raised); border: 1px solid var(--line);
+  border-radius: 6px; padding: 5px 6px; width: 100%;
+}
+.seg { display: flex; gap: 4px; flex-wrap: wrap; }
+button {
+  font: 500 12px var(--mono); color: var(--fg); background: var(--raised); border: 1px solid var(--line);
+  border-radius: 6px; padding: 6px 10px; cursor: pointer; min-height: 32px;
+}
+button[aria-pressed="true"], button.on { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+button.dice { display: inline-flex; align-items: center; gap: 6px; }
+button.dice svg { width: 14px; height: 14px; }
+.sub button.dice { min-height: 26px; padding: 3px 8px; font-size: 11px; letter-spacing: 0; text-transform: none; }
+button:focus-visible, select:focus-visible, input:focus-visible, canvas:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.bar .f { min-width: 130px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font: 400 12px var(--mono); color: var(--muted); }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+.note-name { font-family: var(--mono); color: var(--accent); font-variant-numeric: tabular-nums; }
+.slots { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; grid-column: 1 / -1; }
+.slots button { padding: 6px 0; }
+.slots button.cur { box-shadow: inset 0 -3px 0 var(--accent); }
+.slots button.inchain { border-color: var(--accent-dim); }
+.slots.armed button { border-color: var(--accent); }
+.status { font: 500 12px var(--mono); color: var(--accent); min-height: 18px; align-self: end; }
+.vsel button { min-width: 44px; }
+footer { color: var(--muted); font-size: 13px; max-width: 76ch; }
+footer a { color: var(--fg); }
+@media (max-width: 760px) { .grid { grid-template-columns: minmax(0, 1fr); } .card h2 .feeds { display: none; } }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Abrego · Max for Live · 7 · 17 · 37</div>
+    <h1>How Abrego moves</h1>
+    <p class="lead"><b>Ábrego</b> is the Spanish name for the south-west wind that brings the rain: it keeps shifting, and the weather never repeats. Abrego is a melody machine built from small, honest parts: <b>two 8-step sequencers</b>, <b>five voices</b> that add their inputs together, and <b>two switches</b> that step through sources. Give the sequencers different lengths, say <span class="note-name">7</span> and <span class="note-name">5</span> steps at the same rate, and their loops only line up every <span class="note-name">35</span> steps, so short patterns make long melodies. Each stage below runs live, has the device's own controls, and feeds the next. Switch the sound on and turn things.</p>
+  </header>
+
+  <div class="bar" role="group" aria-label="Transport and sound">
+    <button id="play" type="button" class="on">Pause</button>
+    <button id="sound" type="button" aria-pressed="false">Sound off</button>
+    <div class="f"><label for="bpm">Tempo <output id="bpm-o">116 BPM</output></label><input id="bpm" type="range" min="70" max="160" value="116"></div>
+    <div class="f"><label for="vol">Volume <output id="vol-o">70 %</output></label><input id="vol" type="range" min="0" max="100" value="70"></div>
+    <button id="drums" type="button" aria-pressed="false">Beat</button>
+    <button id="diceall" type="button" class="dice" title="Roll new values in every section"></button>
+    <button id="reset" type="button">Reset all</button>
+  </div>
+
+  <div class="grid">
+    <section class="card wide">
+      <h2><span class="n">01</span>CLOCKS<span class="feeds">→ SEQ 1, SEQ 2</span></h2>
+      <canvas id="c-clock" height="132" aria-label="The two sequencer clocks and where their loops line up"></canvas>
+      <p class="what">Each sequencer has its own clock, locked to the transport: from 16 bars to 1/64, with dotted (D), triplet (T), quintuplet (Q) and septuplet (S) values, plus 1/5 and 1/7 bar. <b>Swing</b> delays every second 1/16. The bright ticks are loop starts; the line on the right says when both loops start together again.</p>
+      <div class="ctl" id="k-clock"></div>
+      <p class="try"><span>Try</span>SEQ 2 at 1/16S against SEQ 1 at 1/16: seven against four, on top of the 7 against 5 steps.</p>
+    </section>
+
+    <section class="card wide">
+      <h2><span class="n">02</span>SEQUENCERS<span class="feeds">→ voices, switches, accumulators</span></h2>
+      <canvas id="c-seq" class="edit" height="402" aria-label="Two eight step sequencers with rows A, B, T, V and P. Drag bars to change values, click T to change triggers"></canvas>
+      <p class="what">Two sequencers, eight steps each. <b>A</b> and <b>B</b> are pitch rows in semitones (0 to 24). <b>T</b> picks the trigger for each step: row <b>1</b>, row <b>2</b> or none. <b>V</b> is velocity and <b>P</b> is the chance the trigger fires; the step still moves when it doesn't. <b>F</b> and <b>L</b> set the first and last step, so the loop can be any length from 1 to 8. Each sequencer sends four things on: its A and B values, and two trigger streams, written <b>1/1</b> and <b>1/2</b> for SEQ 1, <b>2/1</b> and <b>2/2</b> for SEQ 2.</p>
+      <div class="ctl" id="k-seq"></div>
+      <p class="try"><span>Try</span>Drag the A bars of SEQ 1. Click a T cell to cycle 1 → 2 → off. Pull a few P bars down to make the line breathe, then set SEQ 2's mode to ping.</p>
+    </section>
+
+    <section class="card">
+      <h2><span class="n">03</span>ACCUMULATORS<span class="feeds">→ rows A · not in Lite</span></h2>
+      <canvas id="c-acc" class="edit" height="196" aria-label="Two accumulators: an amount per step and the running total"></canvas>
+      <p class="what">An accumulator adds an amount to a row's total each time its sequencer lands on a step. The total shifts every value of the row, so a loop climbs or falls a little more each time round. At the <b>limit</b> it <b>wraps</b>, <b>bounces</b> or <b>clamps</b>; <b>reset</b> clears it every few loops. With <b>scale</b> the total counts scale degrees instead of semitones.</p>
+      <div class="ctl" id="k-acc"></div>
+      <p class="try"><span>Try</span>Switch S1 A on: with +1 on step 1 the line climbs one scale step every loop, then bounces back. Click the top half of a cell to add, the bottom half to take away.</p>
+    </section>
+
+    <section class="card">
+      <h2><span class="n">04</span>SWITCHES<span class="feeds">→ voices</span></h2>
+      <canvas id="c-sw" height="196" aria-label="Two sequential switches stepping through their inputs"></canvas>
+      <p class="what">A sequential switch has up to four inputs and passes one of them on. Each pulse of its <b>clock</b> moves it to the next input. Clock it from a trigger stream, a sequencer's clock, or a <b>loop</b> (once each time the sequencer wraps), and a voice can play a different row every bar or every loop.</p>
+      <div class="ctl" id="k-sw"></div>
+      <p class="try"><span>Try</span>SW1 clocked by 1/2 instead of S1 loop: voice 4 jumps between rows on every second-row trigger instead of once a loop.</p>
+    </section>
+
+    <section class="card wide">
+      <h2><span class="n">05</span>VOICES<span class="feeds">→ MIDI notes</span></h2>
+      <canvas id="c-voices" height="250" aria-label="Five voices: their adders, the sum and the note they play"></canvas>
+      <p class="what">Each voice adds up three inputs. Every input has a sign: <b>+</b> adds, <b>−</b> subtracts, <b>0</b> ignores it. Inputs can be a sequencer row, a switch, <b>Oct</b> (twelve semitones) or another voice, so voices can follow each other in parallel or in contrary motion. The sum goes onto the voice's <b>base</b> note, is fitted to the key, and plays when one of the voice's trigger streams fires. Lit inputs changed since the voice's last note. Click a voice to edit it. In the device, the <b>V1–V5</b> tabs open or close each voice's column; a closed voice keeps playing.</p>
+      <div class="ctl" id="k-voices"></div>
+      <p class="try"><span>Try</span>Voice 2 plays S1 A <b>+</b> S2 A. Set its second input to <b>−</b>: the same two rows, a new melody. Voice 5 already subtracts S2 A.</p>
+    </section>
+
+    <section class="card">
+      <h2><span class="n">06</span>MODULATION<span class="feeds">→ anywhere · not in Lite</span></h2>
+      <canvas id="c-mod" height="196" aria-label="Three modulation slots with mini scopes"></canvas>
+      <p class="what">Rows can move other things. A slot takes a source (a row, a switch, a sequencer's position, or a new random value on every step), scales it by <b>depth</b>, adds an <b>offset</b>, and sends it to a destination: pitch rows, velocity, first and last step, swing, gate length or probability. The scopes show what each slot sends.</p>
+      <div class="ctl" id="k-mod"></div>
+      <p class="try"><span>Try</span>Switch slot 1 on: SEQ 1's position stretches the notes through each loop. Then slot 3: SEQ 2's row A moves SEQ 1's last step, so the melody's length follows the bass.</p>
+    </section>
+
+    <section class="card">
+      <h2><span class="n">07</span>PATTERNS<span class="feeds">→ everything</span></h2>
+      <p class="what">A pattern keeps every setting above. Click a slot to load it; press <b>store</b> then a slot to keep yours. <b>Chain</b> walks through a range of slots every few bars, forwards, backwards or at random. The dice roll new values per section; in the device you choose what each roll may touch, and <b>auto</b> can roll for you every few bars.</p>
+      <div class="ctl" id="k-pat"></div>
+      <p class="try"><span>Try</span>Roll the dice in SEQUENCERS, store it in slot 8, then chain slots 1 to 8 every 2 bars.</p>
+    </section>
+
+    <section class="card wide">
+      <h2><span class="n">08</span>WHAT YOU HEAR<span class="feeds">five voices</span></h2>
+      <canvas id="c-out" height="190" aria-label="Notes of the five voices over the last bars"></canvas>
+      <div class="legend" id="legend"></div>
+      <p class="what">The notes of all five voices, scrolling right to left, fitted to the key below. Last note: <span class="note-name" id="lastnote">—</span>.</p>
+      <div class="ctl" id="k-key"></div>
+    </section>
+  </div>
+
+  <footer>A simulation of the Abrego engine for learning, not the device itself. The device has more: rows A and B can run on their own clock divisions, steps can be skipped, the modes include CV addressing, the VEL section scales and humanises velocity, and patterns can morph into each other. <b>Abrego Lite</b>, the free edition, has everything here except the accumulators and modulation (and, in the device, the skip and mod rows, morph and auto dice). Settings here aren't saved. Every control is explained in the Reference PDF in the download; the Push cheat sheet shows what the pads do.</footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var css = getComputedStyle(document.documentElement);
+  function tok(n) { return css.getPropertyValue(n).trim(); }
+  var C = { bg: tok("--bg"), surf: tok("--surface"), raised: tok("--raised"), line: tok("--line"), fg: tok("--fg"), muted: tok("--muted"),
+    acc: tok("--accent"), accDim: tok("--accent-dim"), turq: tok("--turq"), mono: tok("--mono"),
+    v: [tok("--v1"), tok("--v2"), tok("--v3"), tok("--v4"), tok("--v5")] };
+  var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // ---------- tables (as in the device) ----------
+  var TPB = 6720;                                     // ticks per bar
+  var RATES = [["16 bars", 107520], ["8 bars", 53760], ["4 bars", 26880], ["2 bars", 13440], ["1 bar", 6720], ["2/3 bar", 4480],
+    ["1/2", 3360], ["1/4D", 2520], ["1/3 bar", 2240], ["1/4", 1680], ["1/5 bar", 1344], ["1/8D", 1260], ["1/4T", 1120], ["1/7 bar", 960],
+    ["1/8", 840], ["1/16D", 630], ["1/8T", 560], ["1/16", 420], ["1/16Q", 336], ["1/16T", 280], ["1/16S", 240], ["1/32", 210], ["1/32T", 140], ["1/64", 105]];
+  var MODES = ["fwd", "bwd", "ping", "rnd"];
+  var SCALES = { chromatic: [0,1,2,3,4,5,6,7,8,9,10,11], major: [0,2,4,5,7,9,11], minor: [0,2,3,5,7,8,10], dorian: [0,2,3,5,7,9,10],
+    phrygian: [0,1,3,5,7,8,10], lydian: [0,2,4,6,7,9,11], mixolydian: [0,2,4,5,7,9,10], "harm minor": [0,2,3,5,7,8,11],
+    "pent major": [0,2,4,7,9], "pent minor": [0,3,5,7,10], "whole tone": [0,2,4,6,8,10] };
+  var NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+  var VSRC = ["Oct", "S1 A", "S1 B", "S2 A", "S2 B", "SW1", "SW2", "V1", "V2", "V3", "V4", "V5"];
+  var WSRC = ["0", "Oct", "S1 A", "S1 B", "S2 A", "S2 B"];
+  var STREAMS = ["1/1", "1/2", "2/1", "2/2"];
+  var WCLK = ["1/1", "1/2", "2/1", "2/2", "S1 clk", "S2 clk", "S1 loop", "S2 loop"];
+  var VELSRC = ["Vel", "trig", "S1 V", "S2 V"];
+  var MXSRC = ["S1 A", "S1 B", "S1 V", "S2 A", "S2 B", "S2 V", "SW1", "SW2", "S1 pos", "S2 pos", "rnd S1", "rnd S2"];
+  var MXDST = ["S1 A", "S1 B", "S2 A", "S2 B", "S1 V", "S2 V", "S1 first", "S1 last", "S2 first", "S2 last", "S1 swing", "S2 swing", "gate", "S1 prob", "S2 prob"];
+  var BEH = ["clamp", "wrap", "bounce"], ADIR = ["up", "down", "up/dn"], ARST = [["manual", 0], ["1 loop", 1], ["2 loops", 2], ["4 loops", 4], ["8 loops", 8]];
+  var TIMBRE = ["bass", "pluck", "glass", "bell", "soft"];
+
+  function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
+  function rnd() { return Math.random(); }
+  function pick(a) { return a[Math.floor(rnd() * a.length)]; }
+  function gcd(a, b) { while (b) { var t = b; b = a % b; a = t; } return a; }
+  function nname(p) { p = Math.round(p); return NAMES[((p % 12) + 12) % 12] + (Math.floor(p / 12) - 2); }   // Live's octave naming (C3 = 60)
+
+  // ---------- state ----------
+  var S;
+  function defaults() {
+    return {
+      bpm: 116, swing: 50, vol: 70, drums: false,
+      key: { root: 0, scale: "chromatic" },
+      seq: [                                    // the device's own default patch 
+        { rate: 420, first: 1, last: 7, mode: 0,
+          A: [0, 7, 0, 12, 3, 0, 10, 0], B: [0, 0, 5, 0, 7, 0, 0, 2], T: [0, 1, 2, 0, 1, 0, 2, 1],
+          V: [115, 70, 95, 70, 105, 70, 90, 75], P: [100, 100, 100, 100, 100, 100, 100, 100] },
+        { rate: 420, first: 1, last: 5, mode: 0,
+          A: [0, 5, 7, 0, 3, 0, 0, 0], B: [12, 0, 0, 7, 0, 0, 0, 0], T: [0, 2, 1, 0, 2, 1, 1, 1],
+          V: [110, 80, 95, 75, 100, 80, 90, 80], P: [100, 100, 100, 100, 100, 100, 100, 100] }
+      ],
+      acc: [
+        { on: false, d: [1, 0, 0, 0, 0, 0, 0, 0], lim: 4, beh: 2, dir: 0, rst: 0, snap: true },
+        { on: false, d: [0, 0, 2, 0, 0, 0, 0, 0], lim: 5, beh: 2, dir: 0, rst: 0, snap: true }
+      ],
+      sw: [
+        { n: 3, clk: 6, ins: [2, 5, 1, 0] },
+        { n: 2, clk: 7, ins: [4, 3, 0, 0] }
+      ],
+      voices: [
+        { on: true, base: 36, ins: [{ s: 1, g: 1 }, { s: 0, g: 0 }, { s: 0, g: 0 }], ofs: 0, trig: [true, false, false, false], q: true, len: 50, vs: 0, vel: 110 },
+        { on: true, base: 48, ins: [{ s: 1, g: 1 }, { s: 3, g: 1 }, { s: 0, g: 0 }], ofs: 0, trig: [false, false, true, false], q: true, len: 30, vs: 0, vel: 100 },
+        { on: true, base: 48, ins: [{ s: 3, g: 1 }, { s: 4, g: 1 }, { s: 0, g: 0 }], ofs: 0, trig: [false, true, false, false], q: true, len: 40, vs: 0, vel: 95 },
+        { on: true, base: 60, ins: [{ s: 5, g: 1 }, { s: 0, g: 0 }, { s: 0, g: 0 }], ofs: 0, trig: [false, false, false, true], q: true, len: 25, vs: 0, vel: 90 },
+        { on: true, base: 60, ins: [{ s: 2, g: 1 }, { s: 3, g: -1 }, { s: 6, g: 1 }], ofs: 0, trig: [false, true, false, false], q: true, len: 20, vs: 0, vel: 85 }
+      ],
+      mx: [
+        { on: false, src: 8, dst: 12, dep: 70, ofs: 0 },
+        { on: false, src: 10, dst: 4, dep: 30, ofs: -15 },
+        { on: false, src: 3, dst: 7, dep: 30, ofs: 0 }
+      ],
+      chain: { on: false, every: 2, dir: "fwd", from: 1, to: 8 }
+    };
+  }
+  S = defaults();
+  S.voices.forEach(function (v) { if (v.vel == null) v.vel = 100; });
+
+  var R;
+  function runtime() {
+    R = { t: 0, n: 0,
+      seq: [{ cur: -1, dir: 1, count: 0, flash: -9, loopT: [], pulses: [], eff: null }, { cur: -1, dir: 1, count: 0, flash: -9, loopT: [], pulses: [], eff: null }],
+      acc: [{ v: 0, sign: 1, loops: 0, tr: [] }, { v: 0, sign: 1, loops: 0, tr: [] }],
+      sw: [{ pos: 0, flash: -9 }, { pos: 0, flash: -9 }],
+      mxHold: [0.5, 0.5],
+      voices: [0, 1, 2, 3, 4].map(function () { return { raw: 0, note: -1, vel: 0, ins: [], flash: [-9, -9, -9], t: -9, ev: [], lo: 48, hi: 60 }; }),
+      mxTr: [[], [], []],
+      notes: [], lastNote: -9 };
+  }
+  runtime();
+
+  // ---------- engine (follows the device) ----------
+  function inScale(n) { var sc = SCALES[S.key.scale]; return sc.indexOf((((n - S.key.root) % 12) + 12) % 12) >= 0; }
+  function accOfs(i, stepVal) {
+    var A = S.acc[i], v = R.acc[i].v;
+    if (!v || !A.on) return 0;
+    if (!A.snap) return v;
+    var base = Math.round(stepVal), g = 0;
+    while (!inScale(base) && g++ < 12) base--;
+    var n = base, left = Math.abs(v), dn = v > 0 ? 1 : -1;
+    g = 0; while (left > 0 && g++ < 400) { n += dn; if (inScale(n)) left--; }
+    return n - base;
+  }
+  function accLimit(v, lim, beh) {
+    var g = 0;
+    if (beh === 1) while ((v > lim || v < -lim) && g++ < 8) { v = v > lim ? v - lim - 1 : v + lim + 1; }
+    else if (beh === 2) while ((v > lim || v < -lim) && g++ < 8) { v = v > lim ? lim - (v - lim) : -lim + (-lim - v); }
+    return clamp(v, -lim, lim);
+  }
+  function accFire(i, step, wrapped) {
+    var A = S.acc[i], a = R.acc[i];
+    if (!A.on) return;
+    if (wrapped) { a.loops++; if (A.rst > 0 && a.loops % A.rst === 0) { a.v = 0; a.sign = 1; } }
+    var d = A.d[step];
+    if (d) {
+      if (A.dir === 1) d = -d; else if (A.dir === 2) { d *= a.sign; a.sign = -a.sign; }
+      a.v = accLimit(a.v + d, A.lim, A.beh);
+    }
+  }
+  function cur(i) { var c = R.seq[i].cur; return c < 0 ? 0 : c; }
+  function rowBase(i, r) {
+    var v = S.seq[i][r][cur(i)];
+    return r === "A" ? v + accOfs(i, v) : v;
+  }
+  var mxBusy = false;
+  function mxSrc(k) {
+    switch (k) {
+      case 0: return rowBase(0, "A") / 24; case 1: return rowBase(0, "B") / 24; case 2: return S.seq[0].V[cur(0)] / 127;
+      case 3: return rowBase(1, "A") / 24; case 4: return rowBase(1, "B") / 24; case 5: return S.seq[1].V[cur(1)] / 127;
+      case 6: return swBase(0) / 24; case 7: return swBase(1) / 24;
+      case 8: return seqPos(0); case 9: return seqPos(1);
+      case 10: return R.mxHold[0]; case 11: return R.mxHold[1];
+    }
+    return 0;
+  }
+  function slotVal(M) { return clamp(mxSrc(M.src), -1, 2) * M.dep / 100 + M.ofs / 100; }
+  function mx(dst) {
+    if (mxBusy) return 0;
+    mxBusy = true; var s = 0;
+    S.mx.forEach(function (M) { if (M.on && M.dst === dst) s += slotVal(M); });
+    mxBusy = false; return s;
+  }
+  function rowVal(i, r) { return rowBase(i, r) + mx(i * 2 + (r === "A" ? 0 : 1)) * 24; }
+  function seqPos(i) { var e = R.seq[i].eff || { first: 0, last: 7 }; if (R.seq[i].cur < 0 || e.last <= e.first) return 0; return clamp((R.seq[i].cur - e.first) / (e.last - e.first), 0, 1); }
+  function swBase(w) { var s = S.sw[w].ins[R.sw[w].pos]; return s === 1 ? 12 : (s >= 2 ? rowBase(s < 4 ? 0 : 1, s % 2 ? "B" : "A") : 0); }
+  function swVal(w) { var s = S.sw[w].ins[R.sw[w].pos]; return s === 0 ? 0 : s === 1 ? 12 : rowVal(s < 4 ? 0 : 1, s % 2 ? "B" : "A"); }
+  function srcVal(k) {
+    if (k === 0) return 12;
+    if (k <= 4) return rowVal(k <= 2 ? 0 : 1, k % 2 ? "A" : "B");
+    if (k <= 6) return swVal(k - 5);
+    return R.voices[k - 7].raw;
+  }
+  function effective(i) {
+    var Q = S.seq[i];
+    var first = clamp(Math.round(Q.first - 1 + mx(6 + i * 2) * 7), 0, 7), last = clamp(Math.round(Q.last - 1 + mx(7 + i * 2) * 7), 0, 7);
+    if (last < first) { var t = first; first = last; last = t; }
+    return { first: first, last: last, mode: Q.mode };
+  }
+  function advance(st, prev, mode, first, last) {
+    var span = last - first + 1, n, w = false;
+    if (prev < first || prev > last) return { n: mode === 1 ? last : mode === 3 ? first + Math.floor(rnd() * span) : first, w: false };
+    if (mode === 0) { n = prev + 1; if (n > last) { n = first; w = true; } }
+    else if (mode === 1) { n = prev - 1; if (n < first) { n = last; w = true; } }
+    else if (mode === 2) {
+      if (span === 1) { n = first; w = true; }
+      else { n = prev + st.dir; if (n > last) { st.dir = -1; n = prev - 1; } else if (n < first) { st.dir = 1; n = prev + 1; w = true; } }
+    } else n = first + Math.floor(rnd() * span);
+    return { n: n, w: w };
+  }
+  function fire(i, ev) {
+    var st = R.seq[i], Q = S.seq[i], e = effective(i), span = e.last - e.first + 1;
+    st.eff = e;
+    var r = advance(st, st.cur, e.mode, e.first, e.last), wrapped = r.w;
+    st.count++; R.mxHold[i] = rnd();
+    if (e.mode === 3 && st.count % span === 0) wrapped = true;
+    st.cur = r.n; st.pulses.push(R.t);
+    ev["c" + (i + 1)] = 1;
+    var gt = Q.T[r.n];
+    if (gt !== 1) { var pr = Q.P[r.n] + mx(13 + i) * 100; if (pr < 100 && rnd() * 100 >= pr) gt = 1; }
+    if (gt === 0) ev["t" + (i + 1) + "1"] = 1;
+    if (gt === 2) ev["t" + (i + 1) + "2"] = 1;
+    if (gt !== 1) st.flash = R.t;
+    if (wrapped) { ev["l" + (i + 1)] = 1; st.loopT.push(R.t); }
+    accFire(i, r.n, wrapped);
+  }
+  var EVK = ["t11", "t12", "t21", "t22", "c1", "c2", "l1", "l2"];
+  function quant(x) {
+    var sc = SCALES[S.key.scale], best = 0, bd = 1e9, o0 = Math.floor(x / 12);
+    for (var o = o0 - 1; o <= o0 + 1; o++) for (var d = 0; d < sc.length; d++) {
+      var c = 12 * o + (S.key.root + sc[d]) % 12, dd = Math.abs(c - x);
+      if (dd < bd - 1e-9) { bd = dd; best = c; }
+    }
+    return clamp(best, 0, 127);
+  }
+  function adder(v) {
+    var V = S.voices[v], s = V.ofs;
+    V.ins.forEach(function (I) { if (I.g) s += I.g * srcVal(I.s); });
+    return s;
+  }
+  function voiceVel(v, t) {
+    var V = S.voices[v], sq = 0;
+    if (V.vs === 1) sq = t < 2 ? 1 : 2; else if (V.vs >= 2) sq = V.vs - 1;
+    if (!sq) return V.vel;
+    return clamp(Math.round(S.seq[sq - 1].V[cur(sq - 1)] + mx(sq === 1 ? 4 : 5) * 127), 1, 127);
+  }
+  function doVoices(ev, stepSec) {
+    var v;
+    for (v = 0; v < 5; v++) R.voices[v].raw = adder(v);
+    for (v = 0; v < 5; v++) {
+      var V = S.voices[v], rv = R.voices[v], t = -1;
+      if (!V.on) continue;
+      for (var k = 0; k < 4; k++) if (V.trig[k] && ev[EVK[k]]) { t = k; break; }
+      if (t < 0) continue;
+      var pitch = V.q ? quant(V.base + rv.raw) : clamp(Math.round(V.base + rv.raw), 0, 127);
+      var vel = voiceVel(v, t);
+      var len = stepSec[t < 2 ? 0 : 1] * V.len / 100 * clamp(1 + mx(12), 0.05, 4);
+      var ins = V.ins.map(function (I) { return { s: I.s, g: I.g, val: srcVal(I.s) }; });
+      for (var j = 0; j < 3; j++) { var p = rv.ins[j]; if (p && ins[j].g && (p.val !== ins[j].val || p.s !== ins[j].s || p.g !== ins[j].g)) rv.flash[j] = R.t; }
+      rv.ins = ins; rv.note = pitch; rv.vel = vel; rv.t = R.t; rv.sum = rv.raw; rv.stream = t;
+      rv.ev.push({ t: R.t, p: pitch, v: vel, len: len });
+      R.notes.push({ t: R.t, p: pitch, len: len, v: v, vel: vel }); R.lastNote = R.t;
+      var el = document.getElementById("lastnote"); if (el) el.textContent = nname(pitch) + " · V" + (v + 1);
+      playNote(v, pitch, vel, len);
+    }
+  }
+  function swingDelay(i, k, u) {
+    var sw = clamp(S.swing + mx(10 + i) * 75, 50, 75);
+    if (u !== 420 || sw === 50) return 0;
+    return k % 2 === 1 ? (sw / 100 - 0.5) * 2 * u : 0;
+  }
+  var lastK = [-1, -1];
+  function tick(n) {
+    var ev = {}, stepSec = [0, 0];
+    for (var i = 0; i < 2; i++) {
+      var u = S.seq[i].rate, k = Math.floor(n / u);
+      stepSec[i] = u / TPB * 240 / S.bpm;
+      if (k !== lastK[i] && n >= k * u + swingDelay(i, k, u)) { lastK[i] = k; fire(i, ev); }
+    }
+    for (var w = 0; w < 2; w++) {
+      var W = S.sw[w];
+      if (R.sw[w].pos >= W.n) R.sw[w].pos = 0;
+      if (ev[EVK[W.clk]]) { R.sw[w].pos = (R.sw[w].pos + 1) % W.n; R.sw[w].flash = R.t; }
+    }
+    doVoices(ev, stepSec);
+    if (n > 0 && n % TPB === 0) chainBar();
+    if (S.drums) { if (n % 1680 === 0) drum("kick"); else if (n % 840 === 0) drum("hat"); }
+  }
+  var song = 0, TICKS_PER_SEC;
+  function advanceTime(dt) {
+    song += dt; R.t += dt;
+    var tps = TPB * S.bpm / 240, target = Math.floor(song * tps), guard = 0;
+    if (target - R.n > tps) R.n = target - 1;           // after a long pause (tab hidden), skip ahead
+    while (R.n <= target && guard++ < 20000) {
+      // only tick where something can happen: every 105 ticks (1/64) or any rate boundary
+      tick(R.n); R.n += 1;
+      // fast-forward to the next interesting tick
+      var nx = nextTick(R.n);
+      if (nx > target) { R.n = nx; break; }
+      R.n = nx;
+    }
+    for (var m = 0; m < 3; m++) {
+      var M = S.mx[m]; R.mxTr[m].push([R.t, M.on ? clamp(slotVal(M), -1, 1) : null]);
+      while (R.mxTr[m].length && R.mxTr[m][0][0] < R.t - 5) R.mxTr[m].shift();
+    }
+    for (var a = 0; a < 2; a++) { R.acc[a].tr.push([R.t, R.acc[a].v]); while (R.acc[a].tr.length && R.acc[a].tr[0][0] < R.t - 6) R.acc[a].tr.shift(); }
+    while (R.notes.length && R.notes[0].t < R.t - 7) R.notes.shift();
+    R.voices.forEach(function (rv) { while (rv.ev.length > 1 && rv.ev[1].t < R.t - 4.2) rv.ev.shift(); });
+    R.seq.forEach(function (st) { while (st.pulses.length && st.pulses[0] < R.t - 4) st.pulses.shift(); while (st.loopT.length && st.loopT[0] < R.t - 4) st.loopT.shift(); });
+  }
+  // the ticks where a clock (or its swung pulse), a bar, or the beat can land
+  function nextTick(n) {
+    var best = Math.ceil(n / 840) * 840;                // beat / bar / drums
+    for (var i = 0; i < 2; i++) {
+      var u = S.seq[i].rate, k = Math.floor(n / u);
+      [k, k + 1].forEach(function (kk) { var t = kk * u + Math.ceil(swingDelay(i, kk, u)); if (t >= n && t < best) best = t; });
+    }
+    return Math.max(n, best);
+  }
+
+  // ---------- sound ----------
+  var A = null, soundOn = false, warming = true;
+  function audio() {
+    if (A) return A;
+    var ctx = new (window.AudioContext || window.webkitAudioContext)();
+    var master = ctx.createGain(); master.gain.value = S.vol / 100 * 0.85; master.connect(ctx.destination);
+    var verb = ctx.createConvolver(), len = ctx.sampleRate * 2.2, buf = ctx.createBuffer(2, len, ctx.sampleRate);
+    for (var ch = 0; ch < 2; ch++) { var d = buf.getChannelData(ch); for (var i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.6); }
+    verb.buffer = buf; var vo = ctx.createGain(); vo.gain.value = 0.3; verb.connect(vo); vo.connect(master);
+    var delay = ctx.createDelay(2), fb = ctx.createGain(), dOut = ctx.createGain(), dt = ctx.createBiquadFilter();
+    dt.type = "lowpass"; dt.frequency.value = 2400; fb.gain.value = 0.3; dOut.gain.value = 0.45;
+    delay.connect(dt); dt.connect(fb); fb.connect(delay); dt.connect(dOut); dOut.connect(master);
+    A = { ctx: ctx, master: master, verb: verb, delay: delay };
+    return A;
+  }
+  function env(g, now, peak, a, d) { g.gain.setValueAtTime(0.0001, now); g.gain.exponentialRampToValueAtTime(peak, now + a); g.gain.exponentialRampToValueAtTime(0.0001, now + a + d); }
+  var PAN = [0, -0.35, 0.4, -0.15, 0.25], WET = [0.05, 0.25, 0.4, 0.35, 0.5], ECHO = [0, 0.2, 0.35, 0.15, 0.3];
+  function out(node, v, now) {
+    var ctx = A.ctx, p = ctx.createStereoPanner ? ctx.createStereoPanner() : ctx.createGain();
+    if (p.pan) p.pan.value = PAN[v];
+    node.connect(p); p.connect(A.master);
+    var vs = ctx.createGain(); vs.gain.value = WET[v]; node.connect(vs); vs.connect(A.verb);
+    var es = ctx.createGain(); es.gain.value = ECHO[v]; node.connect(es); es.connect(A.delay);
+    A.delay.delayTime.setValueAtTime(60 / S.bpm * 0.75, now);
+  }
+  function playNote(v, p, vel, len) {
+    if (!soundOn || !A || warming) return;
+    var ctx = A.ctx, now = ctx.currentTime, f = 440 * Math.pow(2, (p - 69) / 12), g = ctx.createGain(), amp = 0.25 + 0.75 * vel / 127, o, o2, end;
+    len = clamp(len, 0.05, 3);
+    if (v === 0) {                                   // bass
+      var lp = ctx.createBiquadFilter(); o = ctx.createOscillator(); o2 = ctx.createOscillator();
+      o.type = "sawtooth"; o2.type = "square"; o.frequency.value = f; o2.frequency.value = f / 2;
+      lp.type = "lowpass"; lp.Q.value = 6; lp.frequency.setValueAtTime(180 + vel * 9, now); lp.frequency.exponentialRampToValueAtTime(140, now + len + 0.1);
+      o.connect(lp); o2.connect(lp); lp.connect(g); env(g, now, 0.2 * amp, 0.005, len + 0.06); end = now + len + 0.1;
+    } else if (v === 2 || v === 3) {                 // glass / bell: two-operator FM
+      o = ctx.createOscillator(); o2 = ctx.createOscillator(); var mg = ctx.createGain();
+      o.type = "sine"; o.frequency.value = f; o2.type = "sine"; o2.frequency.value = f * (v === 2 ? 2 : 3.5);
+      mg.gain.setValueAtTime(f * (v === 2 ? 1.6 : 3), now); mg.gain.exponentialRampToValueAtTime(f * 0.05, now + 0.6);
+      o2.connect(mg); mg.connect(o.frequency); o.connect(g);
+      var dd = Math.max(0.4, len * 2); env(g, now, 0.11 * amp, 0.004, dd); end = now + dd + 0.05;
+    } else if (v === 4) {                            // soft pad-ish
+      o = ctx.createOscillator(); o2 = ctx.createOscillator(); o.type = "triangle"; o2.type = "sine"; o.frequency.value = f; o2.frequency.value = f * 1.003;
+      o.connect(g); o2.connect(g); env(g, now, 0.1 * amp, 0.06, len + 0.3); end = now + len + 0.4;
+    } else {                                          // pluck
+      var fl = ctx.createBiquadFilter(); o = ctx.createOscillator(); o2 = ctx.createOscillator();
+      o.type = "sawtooth"; o2.type = "square"; o.frequency.value = f; o2.frequency.value = f; o2.detune.value = 7;
+      fl.type = "lowpass"; fl.Q.value = 3; fl.frequency.setValueAtTime(600 + vel * 30, now); fl.frequency.exponentialRampToValueAtTime(400, now + 0.3);
+      o.connect(fl); o2.connect(fl); fl.connect(g); env(g, now, 0.1 * amp, 0.004, len + 0.08); end = now + len + 0.12;
+    }
+    out(g, v, now); o.start(now); o2.start(now); o.stop(end); o2.stop(end);
+  }
+  function drum(kind) {
+    if (!soundOn || !A || warming) return;
+    var ctx = A.ctx, now = ctx.currentTime, g = ctx.createGain();
+    if (kind === "kick") {
+      var o = ctx.createOscillator(); o.type = "sine"; o.frequency.setValueAtTime(140, now); o.frequency.exponentialRampToValueAtTime(42, now + 0.18);
+      o.connect(g); env(g, now, 0.5, 0.002, 0.28); g.connect(A.master); o.start(now); o.stop(now + 0.32);
+    } else {
+      var b = ctx.createBuffer(1, ctx.sampleRate * 0.06, ctx.sampleRate), d = b.getChannelData(0);
+      for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      var s = ctx.createBufferSource(), hp = ctx.createBiquadFilter(); s.buffer = b; hp.type = "highpass"; hp.frequency.value = 7000;
+      s.connect(hp); hp.connect(g); env(g, now, 0.08, 0.001, 0.05); g.connect(A.master); s.start(now);
+    }
+  }
+
+  // ---------- dice (per section, as the device's dice) ----------
+  var SCALE_STEPS = function () { var out = [], sc = SCALES[S.key.scale]; for (var o = 0; o < 3; o++) sc.forEach(function (d) { if (o * 12 + d <= 24) out.push(o * 12 + d); }); return out; };
+  function rollSeq(i) {
+    var Q = S.seq[i], st = SCALE_STEPS();
+    for (var k = 0; k < 8; k++) {
+      Q.A[k] = pick(st.slice(0, i ? 9 : st.length));
+      Q.B[k] = rnd() < 0.5 ? 0 : pick(st.slice(0, 8));
+      Q.T[k] = rnd() < 0.55 ? 0 : (rnd() < 0.5 ? 2 : 1);
+      Q.V[k] = 60 + Math.floor(rnd() * 67);
+      Q.P[k] = rnd() < 0.7 ? 100 : 40 + Math.floor(rnd() * 6) * 10;
+    }
+    Q.last = clamp(Q.first + pick([2, 3, 4, 4, 6, 6, 7]), 1, 8);
+  }
+  function rollClocks() {
+    var picks = [1680, 1260, 1120, 840, 840, 630, 560, 420, 420, 420, 336, 280, 240];
+    S.seq.forEach(function (Q) { Q.rate = pick(picks); });
+  }
+  function rollAcc() {
+    S.acc.forEach(function (A2, i) {
+      for (var k = 0; k < 8; k++) A2.d[k] = rnd() < 0.75 ? 0 : pick([-3, -2, -1, 1, 1, 2, 3]);
+      A2.lim = pick([2, 3, 4, 5, 7, 12]); A2.beh = Math.floor(rnd() * 3); A2.dir = Math.floor(rnd() * 3);
+      R.acc[i].v = 0;
+    });
+  }
+  function rollSw() {
+    S.sw.forEach(function (W) { W.n = 2 + Math.floor(rnd() * 3); W.clk = Math.floor(rnd() * 8); for (var k = 0; k < 4; k++) W.ins[k] = Math.floor(rnd() * 6); });
+  }
+  function rollVoices() {
+    var ons = [0, 1, 2, 3, 4].map(function () { return rnd() < 0.65; }), n = ons.filter(Boolean).length;
+    while (n < 2) { var k = Math.floor(rnd() * 5); if (!ons[k]) { ons[k] = true; n++; } }
+    S.voices.forEach(function (V, v) {
+      V.on = ons[v];
+      V.ins.forEach(function (I, j) { I.s = Math.floor(rnd() * (v > 0 && rnd() < 0.3 ? 7 + v : 7)); I.g = j === 0 ? 1 : pick([1, 1, 0, 0, -1]); });
+      V.trig = [false, false, false, false]; V.trig[Math.floor(rnd() * 4)] = true;
+    });
+  }
+  function rollMod() {
+    S.mx.forEach(function (M) { M.on = rnd() < 0.6; M.src = Math.floor(rnd() * 12); M.dst = Math.floor(rnd() * 15); M.dep = pick([-60, -40, -25, 20, 30, 50, 70]); M.ofs = 0; });
+  }
+  function rollAll() { rollSeq(0); rollSeq(1); rollClocks(); rollAcc(); rollSw(); rollVoices(); rollMod(); }
+  var DICE_SVG = '<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="1.5" width="13" height="13" rx="3" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="5" cy="5" r="1.3" fill="currentColor"/><circle cx="11" cy="11" r="1.3" fill="currentColor"/><circle cx="8" cy="8" r="1.3" fill="currentColor"/></svg>';
+
+  // ---------- patterns ----------
+  var SLOTS = [], curSlot = 0, armed = false, chainCount = 0, slotsEl = null, storeBtn = null, statusEl = null, stTimer = 0;
+  var KEEP = ["bpm", "vol", "drums", "chain"];
+  function snap() { var o = {}; Object.keys(S).forEach(function (k) { if (KEEP.indexOf(k) < 0) o[k] = S[k]; }); return JSON.stringify(o); }
+  function load(str) {
+    var d = JSON.parse(str); Object.keys(d).forEach(function (k) { S[k] = d[k]; });
+    R.acc.forEach(function (a) { a.v = 0; a.sign = 1; a.loops = 0; });
+    refresh();
+  }
+  function starts() {
+    var keep = JSON.stringify(S), list = [];
+    var mods = [
+      function () {},
+      function () { S.seq[0].last = 5; S.seq[1].last = 7; S.seq[1].rate = 560; },                                       // 5 against 7, triplets
+      function () { S.seq[0].mode = 2; S.seq[1].mode = 1; S.acc[1].on = true; },                                         // ping / bwd, walking bass
+      function () { S.seq[0].rate = 336; S.seq[1].rate = 1344; S.key.scale = "dorian"; },                                // quintuplets
+      function () { S.voices[4].on = true; S.voices[3].ins[1].g = -1; S.mx[2].on = true; },                              // all five, contrary
+      function () { S.seq.forEach(function (Q) { Q.P = Q.P.map(function (p) { return Math.min(p, 60); }); }); S.swing = 62; }, // sparse, swung
+      function () { S.key.scale = "pent minor"; S.seq[0].last = 3; S.seq[1].last = 8; S.acc[0].d = [2, 0, 0, 0, 0, 0, 0, 0]; S.acc[0].lim = 7; S.acc[0].beh = 1; },
+      function () { S.seq[0].rate = 840; S.seq[1].rate = 3360; S.voices.forEach(function (V) { V.len = 180; }); S.key.scale = "lydian"; }
+    ];
+    mods.forEach(function (m) { S = defaults(); S.voices.forEach(function (v) { if (v.vel == null) v.vel = 100; }); m(); list.push(snap()); });
+    S = JSON.parse(keep);
+    return list;
+  }
+  SLOTS = starts();
+  function status(t) { if (!statusEl) return; statusEl.textContent = t; clearTimeout(stTimer); if (t && t !== "click a slot") stTimer = setTimeout(function () { statusEl.textContent = ""; }, 2500); }
+  function updSlots() {
+    if (!slotsEl) return;
+    Array.prototype.forEach.call(slotsEl.children, function (b, i) { b.classList.toggle("cur", i === curSlot); b.setAttribute("aria-pressed", String(i === curSlot)); });
+    if (storeBtn) storeBtn.setAttribute("aria-pressed", String(armed));
+    slotsEl.classList.toggle("armed", armed);
+  }
+  function slotClick(k) {
+    if (armed) { SLOTS[k] = snap(); armed = false; curSlot = k; status("stored in " + (k + 1)); }
+    else { load(SLOTS[k]); curSlot = k; status("loaded " + (k + 1)); }
+    updSlots(); drawAll();
+  }
+  function chainBar() {
+    if (!S.chain.on) return;
+    chainCount++; if (chainCount % S.chain.every !== 0) return;
+    var a = S.chain.from - 1, z = Math.max(S.chain.to - 1, a), n = z - a + 1, k = curSlot < a || curSlot > z ? a : curSlot;
+    if (S.chain.dir === "fwd") k = a + ((k - a + 1) % n); else if (S.chain.dir === "bwd") k = a + ((k - a - 1 + n) % n); else k = a + Math.floor(rnd() * n);
+    if (warming) { curSlot = k; return; }
+    load(SLOTS[k]); curSlot = k; status("chain → " + (k + 1)); updSlots();
+  }
+
+  // warm up so the first frame already shows a couple of bars
+  for (var w0 = 0; w0 < 240; w0++) advanceTime(1 / 60);
+  warming = false;
+
+  // ---------- drawing ----------
+  var canv = {};
+  ["clock", "seq", "acc", "sw", "voices", "mod", "out"].forEach(function (id) {
+    var el = document.getElementById("c-" + id); canv[id] = { el: el, ctx: el.getContext("2d"), w: 0, h: Number(el.getAttribute("height")) };
+  });
+  function fit() {
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    Object.keys(canv).forEach(function (k) { var c = canv[k], w = c.el.clientWidth || 300; c.w = w; c.el.width = Math.round(w * dpr); c.el.height = Math.round(c.h * dpr); c.el.style.height = c.h + "px"; c.ctx.setTransform(dpr, 0, 0, dpr, 0, 0); });
+  }
+  function clear(c) { c.ctx.fillStyle = C.bg; c.ctx.fillRect(0, 0, c.w, c.h); }
+  function txt(ctx, s, x, y, col, size, align, bold) { ctx.fillStyle = col; ctx.font = (bold ? "500 " : "") + (size || 11) + "px " + C.mono; ctx.textAlign = align || "left"; ctx.fillText(s, x, y); }
+  function fade(age, life) { return reduced ? (age < life ? 0.6 : 0) : Math.max(0, 1 - age / life); }
+  function rr(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+  function rateName(u) { for (var i = 0; i < RATES.length; i++) if (RATES[i][1] === u) return RATES[i][0]; return "?"; }
+
+  function drawClock() {
+    var c = canv.clock, ctx = c.ctx; clear(c);
+    var x0 = 54, x1 = c.w - 10, span = 4, lanes = [0, 1];
+    lanes.forEach(function (i) {
+      var y = 26 + i * 44, st = R.seq[i], e = effective(i), len = e.last - e.first + 1;
+      txt(ctx, "SEQ " + (i + 1), 8, y + 4, C.fg, 11, "left", true);
+      txt(ctx, rateName(S.seq[i].rate) + " · " + len + " steps", x0, y - 12, C.muted, 10);
+      ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x1, y); ctx.stroke();
+      st.pulses.forEach(function (pt) {
+        var x = x1 - (R.t - pt) / span * (x1 - x0); if (x < x0) return;
+        var a = fade(R.t - pt, 0.35);
+        ctx.fillStyle = C.accDim; ctx.fillRect(x - 1, y - 5, 2, 10);
+        if (a > 0) { ctx.globalAlpha = a; ctx.fillStyle = C.acc; ctx.beginPath(); ctx.arc(x, y, 2.5 + 3.5 * a, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1; }
+      });
+      st.loopT.forEach(function (pt) {
+        var x = x1 - (R.t - pt) / span * (x1 - x0); if (x < x0) return;
+        ctx.fillStyle = C.acc; ctx.fillRect(x - 1, y - 12, 2, 24);
+      });
+    });
+    // when do the two loops start together again?
+    var l1 = effective(0), l2 = effective(1);
+    var L1 = (l1.last - l1.first + 1) * S.seq[0].rate, L2 = (l2.last - l2.first + 1) * S.seq[1].rate;
+    var lcm = L1 / gcd(L1, L2) * L2, bars = lcm / TPB;
+    var s = "loops: " + (l1.last - l1.first + 1) + " × " + rateName(S.seq[0].rate) + " and " + (l2.last - l2.first + 1) + " × " + rateName(S.seq[1].rate)
+      + "  →  together every " + (Math.abs(bars - Math.round(bars)) < 1e-6 ? Math.round(bars) : bars.toFixed(2)) + (bars === 1 ? " bar" : " bars");
+    txt(ctx, s, 8, c.h - 10, C.acc, 11);
+  }
+
+  // sequencer grid geometry
+  var ROWS = [["A", 46, 24], ["B", 30, 24], ["T", 20, 2], ["V", 24, 127], ["P", 24, 100]];
+  function seqGeo(c) {
+    var lx = 40, cw = (c.w - lx - 8) / 8, gap = 4, blockH = 18, i, rows = [];
+    for (i = 0; i < ROWS.length; i++) { rows.push({ y: blockH, h: ROWS[i][1] }); blockH += ROWS[i][1] + gap; }
+    return { lx: lx, cw: cw, rows: rows, bh: blockH, top: [6, 6 + blockH + 14] };
+  }
+  function drawSeq() {
+    var c = canv.seq, ctx = c.ctx; clear(c);
+    var g = seqGeo(c);
+    for (var i = 0; i < 2; i++) {
+      var Q = S.seq[i], st = R.seq[i], e = st.eff || effective(i), y0 = g.top[i], flash = fade(R.t - st.flash, 0.25);
+      txt(ctx, "SEQ " + (i + 1), 0 + 2, y0 + 11, C.fg, 11, "left", true);
+      txt(ctx, MODES[Q.mode] + " · F" + Q.first + " L" + Q.last + (e.first !== Q.first - 1 || e.last !== Q.last - 1 ? "  (mod → F" + (e.first + 1) + " L" + (e.last + 1) + ")" : ""), g.lx, y0 + 11, C.muted, 10);
+      // range bracket
+      ctx.fillStyle = C.accDim; ctx.fillRect(g.lx + e.first * g.cw + 2, y0 + 14, (e.last - e.first + 1) * g.cw - 4, 2);
+      for (var r = 0; r < ROWS.length; r++) {
+        var R0 = ROWS[r], ry = y0 + g.rows[r].y, rh = g.rows[r].h;
+        txt(ctx, R0[0], 14, ry + rh / 2 + 4, C.muted, 11, "center");
+        for (var k = 0; k < 8; k++) {
+          var x = g.lx + k * g.cw + 2, w = g.cw - 4, inR = k >= e.first && k <= e.last, now = k === st.cur;
+          ctx.globalAlpha = inR ? 1 : 0.32;
+          ctx.fillStyle = now ? C.raised : C.surf; rr(ctx, x, ry, w, rh, 3); ctx.fill();
+          var val = Q[R0[0]][k];
+          if (R0[0] === "T") {
+            var lab = val === 0 ? "1" : val === 2 ? "2" : "·";
+            if (val !== 1) { ctx.fillStyle = now && flash > 0 ? C.acc : (val === 0 ? C.accDim : "rgba(61,217,214,.28)"); rr(ctx, x, ry, w, rh, 3); ctx.fill(); }
+            txt(ctx, lab, x + w / 2, ry + rh / 2 + 4, val === 1 ? C.muted : (now && flash > 0 ? C.bg : C.fg), 11, "center", true);
+          } else {
+            var f = R0[0] === "A" || R0[0] === "B" ? val / 24 : val / R0[2];
+            ctx.fillStyle = now ? C.acc : (R0[0] === "P" && val < 100 ? C.turq : C.accDim);
+            if (R0[0] === "P" && val < 100 && !now) ctx.globalAlpha *= 0.8;
+            var bh = Math.max(2, f * (rh - 2)); ctx.fillRect(x + 1, ry + rh - 1 - bh, w - 2, bh);
+            ctx.globalAlpha = inR ? 1 : 0.32;
+            if (R0[0] === "A" && i < 2 && S.acc[i].on && R.acc[i].v && inR) {
+              // accumulated value as a thin marker
+              var tot = clamp(val + accOfs(i, val), -12, 36), my = ry + rh - 1 - clamp(tot / 24, 0, 1) * (rh - 2);
+              ctx.fillStyle = C.turq; ctx.fillRect(x + 1, my - 1, w - 2, 2);
+            }
+            if (g.cw > 30) txt(ctx, R0[0] === "P" ? val + "%" : String(val), x + w / 2, ry + 11, now ? C.bg : C.muted, 9, "center");
+          }
+          ctx.globalAlpha = 1;
+        }
+      }
+      for (var k2 = 0; k2 < 8; k2++) txt(ctx, String(k2 + 1), g.lx + k2 * g.cw + g.cw / 2, y0 + g.bh + 6, k2 === st.cur ? C.acc : C.muted, 9, "center");
+    }
+  }
+  // edit by pointer
+  var drag = null;
+  function seqHit(x, y) {
+    var c = canv.seq, g = seqGeo(c);
+    for (var i = 0; i < 2; i++) for (var r = 0; r < ROWS.length; r++) {
+      var ry = g.top[i] + g.rows[r].y, rh = g.rows[r].h;
+      if (y >= ry - 2 && y <= ry + rh + 2 && x >= g.lx) return { i: i, r: r, k: clamp(Math.floor((x - g.lx) / g.cw), 0, 7), ry: ry, rh: rh };
+    }
+    return null;
+  }
+  function seqSet(h, y) {
+    var R0 = ROWS[h.r], Q = S.seq[h.i], f = clamp((h.ry + h.rh - y) / h.rh, 0, 1);
+    if (R0[0] === "A" || R0[0] === "B") Q[R0[0]][h.k] = Math.round(f * 24);
+    else if (R0[0] === "V") Q.V[h.k] = Math.max(1, Math.round(f * 127));
+    else if (R0[0] === "P") Q.P[h.k] = Math.round(f * 20) * 5;
+  }
+  function pos(e, el) { var b = el.getBoundingClientRect(); return [e.clientX - b.left, e.clientY - b.top]; }
+  canv.seq.el.addEventListener("pointerdown", function (e) {
+    var p = pos(e, canv.seq.el), h = seqHit(p[0], p[1]); if (!h) return;
+    if (ROWS[h.r][0] === "T") { var Q = S.seq[h.i]; Q.T[h.k] = Q.T[h.k] === 0 ? 2 : Q.T[h.k] === 2 ? 1 : 0; drawSeq(); return; }
+    drag = h; canv.seq.el.setPointerCapture(e.pointerId); seqSet(h, p[1]); drawAll();
+  });
+  canv.seq.el.addEventListener("pointermove", function (e) {
+    if (!drag) return; var p = pos(e, canv.seq.el), g = seqGeo(canv.seq);
+    drag.k = clamp(Math.floor((p[0] - g.lx) / g.cw), 0, 7); seqSet(drag, p[1]); drawAll();
+  });
+  function endDrag() { drag = null; }
+  canv.seq.el.addEventListener("pointerup", endDrag); canv.seq.el.addEventListener("pointercancel", endDrag);
+
+  function accGeo(c) { var lx = 44, cw = (c.w - lx - 8) / 8; return { lx: lx, cw: cw, top: [4, 4 + c.h / 2] , cellH: 24, half: c.h / 2 }; }
+  function drawAcc() {
+    var c = canv.acc, ctx = c.ctx; clear(c); var g = accGeo(c);
+    for (var i = 0; i < 2; i++) {
+      var A2 = S.acc[i], a = R.acc[i], y0 = g.top[i], on = A2.on;
+      txt(ctx, "S" + (i + 1) + " A", 4, y0 + 16, on ? C.fg : C.muted, 11, "left", true);
+      for (var k = 0; k < 8; k++) {
+        var x = g.lx + k * g.cw + 2, w = g.cw - 4, now = k === R.seq[i].cur, d = A2.d[k];
+        ctx.globalAlpha = on ? 1 : 0.4;
+        ctx.fillStyle = now ? C.raised : C.surf; rr(ctx, x, y0, w, g.cellH, 3); ctx.fill();
+        if (d) { ctx.fillStyle = d > 0 ? C.accDim : "rgba(61,217,214,.3)"; rr(ctx, x, y0, w, g.cellH, 3); ctx.fill(); }
+        txt(ctx, d > 0 ? "+" + d : d < 0 ? String(d) : "·", x + w / 2, y0 + 16, d ? C.fg : C.muted, 11, "center", true);
+        ctx.globalAlpha = 1;
+      }
+      // the total over time, between -limit and +limit
+      var ty = y0 + g.cellH + 8, th = g.half - g.cellH - 18, x0 = g.lx, x1 = c.w - 8, lim = A2.lim;
+      ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.strokeRect(x0 + 0.5, ty + 0.5, x1 - x0 - 1, th);
+      ctx.setLineDash([2, 3]); ctx.beginPath(); ctx.moveTo(x0, ty + th / 2); ctx.lineTo(x1, ty + th / 2); ctx.stroke(); ctx.setLineDash([]);
+      txt(ctx, "+" + lim, x0 - 4, ty + 9, C.muted, 9, "right"); txt(ctx, "−" + lim, x0 - 4, ty + th, C.muted, 9, "right");
+      ctx.strokeStyle = on ? C.acc : C.muted; ctx.lineWidth = 2; ctx.beginPath();
+      var first = true;
+      a.tr.forEach(function (p) {
+        var x = x1 - (R.t - p[0]) / 6 * (x1 - x0); if (x < x0) return;
+        var y = ty + th / 2 - p[1] / lim * (th / 2 - 3);
+        if (first) { ctx.moveTo(x, y); first = false; } else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+      txt(ctx, (on ? "total " + (a.v > 0 ? "+" : "") + a.v + (A2.snap ? " degrees" : " st") : "off") + " · " + BEH[A2.beh], x1 - 4, ty + 11, on ? C.acc : C.muted, 10, "right");
+    }
+  }
+  canv.acc.el.addEventListener("pointerdown", function (e) {
+    var p = pos(e, canv.acc.el), g = accGeo(canv.acc);
+    for (var i = 0; i < 2; i++) {
+      var y0 = g.top[i];
+      if (p[1] >= y0 && p[1] <= y0 + g.cellH && p[0] >= g.lx) {
+        var k = clamp(Math.floor((p[0] - g.lx) / g.cw), 0, 7), up = p[1] < y0 + g.cellH / 2;
+        S.acc[i].d[k] = clamp(S.acc[i].d[k] + (up ? 1 : -1), -7, 7); drawAcc(); return;
+      }
+    }
+  });
+
+  function drawSw() {
+    var c = canv.sw, ctx = c.ctx; clear(c);
+    for (var w = 0; w < 2; w++) {
+      var W = S.sw[w], st = R.sw[w], cx = c.w * (w ? 0.75 : 0.25), cy = c.h / 2 - 8, r = Math.min(c.h / 2 - 34, c.w / 4 - 30);
+      var fl = fade(R.t - st.flash, 0.4);
+      txt(ctx, "SW" + (w + 1), cx, 14, C.fg, 11, "center", true);
+      ctx.strokeStyle = C.line; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(cx, cy, r * 0.35, 0, Math.PI * 2); ctx.stroke();
+      for (var k = 0; k < 4; k++) {
+        var a = -Math.PI / 2 + k * Math.PI / 2, x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r, used = k < W.n, now = k === st.pos;
+        ctx.globalAlpha = used ? 1 : 0.25;
+        ctx.fillStyle = now ? C.acc : C.surf; ctx.beginPath(); ctx.arc(x, y, 14, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = now ? C.acc : C.line; ctx.lineWidth = 1; ctx.stroke();
+        txt(ctx, WSRC[W.ins[k]], x, y + 4, now ? C.bg : C.fg, 9, "center", true);
+        ctx.globalAlpha = 1;
+      }
+      var pa = -Math.PI / 2 + st.pos * Math.PI / 2;
+      ctx.strokeStyle = C.acc; ctx.lineWidth = 3; ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(pa) * (r - 16), cy + Math.sin(pa) * (r - 16)); ctx.stroke(); ctx.lineCap = "butt";
+      if (fl > 0) { ctx.globalAlpha = fl * 0.6; ctx.strokeStyle = C.acc; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, r + 20 + (1 - fl) * 6, 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = 1; }
+      txt(ctx, "clock " + WCLK[W.clk] + " · out " + Math.round(swVal(w)), cx, c.h - 8, C.acc, 10, "center");
+    }
+  }
+
+  var selV = 1;
+  function drawVoices() {
+    var c = canv.voices, ctx = c.ctx; clear(c);
+    var cw = (c.w - 10) / 5, narrow = cw < 120;
+    for (var v = 0; v < 5; v++) {
+      var x = 5 + v * cw, w = cw - 8, V = S.voices[v], rv = R.voices[v], dim = !V.on, col = C.v[v], j;
+      if (v === selV) { ctx.strokeStyle = col; ctx.lineWidth = 1; rr(ctx, x - 2.5, 2.5, w + 5, c.h - 5, 6); ctx.stroke(); }
+      txt(ctx, "V" + (v + 1), x + 2, 20, dim ? C.muted : col, 12, "left", true);
+      if (dim) txt(ctx, "off", x + w - 2, 20, C.muted, 10, "right");
+      else if (rv.note >= 0) { var nf = fade(R.t - rv.t, 0.3); txt(ctx, nname(rv.note), x + w - 2, 21, nf > 0 ? C.fg : col, narrow ? 12 : 15, "right", true); }
+      txt(ctx, V.trig.map(function (on, k) { return on ? STREAMS[k] : ""; }).filter(Boolean).join(" ") || "no trigger", x + 2, 36, C.muted, 9);
+      for (j = 0; j < 3; j++) {
+        var y = 44 + j * 20, I = V.ins[j], live = rv.ins[j];
+        ctx.globalAlpha = dim ? 0.45 : 1;
+        ctx.fillStyle = C.surf; rr(ctx, x, y, w, 17, 3); ctx.fill();
+        var fl = fade(R.t - rv.flash[j], 0.9);
+        if (fl > 0 && I.g && !dim) { ctx.strokeStyle = col; ctx.globalAlpha = 0.25 + 0.6 * fl; ctx.lineWidth = 1.2; rr(ctx, x + 0.6, y + 0.6, w - 1.2, 15.8, 3); ctx.stroke(); ctx.globalAlpha = dim ? 0.45 : 1; }
+        var sg = I.g > 0 ? "+" : I.g < 0 ? "−" : "0";
+        txt(ctx, sg, x + 7, y + 12, I.g > 0 ? C.acc : I.g < 0 ? C.turq : C.muted, 11, "center", true);
+        txt(ctx, VSRC[I.s], x + 16, y + 12, I.g ? C.fg : C.muted, 10);
+        if (!narrow) txt(ctx, I.g && live ? String(Math.round(live.val * 10) / 10) : "–", x + w - 4, y + 12, I.g ? C.fg : C.muted, 10, "right");
+        ctx.globalAlpha = 1;
+      }
+      txt(ctx, "base " + nname(V.base), x + 2, 117, C.muted, 9);
+      txt(ctx, "= " + (rv.sum != null ? (rv.sum >= 0 ? "+" : "") + Math.round(rv.sum * 10) / 10 : "0"), x + w - 2, 117, dim ? C.muted : C.fg, 10, "right", true);
+      // mini scope: the last notes
+      var sy = 126, sh = c.h - sy - 8, x0 = x, x1 = x + w, span = 4;
+      ctx.fillStyle = C.surf; rr(ctx, x0, sy, w, sh, 4); ctx.fill();
+      var ev = rv.ev; if (!ev.length || dim) continue;
+      var mn = 127, mxp = 0; ev.forEach(function (e) { mn = Math.min(mn, e.p); mxp = Math.max(mxp, e.p); });
+      if (mxp - mn < 12) { var mid = (mxp + mn) / 2; mn = mid - 6; mxp = mid + 6; }
+      rv.lo += (mn - rv.lo) * (mn < rv.lo ? 1 : 0.15); rv.hi += (mxp - rv.hi) * (mxp > rv.hi ? 1 : 0.15);
+      var lo = rv.lo, hi = rv.hi;
+      function X(t) { return x1 - (R.t - t) / span * w; }
+      function Y(p) { return sy + 8 + (1 - (p - lo) / Math.max(1, hi - lo)) * (sh - 22); }
+      ctx.save(); ctx.beginPath(); ctx.rect(x0, sy, w, sh); ctx.clip();
+      for (var e2 = 0; e2 < ev.length; e2++) {
+        var E = ev[e2], xa = X(E.t), xb = Math.min(x1, X(E.t + E.len)), nx = e2 + 1 < ev.length ? X(ev[e2 + 1].t) : x1;
+        ctx.globalAlpha = 0.35 + 0.65 * E.v / 127; ctx.fillStyle = col; ctx.fillRect(xa, sy + sh - 8, Math.max(1.5, xb - xa), 5); ctx.globalAlpha = 1;
+        ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(xa, Y(E.p)); ctx.lineTo(Math.min(xb, nx), Y(E.p)); ctx.stroke();
+        if (xb < nx) { ctx.globalAlpha = 0.3; ctx.beginPath(); ctx.moveTo(xb, Y(E.p)); ctx.lineTo(nx, Y(E.p)); ctx.stroke(); ctx.globalAlpha = 1; }
+        if (e2 + 1 < ev.length) { ctx.globalAlpha = 0.5; ctx.beginPath(); ctx.moveTo(nx, Y(E.p)); ctx.lineTo(nx, Y(ev[e2 + 1].p)); ctx.stroke(); ctx.globalAlpha = 1; }
+      }
+      ctx.restore();
+      if (!narrow) { txt(ctx, nname(hi), x0 + 4, sy + 12, C.muted, 8); txt(ctx, nname(lo), x0 + 4, sy + sh - 12, C.muted, 8); }
+    }
+  }
+  canv.voices.el.addEventListener("pointerdown", function (e) {
+    var p = pos(e, canv.voices.el), cw = (canv.voices.w - 10) / 5; selV = clamp(Math.floor((p[0] - 5) / cw), 0, 4); refresh(); drawVoices();
+  });
+
+  function drawMod() {
+    var c = canv.mod, ctx = c.ctx; clear(c);
+    var pad = 6, h = (c.h - pad * 4) / 3, cols = [C.acc, C.turq, C.v[2]];
+    for (var m = 0; m < 3; m++) {
+      var M = S.mx[m], y0 = pad + m * (h + pad);
+      ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.strokeRect(0.5, y0 + 0.5, c.w - 1, h);
+      ctx.setLineDash([2, 3]); ctx.beginPath(); ctx.moveTo(0, y0 + h / 2); ctx.lineTo(c.w, y0 + h / 2); ctx.stroke(); ctx.setLineDash([]);
+      ctx.strokeStyle = M.on ? cols[m] : C.muted; ctx.lineWidth = 2; ctx.beginPath();
+      var started = false;
+      R.mxTr[m].forEach(function (p) {
+        if (p[1] === null) { started = false; return; }
+        var x = c.w - (R.t - p[0]) / 5 * c.w, y = y0 + h / 2 - p[1] * (h / 2 - 3);
+        if (!started) { ctx.moveTo(x, y); started = true; } else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+      txt(ctx, (m + 1) + " · " + (M.on ? MXSRC[M.src] + " → " + MXDST[M.dst] : "off"), 8, y0 + 14, M.on ? C.fg : C.muted, 10);
+    }
+  }
+
+  var chainSig = "";
+  function updChain() {
+    if (!slotsEl) return;
+    var a = S.chain.from - 1, z = Math.max(S.chain.to, S.chain.from) - 1, sig = S.chain.on + ":" + a + ":" + z;
+    if (sig === chainSig) return; chainSig = sig;
+    Array.prototype.forEach.call(slotsEl.children, function (b, k) { b.classList.toggle("inchain", S.chain.on && k >= a && k <= z); });
+  }
+  function drawOut() {
+    var c = canv.out, ctx = c.ctx; clear(c);
+    var lo = 34, hi = 96, span = 7, x0 = 34, sc = SCALES[S.key.scale];
+    var ps = R.notes.map(function (n) { return n.p; }); if (ps.length) { lo = Math.min.apply(null, ps) - 3; hi = Math.max.apply(null, ps) + 3; if (hi - lo < 24) { var m = (hi + lo) / 2; lo = m - 12; hi = m + 12; } }
+    for (var p = Math.ceil(lo); p <= hi; p++) {
+      var y = c.h - 10 - (p - lo) / (hi - lo) * (c.h - 20);
+      if (sc.indexOf(((p - S.key.root) % 12 + 12) % 12) >= 0 && hi - lo < 56) { ctx.strokeStyle = C.line; ctx.globalAlpha = 0.5; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(c.w, y); ctx.stroke(); ctx.globalAlpha = 1; }
+      if (((p - S.key.root) % 12 + 12) % 12 === 0) txt(ctx, nname(p), 2, y + 4, C.muted, 9);
+    }
+    var bar = 240 / S.bpm;
+    for (var b = Math.floor((R.t - span) / bar); b <= R.t / bar; b++) {
+      var bx = c.w - (R.t - b * bar) / span * (c.w - x0);
+      if (bx > x0) { ctx.strokeStyle = C.line; ctx.setLineDash([2, 4]); ctx.beginPath(); ctx.moveTo(bx, 4); ctx.lineTo(bx, c.h - 4); ctx.stroke(); ctx.setLineDash([]); }
+    }
+    R.notes.forEach(function (n) {
+      var x = c.w - (R.t - n.t) / span * (c.w - x0), w = n.len / span * (c.w - x0), y = c.h - 10 - (n.p - lo) / (hi - lo) * (c.h - 20);
+      if (x + w < x0) return;
+      var a = fade(R.t - n.t, 0.5);
+      ctx.globalAlpha = 0.45 + 0.55 * n.vel / 127; ctx.fillStyle = C.v[n.v]; ctx.fillRect(Math.max(x0, x), y - 3.5, Math.max(3, w), 7); ctx.globalAlpha = 1;
+      if (a > 0) { ctx.globalAlpha = a * 0.45; ctx.fillStyle = C.v[n.v]; ctx.beginPath(); ctx.arc(x, y, 9 * a + 3, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1; }
+    });
+  }
+  function drawAll() { drawClock(); drawSeq(); drawAcc(); drawSw(); drawVoices(); drawMod(); drawOut(); updChain(); }
+
+  // ---------- controls ----------
+  var uid = 0, refreshers = [];
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  function sub(box, text, dice) {
+    var s = el("div", "sub"); s.appendChild(el("span", null, text));
+    if (dice) { var b = el("button", "dice"); b.type = "button"; b.innerHTML = DICE_SVG + "<span>roll</span>"; b.setAttribute("aria-label", "Roll " + text); b.addEventListener("click", function () { dice(); refresh(); drawAll(); }); s.appendChild(b); }
+    box.appendChild(s);
+  }
+  function slider(box, label, min, max, step, get, set, fmt) {
+    var f = el("div", "f"), id = "k" + (uid++), lab = el("label"), o = el("output"), i = el("input");
+    lab.setAttribute("for", id); lab.appendChild(document.createTextNode(label)); lab.appendChild(o);
+    i.type = "range"; i.id = id; i.min = min; i.max = max; i.step = step; i.value = get();
+    function show() { o.textContent = fmt ? fmt(Number(i.value)) : i.value; }
+    i.addEventListener("input", function () { set(Number(i.value)); show(); drawAll(); });
+    show(); f.appendChild(lab); f.appendChild(i); box.appendChild(f);
+    refreshers.push(function () { i.value = get(); show(); });
+  }
+  function select(box, label, opts, get, set) {
+    var f = el("div", "f"), id = "k" + (uid++), lab = el("label", null, label), s = el("select");
+    lab.setAttribute("for", id); s.id = id;
+    opts.forEach(function (o) { var op = el("option", null, o[0]); op.value = String(o[1]); s.appendChild(op); });
+    s.value = String(get());
+    s.addEventListener("change", function () { var v = s.value, n = Number(v); set(isNaN(n) ? v : n); drawAll(); });
+    f.appendChild(lab); f.appendChild(s); box.appendChild(f);
+    refreshers.push(function () { s.value = String(get()); });
+  }
+  function seg(box, label, opts, get, set) {
+    var f = el("div", "f"), lab = el("div", "lab", label), row = el("div", "seg"); row.setAttribute("role", "group"); row.setAttribute("aria-label", label);
+    var bs = opts.map(function (o) { var b = el("button", null, o[0]); b.type = "button"; b.addEventListener("click", function () { set(o[1]); upd(); drawAll(); }); row.appendChild(b); return [b, o[1]]; });
+    function upd() { bs.forEach(function (x) { x[0].setAttribute("aria-pressed", String(get() === x[1])); }); }
+    upd(); f.appendChild(lab); f.appendChild(row); box.appendChild(f); refreshers.push(upd);
+  }
+  function toggle(box, label, get, set) { seg(box, label, [["off", false], ["on", true]], get, set); }
+  function list(a) { return a.map(function (x, i) { return [x, i]; }); }
+  function pct(v) { return v + " %"; }
+  var rateOpts = RATES.map(function (r) { return [r[0], r[1]]; });
+
+  function build() {
+    var b = document.getElementById("k-clock");
+    [0, 1].forEach(function (i) { select(b, "SEQ " + (i + 1) + " rate", rateOpts, function () { return S.seq[i].rate; }, function (v) { S.seq[i].rate = v; }); });
+    slider(b, "Swing", 50, 75, 1, function () { return S.swing; }, function (v) { S.swing = v; }, pct);
+    var cd = el("div", "f"); cd.appendChild(el("div", "lab", "clock dice"));
+    var cb = el("button", "dice"); cb.type = "button"; cb.innerHTML = DICE_SVG + "<span>roll rates</span>"; cb.addEventListener("click", function () { rollClocks(); refresh(); drawAll(); });
+    cd.appendChild(cb); b.appendChild(cd);
+
+    b = document.getElementById("k-seq");
+    [0, 1].forEach(function (i) {
+      sub(b, "SEQ " + (i + 1), function () { rollSeq(i); });
+      seg(b, "mode", list(MODES), function () { return S.seq[i].mode; }, function (v) { S.seq[i].mode = v; });
+      slider(b, "F (first)", 1, 8, 1, function () { return S.seq[i].first; }, function (v) { S.seq[i].first = v; });
+      slider(b, "L (last)", 1, 8, 1, function () { return S.seq[i].last; }, function (v) { S.seq[i].last = v; });
+    });
+
+    b = document.getElementById("k-acc");
+    [0, 1].forEach(function (i) {
+      sub(b, "S" + (i + 1) + " A", i === 0 ? rollAcc : null);
+      toggle(b, "on", function () { return S.acc[i].on; }, function (v) { S.acc[i].on = v; R.acc[i].v = 0; });
+      seg(b, "at limit", list(BEH), function () { return S.acc[i].beh; }, function (v) { S.acc[i].beh = v; });
+      slider(b, "limit", 1, 24, 1, function () { return S.acc[i].lim; }, function (v) { S.acc[i].lim = v; R.acc[i].v = clamp(R.acc[i].v, -v, v); });
+      seg(b, "direction", list(ADIR), function () { return S.acc[i].dir; }, function (v) { S.acc[i].dir = v; });
+      select(b, "reset", ARST, function () { return S.acc[i].rst; }, function (v) { S.acc[i].rst = v; });
+      seg(b, "counts", [["semi", false], ["scale", true]], function () { return S.acc[i].snap; }, function (v) { S.acc[i].snap = v; });
+    });
+    var rz = el("div", "f"); rz.appendChild(el("div", "lab", "totals"));
+    var rzb = el("button", null, "reset both"); rzb.type = "button"; rzb.addEventListener("click", function () { R.acc.forEach(function (a) { a.v = 0; a.sign = 1; a.loops = 0; }); drawAcc(); });
+    rz.appendChild(rzb); b.appendChild(rz);
+
+    b = document.getElementById("k-sw");
+    [0, 1].forEach(function (w) {
+      sub(b, "SW" + (w + 1), w === 0 ? rollSw : null);
+      seg(b, "inputs", [["1", 1], ["2", 2], ["3", 3], ["4", 4]], function () { return S.sw[w].n; }, function (v) { S.sw[w].n = v; });
+      select(b, "clock", list(WCLK), function () { return S.sw[w].clk; }, function (v) { S.sw[w].clk = v; });
+      [0, 1, 2, 3].forEach(function (k) { select(b, "in " + (k + 1), list(WSRC), function () { return S.sw[w].ins[k]; }, function (v) { S.sw[w].ins[k] = v; }); });
+    });
+
+    b = document.getElementById("k-voices");
+    var vs = el("div", "f"); vs.style.gridColumn = "1 / -1";
+    vs.appendChild(el("div", "lab", "edit voice"));
+    var vrow = el("div", "seg vsel"); vrow.setAttribute("role", "group"); vrow.setAttribute("aria-label", "Voice to edit");
+    var vbtn = [0, 1, 2, 3, 4].map(function (v) { var x = el("button", null, "V" + (v + 1)); x.type = "button"; x.addEventListener("click", function () { selV = v; refresh(); drawVoices(); }); vrow.appendChild(x); return x; });
+    var rv = el("button", "dice"); rv.type = "button"; rv.innerHTML = DICE_SVG + "<span>roll voices</span>"; rv.addEventListener("click", function () { rollVoices(); refresh(); drawAll(); });
+    vrow.appendChild(rv);
+    vs.appendChild(vrow); b.appendChild(vs);
+    refreshers.push(function () { vbtn.forEach(function (x, v) { x.setAttribute("aria-pressed", String(v === selV)); x.style.borderColor = v === selV ? "" : C.v[v]; }); });
+    function V() { return S.voices[selV]; }
+    toggle(b, "voice", function () { return V().on; }, function (v) { V().on = v; });
+    [0, 1, 2].forEach(function (j) {
+      seg(b, "input " + (j + 1) + " sign", [["−", -1], ["0", 0], ["+", 1]], function () { return V().ins[j].g; }, function (v) { V().ins[j].g = v; });
+      select(b, "input " + (j + 1), list(VSRC), function () { return V().ins[j].s; }, function (v) { V().ins[j].s = v; });
+    });
+    slider(b, "base", 24, 84, 1, function () { return V().base; }, function (v) { V().base = v; }, nname);
+    slider(b, "offset", -24, 24, 1, function () { return V().ofs; }, function (v) { V().ofs = v; }, function (v) { return (v > 0 ? "+" : "") + v + " st"; });
+    var tf = el("div", "f"), tl = el("div", "lab", "triggered by"), trow = el("div", "seg"); trow.setAttribute("role", "group"); trow.setAttribute("aria-label", "Trigger streams");
+    var tb = STREAMS.map(function (s, k) { var x = el("button", null, s); x.type = "button"; x.addEventListener("click", function () { V().trig[k] = !V().trig[k]; upd(); drawAll(); }); trow.appendChild(x); return x; });
+    function upd() { tb.forEach(function (x, k) { x.setAttribute("aria-pressed", String(V().trig[k])); }); }
+    tf.appendChild(tl); tf.appendChild(trow); b.appendChild(tf); refreshers.push(upd);
+    toggle(b, "fit to key", function () { return V().q; }, function (v) { V().q = v; });
+    slider(b, "gate length", 10, 300, 5, function () { return V().len; }, function (v) { V().len = v; }, pct);
+    select(b, "velocity from", list(VELSRC), function () { return V().vs; }, function (v) { V().vs = v; });
+    slider(b, "Vel", 1, 127, 1, function () { return V().vel; }, function (v) { V().vel = v; });
+
+    b = document.getElementById("k-mod");
+    [0, 1, 2].forEach(function (m) {
+      sub(b, "Slot " + (m + 1), m === 0 ? rollMod : null);
+      toggle(b, "on", function () { return S.mx[m].on; }, function (v) { S.mx[m].on = v; });
+      select(b, "source", list(MXSRC), function () { return S.mx[m].src; }, function (v) { S.mx[m].src = v; });
+      select(b, "to", list(MXDST), function () { return S.mx[m].dst; }, function (v) { S.mx[m].dst = v; });
+      slider(b, "depth", -100, 100, 1, function () { return S.mx[m].dep; }, function (v) { S.mx[m].dep = v; }, pct);
+      slider(b, "offset", -100, 100, 1, function () { return S.mx[m].ofs; }, function (v) { S.mx[m].ofs = v; }, pct);
+    });
+
+    b = document.getElementById("k-pat");
+    slotsEl = el("div", "slots"); slotsEl.setAttribute("role", "group"); slotsEl.setAttribute("aria-label", "Pattern slots");
+    for (var k = 0; k < 8; k++) (function (k) { var x = el("button", null, String(k + 1)); x.type = "button"; x.addEventListener("click", function () { slotClick(k); }); slotsEl.appendChild(x); })(k);
+    b.appendChild(slotsEl);
+    var sf = el("div", "f"); sf.appendChild(el("div", "lab", "keep yours"));
+    storeBtn = el("button", null, "store"); storeBtn.type = "button"; storeBtn.addEventListener("click", function () { armed = !armed; updSlots(); status(armed ? "click a slot" : ""); });
+    sf.appendChild(storeBtn); b.appendChild(sf);
+    statusEl = el("div", "status"); statusEl.setAttribute("role", "status"); b.appendChild(statusEl);
+    toggle(b, "chain", function () { return S.chain.on; }, function (v) { S.chain.on = v; chainCount = 0; });
+    select(b, "every", [["1 bar", 1], ["2 bars", 2], ["4 bars", 4], ["8 bars", 8]], function () { return S.chain.every; }, function (v) { S.chain.every = v; });
+    seg(b, "direction", [["fwd", "fwd"], ["bwd", "bwd"], ["rnd", "rnd"]], function () { return S.chain.dir; }, function (v) { S.chain.dir = v; });
+    slider(b, "from", 1, 8, 1, function () { return S.chain.from; }, function (v) { S.chain.from = v; });
+    slider(b, "to", 1, 8, 1, function () { return S.chain.to; }, function (v) { S.chain.to = v; });
+
+    b = document.getElementById("k-key");
+    select(b, "root", list(NAMES), function () { return S.key.root; }, function (v) { S.key.root = v; });
+    select(b, "scale", Object.keys(SCALES).map(function (k) { return [k, k]; }), function () { return S.key.scale; }, function (v) { S.key.scale = v; });
+
+    var lg = document.getElementById("legend");
+    TIMBRE.forEach(function (t, v) { var s = el("span"); var i = el("i"); i.style.background = C.v[v]; s.appendChild(i); s.appendChild(document.createTextNode("V" + (v + 1) + " " + t)); lg.appendChild(s); });
+    updSlots();
+  }
+  function refresh() { refreshers.forEach(function (f) { f(); }); var bo = document.getElementById("bpm"); bo.value = S.bpm; document.getElementById("bpm-o").textContent = S.bpm + " BPM"; }
+
+  // ---------- transport ----------
+  var playing = true, last = 0;
+  var playB = document.getElementById("play"), soundB = document.getElementById("sound");
+  playB.addEventListener("click", function () { playing = !playing; playB.textContent = playing ? "Pause" : "Play"; playB.classList.toggle("on", playing); last = 0; });
+  soundB.addEventListener("click", function () {
+    soundOn = !soundOn; soundB.setAttribute("aria-pressed", String(soundOn)); soundB.textContent = soundOn ? "Sound on" : "Sound off";
+    if (soundOn) { audio(); if (A.ctx.state === "suspended") A.ctx.resume(); if (!playing) playB.click(); }
+  });
+  document.getElementById("bpm").addEventListener("input", function (e) {
+    var v = Number(e.target.value), tps0 = TPB * S.bpm / 240; S.bpm = v; song = R.n / (TPB * v / 240);   // keep the position in ticks
+    document.getElementById("bpm-o").textContent = v + " BPM"; void tps0;
+  });
+  document.getElementById("vol").addEventListener("input", function (e) { S.vol = Number(e.target.value); document.getElementById("vol-o").textContent = S.vol + " %"; if (A) A.master.gain.value = S.vol / 100 * 0.85; });
+  var drB = document.getElementById("drums");
+  drB.addEventListener("click", function () { S.drums = !S.drums; drB.setAttribute("aria-pressed", String(S.drums)); });
+  var dA = document.getElementById("diceall"); dA.innerHTML = DICE_SVG + "<span>Roll all</span>";
+  dA.addEventListener("click", function () { rollAll(); refresh(); drawAll(); });
+  document.getElementById("reset").addEventListener("click", function () {
+    var keep = { bpm: S.bpm, vol: S.vol, drums: S.drums };
+    S = defaults(); S.voices.forEach(function (v) { if (v.vel == null) v.vel = 100; }); S.bpm = keep.bpm; S.vol = keep.vol; S.drums = keep.drums;
+    SLOTS = starts(); curSlot = 0; armed = false; song = 0; lastK = [-1, -1]; runtime(); refresh(); updSlots(); drawAll();
+  });
+
+  function frame(ts) {
+    if (playing) {
+      var dt = last ? Math.min(0.1, (ts - last) / 1000) : 0;
+      advanceTime(dt);
+    }
+    last = ts; drawAll(); requestAnimationFrame(frame);
+  }
+  build(); fit(); refresh(); drawAll();
+  window.addEventListener("resize", function () { fit(); drawAll(); });
+  requestAnimationFrame(frame);
+})();
+</script>
