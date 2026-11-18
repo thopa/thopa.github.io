@@ -1,21 +1,177 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>thopa · try the devices</title>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>thopa · Max for Live devices</title>
+<meta name="description" content="Max for Live devices for Live 11 and 12, played from Push 3. Each one is named after a Spanish wind.">
+<meta name="theme-color" content="#141417">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;700&display=swap" rel="stylesheet">
 <style>
-body{margin:0;background:#141417;color:#d6dbe0;font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
-.w{max-width:720px;margin:0 auto;padding:40px 20px}
-h1{font-size:30px;margin:0 0 6px}p{color:#9a9ea6;margin:0 0 24px}
-a{display:flex;justify-content:space-between;gap:12px;padding:14px 16px;margin-bottom:8px;border:1px solid #3a3c42;border-radius:10px;background:#1c1d21;color:#d6dbe0;text-decoration:none}
-a:hover,a:focus-visible{border-color:#8cc7ff;outline:none}
-span{font:400 12px ui-monospace,Menlo,monospace;color:#8f919a}
-</style></head><body><div class="w">
-<h1>thopa · Max for Live devices</h1>
-<p>Interactive guides: each page runs the device in your browser, with sound. Click and listen before you load it in Live.</p>
-<a href="cierzo-lite/">Cierzo Lite <span>chords from one pad · free</span></a>
-<a href="abrego-lite/">Abrego Lite <span>two sequencers, five voices · free</span></a>
-<a href="abrego/">Abrego <span>walk-through</span></a>
-<a href="galerna/">Galerna <span>16-band filter bank</span></a>
-<a href="virazon/">Virazón <span>shift register sequencer</span></a>
-<a href="virazon-lite/">Virazón Lite <span>shift register sequencer · free</span></a>
-<a href="network/">Network <span>modulators that move each other</span></a>
-</div></body></html>
+:root{
+  --bg:#141417; --surface:#303338; --border:#45474d; --label:#8f919a;
+  --text:#d6dbe0; --hover:#ebedf2; --accent:#3dd9d6; --muted:#73757d;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--text);font:500 14px/1.6 Inter,"IBM Plex Sans",system-ui,sans-serif;font-variant-numeric:tabular-nums}
+a{color:var(--text);text-decoration:none}
+a:hover{color:var(--hover)}
+:focus-visible{outline:1px solid var(--accent);outline-offset:3px}
+.w{max-width:960px;margin:0 auto;padding:0 24px}
+
+header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:24px 0;border-bottom:1px solid var(--border)}
+.mark{display:flex;align-items:center;gap:10px;font:700 18px Inter,system-ui,sans-serif;letter-spacing:-.01em}
+.mark svg{display:block}
+nav{display:flex;gap:24px}
+nav a{color:var(--label);font-size:12px}
+nav a:hover{color:var(--text)}
+
+.intro{padding:48px 0 40px}
+.intro h1{font:700 32px/1.2 Inter,system-ui,sans-serif;letter-spacing:-.02em;margin:0 0 12px;max-width:22ch}
+.intro p{margin:0;color:var(--label);max-width:58ch}
+
+.sec{display:flex;align-items:center;gap:12px;margin:0 0 8px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--label)}
+.sec::after{content:"";flex:1;height:1px;background:var(--border)}
+
+.dev{display:grid;grid-template-columns:168px 1fr;gap:24px;padding:24px 0;border-bottom:1px solid var(--border)}
+.dev:last-of-type{border-bottom:0}
+.dev img{display:block;width:168px;height:168px;border:1px solid var(--border);background:var(--bg)}
+.dev h2{font:700 24px/1.2 Inter,system-ui,sans-serif;letter-spacing:-.01em;margin:0}
+.dev .line{margin:4px 0 0;font-size:18px;color:var(--text)}
+.dev .what{margin:12px 0 0;color:var(--label);max-width:60ch}
+.dev .spec{margin:12px 0 0;font-size:12px;color:var(--muted)}
+.get{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.btn{display:inline-flex;align-items:baseline;gap:8px;padding:7px 12px;border:1px solid var(--border);border-radius:2px;background:var(--surface);font-size:13px}
+.btn:hover{border-color:var(--label)}
+.btn span{color:var(--label);font-size:12px}
+.btn.try{background:transparent;color:var(--accent);border-color:var(--border)}
+.btn.try:hover{border-color:var(--accent);color:var(--accent)}
+
+.more{padding:8px 0 40px}
+.row{display:grid;grid-template-columns:168px 1fr auto;gap:24px;padding:12px 0;border-bottom:1px solid var(--border);align-items:baseline}
+.row:last-child{border-bottom:0}
+.row b{font-weight:700}
+.row .d{color:var(--label)}
+.row a{color:var(--accent);font-size:13px}
+
+.about{display:grid;grid-template-columns:168px 1fr;gap:24px;padding:24px 0 48px}
+.about p{margin:0 0 12px;max-width:62ch;color:var(--label)}
+.about p:first-child{color:var(--text)}
+.about a{color:var(--accent)}
+
+footer{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 24px;padding:20px 0 32px;border-top:1px solid var(--border);font-size:12px;color:var(--muted)}
+footer a{color:var(--label)}
+
+@media (max-width:640px){
+  .intro{padding:32px 0 28px}
+  .intro h1{font-size:24px}
+  .dev{grid-template-columns:72px 1fr;gap:4px 16px}
+  .dev .line{font-size:15px;margin:0;align-self:start}
+  .dev .what{margin-top:16px}
+  .dev img{width:72px;height:72px}
+  .dev .what,.dev .spec,.dev .get{grid-column:1/-1}
+  .dev>div{display:contents}
+  .dev h2,.dev .line{grid-column:2}
+  .dev h2{align-self:end;grid-row:1}
+  .dev>a{grid-row:1/3}
+  .row{grid-template-columns:1fr auto;gap:4px 16px}
+  .row .d{grid-column:1/-1;order:3}
+  .about{grid-template-columns:1fr;gap:0}
+  .about .sp{display:none}
+  nav{gap:16px}
+}
+</style>
+</head>
+<body>
+<div class="w">
+
+<header>
+  <a class="mark" href="/" aria-label="thopa, home">
+    <svg width="22" height="16" viewBox="0 0 22 16" fill="none" stroke="#3dd9d6" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M1 3h12M1 8h19M1 13h9"/></svg>
+    thopa
+  </a>
+  <nav aria-label="Main">
+    <a href="#devices">Devices</a>
+    <a href="#about">About</a>
+    <a href="mailto:hello@thopadevices.com">Contact</a>
+  </nav>
+</header>
+
+<section class="intro">
+  <h1>Max for Live devices, played from Push 3.</h1>
+  <p>Sequencers and chord tools for Live 11 and 12. Every device has a guide that runs in the browser with sound, so you can try it before you load it. Each one is named after a Spanish wind.</p>
+</section>
+
+<div class="sec" id="devices">Devices</div>
+
+<article class="dev" id="virazon">
+  <a href="/virazon/" tabindex="-1" aria-hidden="true"><img src="img/virazon.webp" width="168" height="168" alt=""></a>
+  <div>
+    <h2>Virazón</h2>
+    <p class="line">A looping shift register, steered.</p>
+    <p class="what">Sixteen bits go round in a loop and are read as a melody. Write sets how often a new bit comes in, from locked to never repeating. Six voices read the same loop from different places; lanes and a second set of registers move the rest.</p>
+    <p class="spec">Live 11 &amp; 12 · Push 3 · six voices · lanes · morph</p>
+    <div class="get">
+      <a class="btn try" href="/virazon/">Try it in the browser</a>
+      <a class="btn" href="https://thopa.gumroad.com/l/virazon">Virazón <span>29 €</span></a>
+      <a class="btn" href="https://thopa.gumroad.com/l/virazon-lite">Virazón Lite <span>free</span></a>
+    </div>
+  </div>
+</article>
+
+<article class="dev" id="abrego">
+  <a href="/abrego/" tabindex="-1" aria-hidden="true"><img src="img/abrego.webp" width="168" height="168" alt=""></a>
+  <div>
+    <h2>Abrego</h2>
+    <p class="line">Two sequences, five voices.</p>
+    <p class="what">Two sequences of different lengths play against each other, so the pattern only repeats when both line up again. Accumulators shift the notes on every pass. Abrego Voice sends each of the five voices to its own track.</p>
+    <p class="spec">Live 11 &amp; 12 · Push 3 · five voices · accumulators · morph</p>
+    <div class="get">
+      <a class="btn try" href="/abrego-lite/">Try it in the browser</a>
+      <a class="btn" href="https://thopa.gumroad.com/l/abrego">Abrego <span>30 €</span></a>
+      <a class="btn" href="https://thopa.gumroad.com/l/abrego-lite">Abrego Lite <span>free</span></a>
+    </div>
+  </div>
+</article>
+
+<article class="dev" id="cierzo">
+  <a href="/cierzo-lite/" tabindex="-1" aria-hidden="true"><img src="img/cierzo.webp" width="168" height="168" alt=""></a>
+  <div>
+    <h2>Cierzo Lite</h2>
+    <p class="line">Diatonic chords from Push 3 pads.</p>
+    <p class="what">Every pad plays a chord that fits the key. Hints show what usually comes next; modifier pads change voicing, inversion and extensions; borrowed chords step outside the key. With Push 3 and Live 12, MPE moves the whole chord.</p>
+    <p class="spec">Live 11 &amp; 12 · Push 3, any 8×8 grid or a keyboard · 35 scales · MPE</p>
+    <div class="get">
+      <a class="btn try" href="/cierzo-lite/">Try it in the browser</a>
+      <a class="btn" href="https://thopa.gumroad.com/l/cierzo-lite">Cierzo Lite <span>free</span></a>
+    </div>
+  </div>
+</article>
+
+<div class="sec" style="margin-top:24px">In progress</div>
+<div class="more">
+  <div class="row"><b>Galerna</b><span class="d">16-band filter bank with a vocoder</span><a href="/galerna/">Guide</a></div>
+  <div class="row"><b>Network</b><span class="d">Modulators that move each other</span><a href="/network/">Guide</a></div>
+</div>
+
+<div class="sec" id="about">About</div>
+<div class="about">
+  <div class="sp"></div>
+  <div>
+    <p>I make these devices in Madrid, for the way I play: Push 3 on the desk, Live doing the rest.</p>
+    <p>The Lite editions are free and stay free. The full editions pay for the time that goes into the next one. Updates are free for anyone who has a device.</p>
+    <p>Questions, bugs, ideas: <a href="mailto:hello@thopadevices.com">hello@thopadevices.com</a></p>
+  </div>
+</div>
+
+<footer>
+  <span>© thopa 2026 · Madrid</span>
+  <span><a href="https://thopa.gumroad.com">Gumroad</a> · <a href="https://www.instagram.com/thopa777/">Instagram</a> · <a href="mailto:hello@thopadevices.com">hello@thopadevices.com</a></span>
+</footer>
+
+</div>
+</body>
+</html>
