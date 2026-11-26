@@ -68,6 +68,11 @@ nav a:hover{color:var(--text)}
 .news .hp{position:absolute;left:-9999px}
 .news .msg{margin:12px 0 0;font-size:12px;color:var(--muted)}
 .news .msg.ok{color:var(--accent)}
+.news ul{list-style:none;margin:0 0 28px;padding:0;max-width:62ch}
+.news li{display:grid;grid-template-columns:64px 1fr;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);color:var(--text)}
+.news li:first-child{padding-top:0}
+.news li time{color:var(--muted);font-size:12px;padding-top:2px}
+.news li a{color:var(--accent)}
 
 .about{display:grid;grid-template-columns:168px 1fr;gap:24px;padding:24px 0 48px}
 .about p{margin:0 0 12px;max-width:62ch;color:var(--label)}
@@ -224,6 +229,13 @@ footer a{color:var(--label)}
 <div class="news">
   <div class="sp"></div>
   <div>
+    <ul>
+      <li><time datetime="2026-11-26">26 Nov</time><span><a href="gregal/">Gregal</a> and <a href="network/">Network</a> are out: two modulation devices, both with a page to try them in the browser.</span></li>
+      <li><time datetime="2026-11-22">22 Nov</time><span>Black Friday until 1 December: every full device 9 € instead of 15 €, the <a href="https://thopa.gumroad.com/l/bundle">bundle</a> 22 € instead of 35 €.</span></li>
+      <li><time datetime="2026-11-22">22 Nov</time><span><a href="galerna/">Galerna</a> is out, the first audio device: a 16-band filterbank with a vocoder.</span></li>
+      <li><time datetime="2026-11-18">18 Nov</time><span><a href="virazon/">Virazón</a> is out, with a free Lite edition.</span></li>
+      <li><time datetime="2026-11-13">13 Nov</time><span><a href="abrego/">Abrego</a> is out, with a free Lite edition.</span></li>
+    </ul>
     <p>One email when a new device or a big update comes out. Nothing else.</p>
     <form id="kit" action="https://app.kit.com/forms/10246635/subscriptions" method="post">
       <input type="email" name="email_address" placeholder="Email address" aria-label="Email address" required autocomplete="email">
