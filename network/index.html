@@ -1,170 +1,202 @@
-<title>How Network Moves</title>
-<meta name="claude:viewport-fit-sides" content="cover">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How Network Moves · 1.1.7</title>
 <style>
-/* Layout: the family's dark device-panel page (as How Abrego Moves). The real Network core runs in the page;
-   a network graph on top, the eight scopes + edit panel under it, then what the network moves: a synth, drums, a melody. */
+/* Network virtual guide: flat dark panel page. The real Network core runs in the page (pasted in unchanged by
+   docs/build_guide.py); names, ranges and defaults of the main controls come from the data the build passes. */
 :root {
-  --bg: #121316;
-  --surface: #1a1b20;
-  --raised: #26272e;
-  --line: #34353e;
-  --fg: #dfe0e6;
-  --muted: #9093a0;
-  --accent: #b49cff;      /* bank A, provisional Network accent */
-  --accent-dim: #4b3f74;
+  --bg: #141417;
+  --surface: #1E1F22;
+  --raised: #2a2c31;
+  --line: #3a3c42;
+  --fg: #D6DBE0;
+  --muted: #8f919a;
+  --accent: #b59cff;      /* Network violet, bank A */
+  --accent-dim: #4a4070;
   --turq: #3dd9d6;        /* bank B */
   --turq-dim: #1d5c5b;
-  --hot: #ff7d5c;         /* clicks, gates */
-  --display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", sans-serif;
-  --body: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
-  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --hot: #f2c14e;         /* triggers, feedback */
+  --body: Inter, -apple-system, "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: Inter, -apple-system, "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial, sans-serif;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
 body {
-  background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.55; margin: 0;
-  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
-  padding-block: 32px 56px;
+  background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.5; margin: 0;
+  padding-left: max(14px, env(safe-area-inset-left, 0px)); padding-right: max(14px, env(safe-area-inset-right, 0px));
+  padding-block: 24px 48px;
 }
-body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
-.wrap { max-width: 1120px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
-header { display: flex; flex-direction: column; gap: 10px; max-width: 74ch; }
-.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); }
-h1 { font-family: var(--display); font-weight: 700; font-size: clamp(34px, 6vw, 58px); line-height: 1.02; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
-.lead { color: var(--muted); margin: 0; font-size: 16px; }
-.lead b { color: var(--fg); font-weight: 500; }
+.wrap { max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+header { display: flex; flex-direction: column; gap: 6px; max-width: 78ch; }
+.eyebrow { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+h1 { font-weight: 700; font-size: clamp(30px, 6vw, 48px); line-height: 1.05; margin: 0; letter-spacing: -.01em; }
+.lead { color: var(--muted); margin: 0; font-size: 15px; }
+.lead b { color: var(--fg); font-weight: 600; }
 .bar {
-  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
   display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; padding: 10px 12px;
-  border: 1px solid var(--line); border-radius: 10px; background: var(--surface);
+  border: 1px solid var(--line); border-radius: 8px; background: var(--surface);
 }
+.bar .f { min-width: 130px; flex: 1 1 130px; max-width: 220px; }
+.bar .modes { margin-left: auto; display: flex; gap: 6px; }
+.tour { background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 8px; padding: 12px 14px; display: flex; gap: 12px 20px; align-items: flex-start; flex-wrap: wrap; }
+.tour .step { flex: 1 1 360px; min-width: 0; }
+.tour h2 { margin: 0 0 2px; font-size: 17px; font-weight: 700; }
+.tour p { margin: 0; font-size: 14px; color: var(--fg); }
+.tour .listen { margin-top: 4px; color: var(--accent); font-size: 14px; }
+.tour .nav { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.count { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 13px; min-width: 44px; text-align: center; }
+.main { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; align-items: start; }
 .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
-.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 14px 16px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .card.wide { grid-column: 1 / -1; }
-.card h2 { font-family: var(--display); font-weight: 700; font-size: 20px; margin: 0; letter-spacing: .02em; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
-.card h2 .n { font: 500 12px var(--mono); color: var(--accent); letter-spacing: .08em; }
-.card h2 .feeds { margin-left: auto; font: 400 11px var(--mono); color: var(--muted); letter-spacing: .06em; }
+.card h2 { font-weight: 700; font-size: 16px; margin: 0; letter-spacing: .03em; text-transform: uppercase; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.card h2 .n { font-size: 12px; color: var(--accent); letter-spacing: .08em; }
+.card h2 .feeds { margin-left: auto; font-size: 11px; font-weight: 400; color: var(--muted); letter-spacing: .04em; text-transform: none; }
 .what { margin: 0; color: var(--muted); font-size: 14px; max-width: 82ch; }
-.what b { color: var(--fg); font-weight: 500; }
+.what b { color: var(--fg); font-weight: 600; }
+.small { margin: 0; color: var(--muted); font-size: 12.5px; }
 .try { margin: 0; font-size: 13px; color: var(--fg); border-left: 2px solid var(--accent); padding: 2px 0 2px 10px; }
-.try > span:first-child { font: 500 11px var(--mono); color: var(--accent); letter-spacing: .1em; text-transform: uppercase; margin-right: 6px; }
-canvas { width: 100%; display: block; border-radius: 8px; background: var(--bg); touch-action: manipulation; }
+.try > span:first-child { font-size: 11px; font-weight: 600; color: var(--accent); letter-spacing: .1em; text-transform: uppercase; margin-right: 6px; }
+canvas { width: 100%; display: block; border-radius: 6px; background: var(--bg); touch-action: manipulation; }
 canvas.pick { cursor: pointer; }
-.ctl { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px 14px; align-items: end; }
-.ctl .sub { grid-column: 1 / -1; font: 500 11px var(--mono); color: var(--accent); letter-spacing: .1em; text-transform: uppercase; margin-top: 4px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ctl { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px 14px; align-items: end; }
+.ctl .sub { grid-column: 1 / -1; font-size: 11px; font-weight: 600; color: var(--accent); letter-spacing: .1em; text-transform: uppercase; margin-top: 4px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .ctl .sub.b { color: var(--turq); }
+.ctl .what { grid-column: 1 / -1; }
 .ctl .span2 { grid-column: span 2; }
 .f { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-.f label, .f .lab { font: 400 11px var(--mono); color: var(--muted); display: flex; justify-content: space-between; gap: 8px; }
+.f label, .f .lab { font-size: 12px; color: var(--muted); display: flex; justify-content: space-between; gap: 8px; }
 .f output { color: var(--fg); font-variant-numeric: tabular-nums; }
-input[type=range] { width: 100%; accent-color: var(--accent); margin: 2px 0; }
+input[type=range] { width: 100%; accent-color: var(--accent); margin: 2px 0; min-height: 24px; }
 .bankB input[type=range] { accent-color: var(--turq); }
+.bankB button[aria-pressed="true"] { background: var(--turq); border-color: var(--turq); }
+.f > button { align-self: flex-start; min-width: 64px; }
+.bankB .seg button[aria-pressed="true"] { background: var(--turq); border-color: var(--turq); }
 select {
-  font: 400 13px var(--mono); color: var(--fg); background: var(--raised); border: 1px solid var(--line);
-  border-radius: 6px; padding: 5px 6px; width: 100%;
+  font: 400 13px var(--body); color: var(--fg); background: var(--raised); border: 1px solid var(--line);
+  border-radius: 6px; padding: 5px 6px; width: 100%; min-height: 32px;
 }
 .seg { display: flex; gap: 4px; flex-wrap: wrap; }
 .seg button { flex: 1 1 auto; }
 button {
-  font: 500 12px var(--mono); color: var(--fg); background: var(--raised); border: 1px solid var(--line);
-  border-radius: 6px; padding: 6px 10px; cursor: pointer; min-height: 32px;
+  font: 500 13px var(--body); color: var(--fg); background: var(--raised); border: 1px solid var(--line);
+  border-radius: 6px; padding: 6px 12px; cursor: pointer; min-height: 34px;
 }
 button[aria-pressed="true"], button.on { background: var(--accent); color: var(--bg); border-color: var(--accent); }
-.bankB button[aria-pressed="true"] { background: var(--turq); border-color: var(--turq); }
-button.dice { display: inline-flex; align-items: center; gap: 6px; }
-button.dice svg { width: 14px; height: 14px; }
-button:focus-visible, select:focus-visible, input:focus-visible, canvas:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.bar .f { min-width: 130px; }
-.scenes { display: flex; flex-wrap: wrap; gap: 6px; }
-.rules { display: grid; grid-template-columns: auto auto minmax(80px, 1fr) minmax(110px, 1.2fr) minmax(90px, 1fr) minmax(90px, 1fr) auto; gap: 6px 8px; align-items: center; font: 400 12px var(--mono); color: var(--muted); }
-.rules .h { font-size: 11px; letter-spacing: .06em; }
-.rules .lamp { width: 14px; height: 14px; border-radius: 50%; background: var(--raised); border: 1px solid var(--line); }
-.rules .note { color: var(--fg); }
-.outs { display: grid; grid-template-columns: minmax(80px, auto) minmax(80px, 1fr) minmax(120px, 1.4fr) minmax(120px, 1.4fr) 56px; gap: 6px 10px; align-items: center; font: 400 12px var(--mono); color: var(--muted); }
+button:disabled { opacity: .4; cursor: default; }
+button:focus-visible, select:focus-visible, input:focus-visible, canvas:focus-visible, .pad:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+.chips { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; }
+.chip { background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 3px 2px; text-align: center; font-size: 11px; color: var(--muted); line-height: 1.25; min-width: 0; }
+.chip b { display: block; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.chip.sel { border-color: var(--fg); }
+.chip.off { opacity: .45; }
+.chip.a b { color: var(--accent); } .chip.b b { color: var(--turq); }
+.padbox { background: #0e0e10; border: 1px solid var(--line); border-radius: 8px; padding: 10px; }
+.pads { display: grid; grid-template-columns: 16px repeat(8, minmax(0, 1fr)); gap: 4px; align-items: center; }
+.pads .cn, .pads .rn { color: var(--muted); font-size: 10.5px; text-align: center; font-variant-numeric: tabular-nums; }
+.pad { aspect-ratio: 1; border-radius: 4px; background: #1a1a1c; border: 1px solid #2a2b2e; cursor: pointer; padding: 0; min-height: 0; min-width: 0; }
+.pad.ro { cursor: default; }
+.pads .cn.b { color: var(--turq); } .pads .cn.a { color: var(--accent); }
+.rowtxt { color: var(--muted); font-size: 12px; margin: 8px 0 0; }
+
+.outs { display: grid; grid-template-columns: minmax(80px, auto) minmax(80px, 1fr) minmax(120px, 1.4fr) minmax(120px, 1.4fr) 56px; gap: 6px 10px; align-items: center; font-size: 12px; color: var(--muted); }
 .outs .meter { height: 8px; border-radius: 4px; background: var(--raised); overflow: hidden; }
 .outs .meter i { display: block; height: 100%; width: 0; background: var(--accent); }
 .outs .tname { color: var(--fg); }
 .scroll { overflow-x: auto; }
-.note-name { font-family: var(--mono); color: var(--accent); font-variant-numeric: tabular-nums; }
-.status { font: 500 12px var(--mono); color: var(--accent); min-height: 18px; }
-footer { color: var(--muted); font-size: 13px; max-width: 78ch; }
+.status { font-size: 12px; color: var(--accent); min-height: 18px; }
+footer { color: var(--muted); font-size: 13px; max-width: 80ch; }
+[hidden] { display: none !important; }
+@media (max-width: 900px) {
+  .main { grid-template-columns: minmax(0, 1fr); }
+}
 @media (max-width: 760px) {
   .grid { grid-template-columns: minmax(0, 1fr); }
   .card h2 .feeds { display: none; }
-  .rules, .outs { min-width: 640px; }
+  .outs { min-width: 640px; }
+  .bar .modes { margin-left: 0; }
 }
-.bar .f.inl { flex-direction: row; align-items: center; gap: 8px; min-width: 0; }
-.bar .f.inl select { width: auto; height: 32px; padding: 0 8px; }
+@media (max-width: 480px) {
+  .chip { font-size: 10px; }
+  .chip b { font-size: 11.5px; }
+  .pads { gap: 3px; grid-template-columns: 14px repeat(8, minmax(0, 1fr)); }
+  .padbox { padding: 8px; }
+}
 </style>
-
+</head>
+<body>
 <div class="wrap">
   <header>
-    <div class="eyebrow">Network · Max for Live · 8 modulators · core 0.0.1</div>
+    <div class="eyebrow">Network 1.1.7 · 8 modulators</div>
     <h1>How Network moves</h1>
-    <p class="lead"><b>Network</b> is eight small modulators that modulate each other while they move parameters in your Set. On its own an LFO repeats; in Network, one LFO's speed is pushed around by another one, which is pushed by a third, so the motion <b>never quite repeats</b>. You don't patch wires: each bank of four uses one of six <b>fixed layouts</b>, and you change the character by switching layouts and turning depths. Everything below runs the device's real modulation engine. Switch the sound on and turn things.</p>
+    <p class="lead"><b>Network</b> is eight small modulators that modulate each other. One node's value changes another node's <b>rate</b>, <b>amp</b>, <b>shape</b> or <b>clock</b>, so the motion <b>never quite repeats</b>. You don't patch wires: each bank of four uses one of six fixed <b>layouts</b>. Everything below runs the device's real modulation core. Press Play, switch the sound on, and follow the tour or go free. The outputs move the parameters you map; here they move a small built-in synth.</p>
   </header>
 
   <div class="bar" role="group" aria-label="Transport and sound">
-    <button id="play" type="button" class="on">Pause</button>
+    <button id="play" type="button">Play</button>
     <button id="sound" type="button" aria-pressed="false">Sound off</button>
-    <div class="f inl"><label for="kit">Pad sound</label><select id="kit" title="Choose the oscillators of the pad the modulators move"></select></div>
     <div class="f"><label for="bpm">Tempo <output id="bpm-o">120 BPM</output></label><input id="bpm" type="range" min="60" max="180" value="120"></div>
     <div class="f"><label for="vol">Volume <output id="vol-o">70 %</output></label><input id="vol" type="range" min="0" max="100" value="70"></div>
-    <button id="diceall" type="button" class="dice" title="Roll new nodes, layouts and depths"></button>
-    <button id="reset" type="button">init</button>
+    <div class="modes" role="group" aria-label="Mode">
+      <button id="m-guided" type="button" aria-pressed="true">Guided</button>
+      <button id="m-free" type="button" aria-pressed="false">Free</button>
+    </div>
   </div>
 
-  <section class="card wide" aria-labelledby="ex-h">
-    <h2 id="ex-h">EXAMPLES<span class="feeds">load one, then change it</span></h2>
-    <div class="scenes" id="scenes"></div>
-    <p class="what" id="scene-what"></p>
+  <section class="tour" id="tour" aria-label="Guided tour">
+    <div class="step" aria-live="polite">
+      <h2 id="tTitle"></h2>
+      <p id="tText"></p>
+      <p class="listen" id="tListen"></p>
+    </div>
+    <div class="nav">
+      <button id="tPrev" type="button">Back</button>
+      <span class="count" id="tCount"></span>
+      <button id="tNext" type="button">Next</button>
+    </div>
   </section>
 
-  <div class="grid">
-    <section class="card wide">
-      <h2><span class="n">01</span>THE NETWORK<span class="feeds">who moves whom</span></h2>
-      <canvas id="c-net" class="pick" height="300" aria-label="The eight nodes and the wires of the current layouts. Click a node to edit it"></canvas>
-      <p class="what">Two banks of four nodes: <b>A1–A4</b> and <b>B1–B4</b>. Each bank has its own <b>layout</b>, a fixed set of wires from one node to another node's <b>rate</b>, <b>amp</b>, <b>shape</b>, <b>phase</b> or <b>clock</b>. A wire's strength is its source node's <b>depth</b>. <b>Couple</b> wires the two banks together (A4 → B1 rate, B4 → A1 rate), and <b>Feedback</b> sends each bank's first node back into its own rate. Wires glow with the value they carry; click a node to edit it.</p>
+  <div class="main">
+    <section class="card" aria-labelledby="net-h">
+      <h2 id="net-h"><span class="n">01</span>The network<span class="feeds">who moves whom</span></h2>
+      <canvas id="c-net" class="pick" height="300" tabindex="0" aria-label="The eight nodes and the wires of the current layouts. Click a node to select it; arrow keys change the selected node"></canvas>
+      <div class="chips" id="chips" role="group" aria-label="Current value of each node"></div>
       <div class="ctl" id="k-net"></div>
-      <p class="try"><span>Try</span>Switch bank A from Chain to Ring: now A4 pushes A1 again, the loop closes, and the motion stops repeating. Then raise Feedback A.</p>
+      <div class="ctl" id="k-sel"></div>
+      <p class="small">Wires glow with the value they carry; their width follows the source node's depth. Click a node (or a pad in row 2) to select it.</p>
     </section>
 
-    <section class="card wide">
-      <h2><span class="n">02</span>NODES<span class="feeds">→ the wires, the outputs</span></h2>
-      <canvas id="c-scopes" class="pick" height="96" aria-label="Eight scopes, one per node. Click one to edit that node"></canvas>
-      <p class="what">Every node is one of four types and has the same controls: <b>rate</b>, <b>amp</b>, and two dials, <b>A</b> and <b>B</b>, whose meaning depends on the type. <b>LFO</b>: A morphs sine → triangle → saw → square. <b>Loop env</b>: an envelope that retriggers itself; A is how much of the cycle it rises, B the curve. <b>S&amp;H</b>: a new random value every cycle (or on the layout's clock); A is slew, B quantises to steps. <b>Geiger</b>: random clicks at an average rate; A is the click width, B how regular they are. <b>SYNC</b> nodes follow the song position, <b>FREE</b> nodes run in Hz.</p>
-      <div class="ctl" id="k-node"></div>
-      <p class="try"><span>Try</span>Select A2 and make it a Geiger at 1/8 with regularity 0: the chain now gets random kicks. Set A3 to S&amp;H with steps up: the pan jumps between fixed positions.</p>
-    </section>
-
-    <section class="card wide">
-      <h2><span class="n">03</span>OUTPUTS<span class="feeds">→ parameters in your Set</span></h2>
-      <p class="what">In the device each node's output maps to a Live parameter, like any Max for Live modulator, and a node can drive a <b>group</b> of up to three parameters at once (its lanes 1&ndash;3), some of them inverted. Here the targets are the controls of a small synth. Pick the node that drives each one, how far it moves (negative = inverted) and where it rests. Two or more targets with the same node make a group; turn on <b>hand-off (pass)</b> in that node (section 02) and it moves one target at a time, handing over each cycle while the others hold.</p>
-      <div class="scroll"><div class="outs" id="k-outs"></div></div>
-      <p class="try"><span>Try</span>Drive Cutoff, Resonance and Drive from the same node, with Resonance at −50 %: the filter opens while the resonance falls back, the way the mockup's node E does.</p>
-    </section>
-
-    <section class="card">
-      <h2><span class="n">04</span>RHYTHM<span class="feeds">→ MIDI notes</span></h2>
-      <canvas id="c-rhy" height="150" aria-label="Four rhythm rules and the gates they produce"></canvas>
-      <p class="what">A rule compares two nodes and plays a note while it is true. <b>a &gt; b</b> plays when a rises above b; <b>a and b</b> when both are high; <b>a crosses b</b> on every crossing. b can also be a fixed threshold. The modulation becomes a drum pattern that drifts with it.</p>
-      <div class="scroll"><div class="rules" id="k-rhy"></div></div>
-      <p class="try"><span>Try</span>Switch rule 1 on with A1 &gt; A2: kicks land where the two LFOs cross over, and move as A1's rate is pushed around.</p>
-    </section>
-
-    <section class="card">
-      <h2><span class="n">05</span>PITCH<span class="feeds">→ MIDI notes</span></h2>
-      <canvas id="c-pitch" height="150" aria-label="Notes made from a node, quantised to a scale"></canvas>
-      <p class="what">One node becomes a melody: on every <b>tick</b> its value is read, spread over the <b>range</b> and fitted to the <b>scale</b>. The tick is a clock division or another node's trigger, so a Geiger can play it. <b>Prob</b> thins both the rhythm and the pitch notes; the modulation itself never skips.</p>
-      <div class="ctl" id="k-pitch"></div>
-      <p class="try"><span>Try</span>Source A1, tick 1/8, minor pentatonic. Then put A2 on A1's rate (Chain): the melody speeds up and slows down by itself.</p>
+    <section class="card" aria-labelledby="pad-h">
+      <h2 id="pad-h"><span class="n">02</span>Pad grid<span class="feeds">8 x 8, one column per node</span></h2>
+      <div class="padbox"><div class="pads" id="pads"></div></div>
+      <p class="rowtxt" id="padtxt">Tap row 1 to switch a node on or off, row 2 to select a node (tap the selected one again for its next type), row 8 to recall a pattern.</p>
+      <p class="small">Rows 3 to 7 are each node's live value as a meter that moves with it, bottom up (row 7 low, row 3 full), as on the device. They are display only. Row 8 holds the 8 factory patterns: violet = current, grey = stored. The pad picture is derived in this page from the core's settings; the device's own pad script needs the host and is not run.</p>
     </section>
   </div>
 
-  <footer>A simulation for learning: the page runs the generated Network core (the same code as the device's gen~ engine, at 1 kHz instead of audio rate) and a small Web Audio synth in place of your Set. The device itself is not built yet; this is core 0.0.1, so names, defaults and the accent colour may change. In the device the outputs move Live parameters (modulating around the knob in Live 12, taking it over in Live 11), patterns store everything here, and the rhythm and pitch notes go out as MIDI. Settings here aren't saved.</footer>
+  <div id="more">
+  <div class="grid">
+    <section class="card wide">
+      <h2><span class="n">03</span>Nodes<span class="feeds">scopes and the rest of the node settings</span></h2>
+      <canvas id="c-scopes" class="pick" height="96" aria-label="Eight scopes, one per node. Click one to select that node"></canvas>
+      <p class="what">Every node is one of seven types with the same controls: <b>rate</b>, <b>amp</b>, and two dials, <b>A</b> and <b>B</b>, whose meaning depends on the type. <b>LFO</b>: A morphs sine to triangle to saw to square. <b>Slope</b>: an envelope that loops; A is how much of the cycle it rises, B the curve. <b>S&amp;H</b>: a new random value every cycle (or on the layout's clock). <b>Geiger</b>: random clicks. <b>Slew</b>, <b>Random</b> and <b>Chaos</b> smooth, wander and tumble. SYNC nodes follow the song position, FREE nodes run in Hz.</p>
+      <div class="ctl" id="k-node"></div>
+    </section>
+
+    <section class="card wide">
+      <h2><span class="n">04</span>Outputs<span class="feeds">to the built-in synth</span></h2>
+      <p class="what">In the device each node's output moves a parameter you choose. Here the targets are the controls of a small synth. Pick the node that drives each one, how far it moves (negative = inverted) and where it rests. Two or more targets on the same node form a group; with <b>hand-off (pass)</b> on, the node moves one target at a time.</p>
+      <div class="scroll"><div class="outs" id="k-outs"></div></div>
+    </section>
+
+  </div>
+  </div>
+
+  <footer>A simulation for learning. The modulation you see and hear is the device's generated core, the same code as its gen~ engine, run here at 1 kHz instead of audio rate, with a small built-in synth in place of your own sound. The pad picture and the factory pattern recall are worked out in this page from that core's settings: the device's own pad script is not run here, because it needs its host. Settings here are not saved. This page describes Network 1.1.7.</footer>
 </div>
 
 <script>
@@ -453,32 +485,9 @@ function makeNet(sr, seed) {
   var P_play = 0;
   var P_mdep = 1;
   var P_moff = 0;
-  var P_ron0 = 0;
-  var P_ra0 = 0;
-  var P_rop0 = 0;
-  var P_rb0 = 1;
-  var P_rthr0 = 0.5;
-  var P_ron1 = 0;
-  var P_ra1 = 0;
-  var P_rop1 = 0;
-  var P_rb1 = 1;
-  var P_rthr1 = 0.5;
-  var P_ron2 = 0;
-  var P_ra2 = 0;
-  var P_rop2 = 0;
-  var P_rb2 = 1;
-  var P_rthr2 = 0.5;
-  var P_ron3 = 0;
-  var P_ra3 = 0;
-  var P_rop3 = 0;
-  var P_rb3 = 1;
-  var P_rthr3 = 0.5;
-  var P_pon = 0;
-  var P_psrc = 0;
-  var P_ptick = 10;
-  var lb = 0, plw = 0, pf = 0, pvh = 0, pcnt = 0, raw0 = 0, off0 = 0, hv0 = 0, sv0 = 0, gc0 = 0, vv0 = 0, pv0 = 0, tg0 = 0, ep0 = 0, er0 = 0, cx0 = 0, cy0 = 0, cz0 = 0, lha0 = 0, lhb0 = 0, lhc0 = 0, as0 = 0, raw1 = 0, off1 = 0, hv1 = 0, sv1 = 0, gc1 = 0, vv1 = 0, pv1 = 0, tg1 = 0, ep1 = 0, er1 = 0, cx1 = 0, cy1 = 0, cz1 = 0, lha1 = 0, lhb1 = 0, lhc1 = 0, as1 = 0, raw2 = 0, off2 = 0, hv2 = 0, sv2 = 0, gc2 = 0, vv2 = 0, pv2 = 0, tg2 = 0, ep2 = 0, er2 = 0, cx2 = 0, cy2 = 0, cz2 = 0, lha2 = 0, lhb2 = 0, lhc2 = 0, as2 = 0, raw3 = 0, off3 = 0, hv3 = 0, sv3 = 0, gc3 = 0, vv3 = 0, pv3 = 0, tg3 = 0, ep3 = 0, er3 = 0, cx3 = 0, cy3 = 0, cz3 = 0, lha3 = 0, lhb3 = 0, lhc3 = 0, as3 = 0, raw4 = 0, off4 = 0, hv4 = 0, sv4 = 0, gc4 = 0, vv4 = 0, pv4 = 0, tg4 = 0, ep4 = 0, er4 = 0, cx4 = 0, cy4 = 0, cz4 = 0, lha4 = 0, lhb4 = 0, lhc4 = 0, as4 = 0, raw5 = 0, off5 = 0, hv5 = 0, sv5 = 0, gc5 = 0, vv5 = 0, pv5 = 0, tg5 = 0, ep5 = 0, er5 = 0, cx5 = 0, cy5 = 0, cz5 = 0, lha5 = 0, lhb5 = 0, lhc5 = 0, as5 = 0, raw6 = 0, off6 = 0, hv6 = 0, sv6 = 0, gc6 = 0, vv6 = 0, pv6 = 0, tg6 = 0, ep6 = 0, er6 = 0, cx6 = 0, cy6 = 0, cz6 = 0, lha6 = 0, lhb6 = 0, lhc6 = 0, as6 = 0, raw7 = 0, off7 = 0, hv7 = 0, sv7 = 0, gc7 = 0, vv7 = 0, pv7 = 0, tg7 = 0, ep7 = 0, er7 = 0, cx7 = 0, cy7 = 0, cz7 = 0, lha7 = 0, lhb7 = 0, lhc7 = 0, as7 = 0, rg0 = 0, rs0 = 0, pc0 = 0, rg1 = 0, rs1 = 0, pc1 = 0, rg2 = 0, rs2 = 0, pc2 = 0, rg3 = 0, rs3 = 0, pc3 = 0;
+  var lb = 0, plw = 0, raw0 = 0, off0 = 0, hv0 = 0, sv0 = 0, gc0 = 0, vv0 = 0, pv0 = 0, tg0 = 0, ep0 = 0, er0 = 0, cx0 = 0, cy0 = 0, cz0 = 0, lha0 = 0, lhb0 = 0, lhc0 = 0, as0 = 0, raw1 = 0, off1 = 0, hv1 = 0, sv1 = 0, gc1 = 0, vv1 = 0, pv1 = 0, tg1 = 0, ep1 = 0, er1 = 0, cx1 = 0, cy1 = 0, cz1 = 0, lha1 = 0, lhb1 = 0, lhc1 = 0, as1 = 0, raw2 = 0, off2 = 0, hv2 = 0, sv2 = 0, gc2 = 0, vv2 = 0, pv2 = 0, tg2 = 0, ep2 = 0, er2 = 0, cx2 = 0, cy2 = 0, cz2 = 0, lha2 = 0, lhb2 = 0, lhc2 = 0, as2 = 0, raw3 = 0, off3 = 0, hv3 = 0, sv3 = 0, gc3 = 0, vv3 = 0, pv3 = 0, tg3 = 0, ep3 = 0, er3 = 0, cx3 = 0, cy3 = 0, cz3 = 0, lha3 = 0, lhb3 = 0, lhc3 = 0, as3 = 0, raw4 = 0, off4 = 0, hv4 = 0, sv4 = 0, gc4 = 0, vv4 = 0, pv4 = 0, tg4 = 0, ep4 = 0, er4 = 0, cx4 = 0, cy4 = 0, cz4 = 0, lha4 = 0, lhb4 = 0, lhc4 = 0, as4 = 0, raw5 = 0, off5 = 0, hv5 = 0, sv5 = 0, gc5 = 0, vv5 = 0, pv5 = 0, tg5 = 0, ep5 = 0, er5 = 0, cx5 = 0, cy5 = 0, cz5 = 0, lha5 = 0, lhb5 = 0, lhc5 = 0, as5 = 0, raw6 = 0, off6 = 0, hv6 = 0, sv6 = 0, gc6 = 0, vv6 = 0, pv6 = 0, tg6 = 0, ep6 = 0, er6 = 0, cx6 = 0, cy6 = 0, cz6 = 0, lha6 = 0, lhb6 = 0, lhc6 = 0, as6 = 0, raw7 = 0, off7 = 0, hv7 = 0, sv7 = 0, gc7 = 0, vv7 = 0, pv7 = 0, tg7 = 0, ep7 = 0, er7 = 0, cx7 = 0, cy7 = 0, cz7 = 0, lha7 = 0, lhb7 = 0, lhc7 = 0, as7 = 0;
   function step(in1, in2, in3) {
-    var out1, out2, out3, out4, out5, out6, out7, out8, out9, out10, out11, out12, out13, out14, out15, out16, out17, out18, out19, out20, out21, out22, out23, out24, out25, out26, out27, out28, out29, out30, out31, out32, out33, out34, out35, out36, out37, out38, tempo, playing, d, lbn, pstart, bankon0, bankon1, lay0, lay1, mr0, ma0, ms0, mp0, ck0, mr1, ma1, ms1, mp1, ck1, mr2, ma2, ms2, mp2, ck2, mr3, ma3, ms3, mp3, ck3, mr4, ma4, ms4, mp4, ck4, mr5, ma5, ms5, mp5, ck5, mr6, ma6, ms6, mp6, ck6, mr7, ma7, ms7, mp7, ck7, on0, ty0, rf0, pb0, offn0, rawn0, lam0, hz0, rs00, wrap0, ph0, ta0, ae0, pm0, v0, hvn0, svn0, gcn0, epn0, ern0, cxn0, cyn0, czn0, st0, fire0, rnd0, rnd20, xin0, st40, md50, st50, u50, t50, q50, dtc0, ox0, oz0, rc0, dx0, dy0, dz0, rr0, esc0, wn0, pvn0, tgn0, o0, gb0, y00, y10, y20, asn0, on1, ty1, rf1, pb1, offn1, rawn1, lam1, hz1, rs01, wrap1, ph1, ta1, ae1, pm1, v1, hvn1, svn1, gcn1, epn1, ern1, cxn1, cyn1, czn1, st1, fire1, rnd1, rnd21, xin1, st41, md51, st51, u51, t51, q51, dtc1, ox1, oz1, rc1, dx1, dy1, dz1, rr1, esc1, wn1, pvn1, tgn1, o1, gb1, y01, y11, y21, asn1, on2, ty2, rf2, pb2, offn2, rawn2, lam2, hz2, rs02, wrap2, ph2, ta2, ae2, pm2, v2, hvn2, svn2, gcn2, epn2, ern2, cxn2, cyn2, czn2, st2, fire2, rnd2, rnd22, xin2, st42, md52, st52, u52, t52, q52, dtc2, ox2, oz2, rc2, dx2, dy2, dz2, rr2, esc2, wn2, pvn2, tgn2, o2, gb2, y02, y12, y22, asn2, on3, ty3, rf3, pb3, offn3, rawn3, lam3, hz3, rs03, wrap3, ph3, ta3, ae3, pm3, v3, hvn3, svn3, gcn3, epn3, ern3, cxn3, cyn3, czn3, st3, fire3, rnd3, rnd23, xin3, st43, md53, st53, u53, t53, q53, dtc3, ox3, oz3, rc3, dx3, dy3, dz3, rr3, esc3, wn3, pvn3, tgn3, o3, gb3, y03, y13, y23, asn3, on4, ty4, rf4, pb4, offn4, rawn4, lam4, hz4, rs04, wrap4, ph4, ta4, ae4, pm4, v4, hvn4, svn4, gcn4, epn4, ern4, cxn4, cyn4, czn4, st4, fire4, rnd4, rnd24, xin4, st44, md54, st54, u54, t54, q54, dtc4, ox4, oz4, rc4, dx4, dy4, dz4, rr4, esc4, wn4, pvn4, tgn4, o4, gb4, y04, y14, y24, asn4, on5, ty5, rf5, pb5, offn5, rawn5, lam5, hz5, rs05, wrap5, ph5, ta5, ae5, pm5, v5, hvn5, svn5, gcn5, epn5, ern5, cxn5, cyn5, czn5, st5, fire5, rnd5, rnd25, xin5, st45, md55, st55, u55, t55, q55, dtc5, ox5, oz5, rc5, dx5, dy5, dz5, rr5, esc5, wn5, pvn5, tgn5, o5, gb5, y05, y15, y25, asn5, on6, ty6, rf6, pb6, offn6, rawn6, lam6, hz6, rs06, wrap6, ph6, ta6, ae6, pm6, v6, hvn6, svn6, gcn6, epn6, ern6, cxn6, cyn6, czn6, st6, fire6, rnd6, rnd26, xin6, st46, md56, st56, u56, t56, q56, dtc6, ox6, oz6, rc6, dx6, dy6, dz6, rr6, esc6, wn6, pvn6, tgn6, o6, gb6, y06, y16, y26, asn6, on7, ty7, rf7, pb7, offn7, rawn7, lam7, hz7, rs07, wrap7, ph7, ta7, ae7, pm7, v7, hvn7, svn7, gcn7, epn7, ern7, cxn7, cyn7, czn7, st7, fire7, rnd7, rnd27, xin7, st47, md57, st57, u57, t57, q57, dtc7, ox7, oz7, rc7, dx7, dy7, dz7, rr7, esc7, wn7, pvn7, tgn7, o7, gb7, y07, y17, y27, asn7, ra0, rb0, op0, sdn0, gn0, pcn0, lv0, ra1, rb1, op1, sdn1, gn1, pcn1, lv1, ra2, rb2, op2, sdn2, gn2, pcn2, lv2, ra3, rb3, op3, sdn3, gn3, pcn3, lv3, pt, pfn, ptk, pvhn, pcntn;
+    var out1, out2, out3, out4, out5, out6, out7, out8, out9, out10, out11, out12, out13, out14, out15, out16, out17, out18, out19, out20, out21, out22, out23, out24, out25, out26, out27, out28, out29, out30, out31, out32, tempo, playing, d, lbn, pstart, bankon0, bankon1, lay0, lay1, mr0, ma0, ms0, mp0, ck0, mr1, ma1, ms1, mp1, ck1, mr2, ma2, ms2, mp2, ck2, mr3, ma3, ms3, mp3, ck3, mr4, ma4, ms4, mp4, ck4, mr5, ma5, ms5, mp5, ck5, mr6, ma6, ms6, mp6, ck6, mr7, ma7, ms7, mp7, ck7, on0, ty0, rf0, pb0, offn0, rawn0, lam0, hz0, rs00, wrap0, ph0, ta0, ae0, pm0, v0, hvn0, svn0, gcn0, epn0, ern0, cxn0, cyn0, czn0, st0, fire0, rnd0, rnd20, xin0, st40, md50, st50, u50, t50, q50, dtc0, ox0, oz0, rc0, dx0, dy0, dz0, rr0, esc0, wn0, pvn0, tgn0, o0, gb0, y00, y10, y20, asn0, on1, ty1, rf1, pb1, offn1, rawn1, lam1, hz1, rs01, wrap1, ph1, ta1, ae1, pm1, v1, hvn1, svn1, gcn1, epn1, ern1, cxn1, cyn1, czn1, st1, fire1, rnd1, rnd21, xin1, st41, md51, st51, u51, t51, q51, dtc1, ox1, oz1, rc1, dx1, dy1, dz1, rr1, esc1, wn1, pvn1, tgn1, o1, gb1, y01, y11, y21, asn1, on2, ty2, rf2, pb2, offn2, rawn2, lam2, hz2, rs02, wrap2, ph2, ta2, ae2, pm2, v2, hvn2, svn2, gcn2, epn2, ern2, cxn2, cyn2, czn2, st2, fire2, rnd2, rnd22, xin2, st42, md52, st52, u52, t52, q52, dtc2, ox2, oz2, rc2, dx2, dy2, dz2, rr2, esc2, wn2, pvn2, tgn2, o2, gb2, y02, y12, y22, asn2, on3, ty3, rf3, pb3, offn3, rawn3, lam3, hz3, rs03, wrap3, ph3, ta3, ae3, pm3, v3, hvn3, svn3, gcn3, epn3, ern3, cxn3, cyn3, czn3, st3, fire3, rnd3, rnd23, xin3, st43, md53, st53, u53, t53, q53, dtc3, ox3, oz3, rc3, dx3, dy3, dz3, rr3, esc3, wn3, pvn3, tgn3, o3, gb3, y03, y13, y23, asn3, on4, ty4, rf4, pb4, offn4, rawn4, lam4, hz4, rs04, wrap4, ph4, ta4, ae4, pm4, v4, hvn4, svn4, gcn4, epn4, ern4, cxn4, cyn4, czn4, st4, fire4, rnd4, rnd24, xin4, st44, md54, st54, u54, t54, q54, dtc4, ox4, oz4, rc4, dx4, dy4, dz4, rr4, esc4, wn4, pvn4, tgn4, o4, gb4, y04, y14, y24, asn4, on5, ty5, rf5, pb5, offn5, rawn5, lam5, hz5, rs05, wrap5, ph5, ta5, ae5, pm5, v5, hvn5, svn5, gcn5, epn5, ern5, cxn5, cyn5, czn5, st5, fire5, rnd5, rnd25, xin5, st45, md55, st55, u55, t55, q55, dtc5, ox5, oz5, rc5, dx5, dy5, dz5, rr5, esc5, wn5, pvn5, tgn5, o5, gb5, y05, y15, y25, asn5, on6, ty6, rf6, pb6, offn6, rawn6, lam6, hz6, rs06, wrap6, ph6, ta6, ae6, pm6, v6, hvn6, svn6, gcn6, epn6, ern6, cxn6, cyn6, czn6, st6, fire6, rnd6, rnd26, xin6, st46, md56, st56, u56, t56, q56, dtc6, ox6, oz6, rc6, dx6, dy6, dz6, rr6, esc6, wn6, pvn6, tgn6, o6, gb6, y06, y16, y26, asn6, on7, ty7, rf7, pb7, offn7, rawn7, lam7, hz7, rs07, wrap7, ph7, ta7, ae7, pm7, v7, hvn7, svn7, gcn7, epn7, ern7, cxn7, cyn7, czn7, st7, fire7, rnd7, rnd27, xin7, st47, md57, st57, u57, t57, q57, dtc7, ox7, oz7, rc7, dx7, dy7, dz7, rr7, esc7, wn7, pvn7, tgn7, o7, gb7, y07, y17, y27, asn7;
     // in1 = [phasor~ 192.0.0 @lock 1]: 0..1 over 192 bars of 4/4 = 768 beats (a multiple of every division, so the
     // phase never jumps when it wraps). Tempo and play state come from the engine (Live's transport).
     tempo = clamp(P_tempo, 20, 999);
@@ -2123,161 +2132,10 @@ function makeNet(sr, seed) {
       if (asn7 != 2) { y27 = lhc7; }
     }
     
-    ra0 = n_pick(P_ra0, wn0, wn1, wn2, wn3, wn4, wn5, wn6, wn7);
-    rb0 = n_pick(P_rb0, wn0, wn1, wn2, wn3, wn4, wn5, wn6, wn7);
-    if (P_rb0 > 7.5) { rb0 = P_rthr0; }
-    op0 = floor(P_rop0 + 0.5);
-    sdn0 = rs0;
-    if (ra0 > rb0 + 0.02) { sdn0 = 1; }
-    if (ra0 < rb0 - 0.02) { sdn0 = -1; }
-    gn0 = rg0;
-    pcn0 = max(0, pc0 - 1);
-    if (op0 == 0) {
-      gn0 = sdn0 > 0 ? 1 : 0;
-    }
-    if (op0 == 1) {
-      gn0 = sdn0 < 0 ? 1 : 0;
-    }
-    if (op0 == 2) {
-      lv0 = min(ra0, rb0);
-      if (lv0 > 0.52) { gn0 = 1; }
-      if (lv0 < 0.48) { gn0 = 0; }
-    }
-    if (op0 == 3) {
-      lv0 = max(ra0, rb0);
-      if (lv0 > 0.52) { gn0 = 1; }
-      if (lv0 < 0.48) { gn0 = 0; }
-    }
-    if (op0 == 4) {
-      if (sdn0 != rs0) {
-        if (rs0 != 0) { pcn0 = 0.001 * samplerate; }
-      }
-      gn0 = pcn0 > 0 ? 1 : 0;
-    }
-    if (P_ron0 < 0.5) { gn0 = 0; }
-    
-    ra1 = n_pick(P_ra1, wn0, wn1, wn2, wn3, wn4, wn5, wn6, wn7);
-    rb1 = n_pick(P_rb1, wn0, wn1, wn2, wn3, wn4, wn5, wn6, wn7);
-    if (P_rb1 > 7.5) { rb1 = P_rthr1; }
-    op1 = floor(P_rop1 + 0.5);
-    sdn1 = rs1;
-    if (ra1 > rb1 + 0.02) { sdn1 = 1; }
-    if (ra1 < rb1 - 0.02) { sdn1 = -1; }
-    gn1 = rg1;
-    pcn1 = max(0, pc1 - 1);
-    if (op1 == 0) {
-      gn1 = sdn1 > 0 ? 1 : 0;
-    }
-    if (op1 == 1) {
-      gn1 = sdn1 < 0 ? 1 : 0;
-    }
-    if (op1 == 2) {
-      lv1 = min(ra1, rb1);
-      if (lv1 > 0.52) { gn1 = 1; }
-      if (lv1 < 0.48) { gn1 = 0; }
-    }
-    if (op1 == 3) {
-      lv1 = max(ra1, rb1);
-      if (lv1 > 0.52) { gn1 = 1; }
-      if (lv1 < 0.48) { gn1 = 0; }
-    }
-    if (op1 == 4) {
-      if (sdn1 != rs1) {
-        if (rs1 != 0) { pcn1 = 0.001 * samplerate; }
-      }
-      gn1 = pcn1 > 0 ? 1 : 0;
-    }
-    if (P_ron1 < 0.5) { gn1 = 0; }
-    
-    ra2 = n_pick(P_ra2, wn0, wn1, wn2, wn3, wn4, wn5, wn6, wn7);
-    rb2 = n_pick(P_rb2, wn0, wn1, wn2, wn3, wn4, wn5, wn6, wn7);
-    if (P_rb2 > 7.5) { rb2 = P_rthr2; }
-    op2 = floor(P_rop2 + 0.5);
-    sdn2 = rs2;
-    if (ra2 > rb2 + 0.02) { sdn2 = 1; }
-    if (ra2 < rb2 - 0.02) { sdn2 = -1; }
-    gn2 = rg2;
-    pcn2 = max(0, pc2 - 1);
-    if (op2 == 0) {
-      gn2 = sdn2 > 0 ? 1 : 0;
-    }
-    if (op2 == 1) {
-      gn2 = sdn2 < 0 ? 1 : 0;
-    }
-    if (op2 == 2) {
-      lv2 = min(ra2, rb2);
-      if (lv2 > 0.52) { gn2 = 1; }
-      if (lv2 < 0.48) { gn2 = 0; }
-    }
-    if (op2 == 3) {
-      lv2 = max(ra2, rb2);
-      if (lv2 > 0.52) { gn2 = 1; }
-      if (lv2 < 0.48) { gn2 = 0; }
-    }
-    if (op2 == 4) {
-      if (sdn2 != rs2) {
-        if (rs2 != 0) { pcn2 = 0.001 * samplerate; }
-      }
-      gn2 = pcn2 > 0 ? 1 : 0;
-    }
-    if (P_ron2 < 0.5) { gn2 = 0; }
-    
-    ra3 = n_pick(P_ra3, wn0, wn1, wn2, wn3, wn4, wn5, wn6, wn7);
-    rb3 = n_pick(P_rb3, wn0, wn1, wn2, wn3, wn4, wn5, wn6, wn7);
-    if (P_rb3 > 7.5) { rb3 = P_rthr3; }
-    op3 = floor(P_rop3 + 0.5);
-    sdn3 = rs3;
-    if (ra3 > rb3 + 0.02) { sdn3 = 1; }
-    if (ra3 < rb3 - 0.02) { sdn3 = -1; }
-    gn3 = rg3;
-    pcn3 = max(0, pc3 - 1);
-    if (op3 == 0) {
-      gn3 = sdn3 > 0 ? 1 : 0;
-    }
-    if (op3 == 1) {
-      gn3 = sdn3 < 0 ? 1 : 0;
-    }
-    if (op3 == 2) {
-      lv3 = min(ra3, rb3);
-      if (lv3 > 0.52) { gn3 = 1; }
-      if (lv3 < 0.48) { gn3 = 0; }
-    }
-    if (op3 == 3) {
-      lv3 = max(ra3, rb3);
-      if (lv3 > 0.52) { gn3 = 1; }
-      if (lv3 < 0.48) { gn3 = 0; }
-    }
-    if (op3 == 4) {
-      if (sdn3 != rs3) {
-        if (rs3 != 0) { pcn3 = 0.001 * samplerate; }
-      }
-      gn3 = pcn3 > 0 ? 1 : 0;
-    }
-    if (P_ron3 < 0.5) { gn3 = 0; }
-    
-    pt = floor(P_ptick + 0.5);
-    pfn = pf;
-    ptk = 0;
-    if (pt < 24) {
-      pfn = fract(lbn / n_divb(pt));
-      if (pfn < pf - 0.5) { ptk = 1; }
-    } else {
-      ptk = n_pick(pt - 24, tgn0, tgn1, tgn2, tgn3, tgn4, tgn5, tgn6, tgn7);
-    }
-    pvhn = pvh;
-    pcntn = max(0, pcnt - 1);
-    if (ptk > 0.5) {
-      if (P_pon > 0.5) {
-        pvhn = n_pick(P_psrc, wn0, wn1, wn2, wn3, wn4, wn5, wn6, wn7);
-        pcntn = 0.001 * samplerate;
-      }
-    }
+    // 1.1.7: the rules and the pitch voice are gone (modulation only); nothing here.
     
     lb = lbn;
     plw = playing;
-    pf = pfn;
-    pvh = pvhn;
-    pcnt = pcntn;
     raw0 = rawn0;
     off0 = offn0;
     hv0 = hvn0;
@@ -2414,18 +2272,6 @@ function makeNet(sr, seed) {
     lhb7 = y17;
     lhc7 = y27;
     as7 = asn7;
-    rg0 = gn0;
-    rs0 = sdn0;
-    pc0 = pcn0;
-    rg1 = gn1;
-    rs1 = sdn1;
-    pc1 = pcn1;
-    rg2 = gn2;
-    rs2 = sdn2;
-    pc2 = pcn2;
-    rg3 = gn3;
-    rs3 = sdn3;
-    pc3 = pcn3;
     out1 = y00;
     out2 = y01;
     out3 = y02;
@@ -2450,24 +2296,18 @@ function makeNet(sr, seed) {
     out22 = y25;
     out23 = y26;
     out24 = y27;
-    out25 = gn0;
-    out26 = gn1;
-    out27 = gn2;
-    out28 = gn3;
-    out29 = pcntn > 0 ? 1 : 0;
-    out30 = pvhn;
-    out31 = wn0;
-    out32 = wn1;
-    out33 = wn2;
-    out34 = wn3;
-    out35 = wn4;
-    out36 = wn5;
-    out37 = wn6;
-    out38 = wn7;
-    return [out1, out2, out3, out4, out5, out6, out7, out8, out9, out10, out11, out12, out13, out14, out15, out16, out17, out18, out19, out20, out21, out22, out23, out24, out25, out26, out27, out28, out29, out30, out31, out32, out33, out34, out35, out36, out37, out38];
+    out25 = wn0;
+    out26 = wn1;
+    out27 = wn2;
+    out28 = wn3;
+    out29 = wn4;
+    out30 = wn5;
+    out31 = wn6;
+    out32 = wn7;
+    return [out1, out2, out3, out4, out5, out6, out7, out8, out9, out10, out11, out12, out13, out14, out15, out16, out17, out18, out19, out20, out21, out22, out23, out24, out25, out26, out27, out28, out29, out30, out31, out32];
   }
-  var setters = {P_on0: function (v) { P_on0 = v; }, P_type0: function (v) { P_type0 = v; }, P_sync0: function (v) { P_sync0 = v; }, P_div0: function (v) { P_div0 = v; }, P_hz0: function (v) { P_hz0 = v; }, P_amp0: function (v) { P_amp0 = v; }, P_ta0: function (v) { P_ta0 = v; }, P_tb0: function (v) { P_tb0 = v; }, P_phase0: function (v) { P_phase0 = v; }, P_depth0: function (v) { P_depth0 = v; }, P_bi0: function (v) { P_bi0 = v; }, P_clk0: function (v) { P_clk0 = v; }, P_out0: function (v) { P_out0 = v; }, P_mode0: function (v) { P_mode0 = v; }, P_pol0: function (v) { P_pol0 = v; }, P_g1d0: function (v) { P_g1d0 = v; }, P_g2d0: function (v) { P_g2d0 = v; }, P_ho0: function (v) { P_ho0 = v; }, P_hm0: function (v) { P_hm0 = v; }, P_on1: function (v) { P_on1 = v; }, P_type1: function (v) { P_type1 = v; }, P_sync1: function (v) { P_sync1 = v; }, P_div1: function (v) { P_div1 = v; }, P_hz1: function (v) { P_hz1 = v; }, P_amp1: function (v) { P_amp1 = v; }, P_ta1: function (v) { P_ta1 = v; }, P_tb1: function (v) { P_tb1 = v; }, P_phase1: function (v) { P_phase1 = v; }, P_depth1: function (v) { P_depth1 = v; }, P_bi1: function (v) { P_bi1 = v; }, P_clk1: function (v) { P_clk1 = v; }, P_out1: function (v) { P_out1 = v; }, P_mode1: function (v) { P_mode1 = v; }, P_pol1: function (v) { P_pol1 = v; }, P_g1d1: function (v) { P_g1d1 = v; }, P_g2d1: function (v) { P_g2d1 = v; }, P_ho1: function (v) { P_ho1 = v; }, P_hm1: function (v) { P_hm1 = v; }, P_on2: function (v) { P_on2 = v; }, P_type2: function (v) { P_type2 = v; }, P_sync2: function (v) { P_sync2 = v; }, P_div2: function (v) { P_div2 = v; }, P_hz2: function (v) { P_hz2 = v; }, P_amp2: function (v) { P_amp2 = v; }, P_ta2: function (v) { P_ta2 = v; }, P_tb2: function (v) { P_tb2 = v; }, P_phase2: function (v) { P_phase2 = v; }, P_depth2: function (v) { P_depth2 = v; }, P_bi2: function (v) { P_bi2 = v; }, P_clk2: function (v) { P_clk2 = v; }, P_out2: function (v) { P_out2 = v; }, P_mode2: function (v) { P_mode2 = v; }, P_pol2: function (v) { P_pol2 = v; }, P_g1d2: function (v) { P_g1d2 = v; }, P_g2d2: function (v) { P_g2d2 = v; }, P_ho2: function (v) { P_ho2 = v; }, P_hm2: function (v) { P_hm2 = v; }, P_on3: function (v) { P_on3 = v; }, P_type3: function (v) { P_type3 = v; }, P_sync3: function (v) { P_sync3 = v; }, P_div3: function (v) { P_div3 = v; }, P_hz3: function (v) { P_hz3 = v; }, P_amp3: function (v) { P_amp3 = v; }, P_ta3: function (v) { P_ta3 = v; }, P_tb3: function (v) { P_tb3 = v; }, P_phase3: function (v) { P_phase3 = v; }, P_depth3: function (v) { P_depth3 = v; }, P_bi3: function (v) { P_bi3 = v; }, P_clk3: function (v) { P_clk3 = v; }, P_out3: function (v) { P_out3 = v; }, P_mode3: function (v) { P_mode3 = v; }, P_pol3: function (v) { P_pol3 = v; }, P_g1d3: function (v) { P_g1d3 = v; }, P_g2d3: function (v) { P_g2d3 = v; }, P_ho3: function (v) { P_ho3 = v; }, P_hm3: function (v) { P_hm3 = v; }, P_on4: function (v) { P_on4 = v; }, P_type4: function (v) { P_type4 = v; }, P_sync4: function (v) { P_sync4 = v; }, P_div4: function (v) { P_div4 = v; }, P_hz4: function (v) { P_hz4 = v; }, P_amp4: function (v) { P_amp4 = v; }, P_ta4: function (v) { P_ta4 = v; }, P_tb4: function (v) { P_tb4 = v; }, P_phase4: function (v) { P_phase4 = v; }, P_depth4: function (v) { P_depth4 = v; }, P_bi4: function (v) { P_bi4 = v; }, P_clk4: function (v) { P_clk4 = v; }, P_out4: function (v) { P_out4 = v; }, P_mode4: function (v) { P_mode4 = v; }, P_pol4: function (v) { P_pol4 = v; }, P_g1d4: function (v) { P_g1d4 = v; }, P_g2d4: function (v) { P_g2d4 = v; }, P_ho4: function (v) { P_ho4 = v; }, P_hm4: function (v) { P_hm4 = v; }, P_on5: function (v) { P_on5 = v; }, P_type5: function (v) { P_type5 = v; }, P_sync5: function (v) { P_sync5 = v; }, P_div5: function (v) { P_div5 = v; }, P_hz5: function (v) { P_hz5 = v; }, P_amp5: function (v) { P_amp5 = v; }, P_ta5: function (v) { P_ta5 = v; }, P_tb5: function (v) { P_tb5 = v; }, P_phase5: function (v) { P_phase5 = v; }, P_depth5: function (v) { P_depth5 = v; }, P_bi5: function (v) { P_bi5 = v; }, P_clk5: function (v) { P_clk5 = v; }, P_out5: function (v) { P_out5 = v; }, P_mode5: function (v) { P_mode5 = v; }, P_pol5: function (v) { P_pol5 = v; }, P_g1d5: function (v) { P_g1d5 = v; }, P_g2d5: function (v) { P_g2d5 = v; }, P_ho5: function (v) { P_ho5 = v; }, P_hm5: function (v) { P_hm5 = v; }, P_on6: function (v) { P_on6 = v; }, P_type6: function (v) { P_type6 = v; }, P_sync6: function (v) { P_sync6 = v; }, P_div6: function (v) { P_div6 = v; }, P_hz6: function (v) { P_hz6 = v; }, P_amp6: function (v) { P_amp6 = v; }, P_ta6: function (v) { P_ta6 = v; }, P_tb6: function (v) { P_tb6 = v; }, P_phase6: function (v) { P_phase6 = v; }, P_depth6: function (v) { P_depth6 = v; }, P_bi6: function (v) { P_bi6 = v; }, P_clk6: function (v) { P_clk6 = v; }, P_out6: function (v) { P_out6 = v; }, P_mode6: function (v) { P_mode6 = v; }, P_pol6: function (v) { P_pol6 = v; }, P_g1d6: function (v) { P_g1d6 = v; }, P_g2d6: function (v) { P_g2d6 = v; }, P_ho6: function (v) { P_ho6 = v; }, P_hm6: function (v) { P_hm6 = v; }, P_on7: function (v) { P_on7 = v; }, P_type7: function (v) { P_type7 = v; }, P_sync7: function (v) { P_sync7 = v; }, P_div7: function (v) { P_div7 = v; }, P_hz7: function (v) { P_hz7 = v; }, P_amp7: function (v) { P_amp7 = v; }, P_ta7: function (v) { P_ta7 = v; }, P_tb7: function (v) { P_tb7 = v; }, P_phase7: function (v) { P_phase7 = v; }, P_depth7: function (v) { P_depth7 = v; }, P_bi7: function (v) { P_bi7 = v; }, P_clk7: function (v) { P_clk7 = v; }, P_out7: function (v) { P_out7 = v; }, P_mode7: function (v) { P_mode7 = v; }, P_pol7: function (v) { P_pol7 = v; }, P_g1d7: function (v) { P_g1d7 = v; }, P_g2d7: function (v) { P_g2d7 = v; }, P_ho7: function (v) { P_ho7 = v; }, P_hm7: function (v) { P_hm7 = v; }, P_bankA: function (v) { P_bankA = v; }, P_bankB: function (v) { P_bankB = v; }, P_layA: function (v) { P_layA = v; }, P_layB: function (v) { P_layB = v; }, P_couple: function (v) { P_couple = v; }, P_fbA: function (v) { P_fbA = v; }, P_fbB: function (v) { P_fbB = v; }, P_nudge: function (v) { P_nudge = v; }, P_rst: function (v) { P_rst = v; }, P_tempo: function (v) { P_tempo = v; }, P_play: function (v) { P_play = v; }, P_mdep: function (v) { P_mdep = v; }, P_moff: function (v) { P_moff = v; }, P_ron0: function (v) { P_ron0 = v; }, P_ra0: function (v) { P_ra0 = v; }, P_rop0: function (v) { P_rop0 = v; }, P_rb0: function (v) { P_rb0 = v; }, P_rthr0: function (v) { P_rthr0 = v; }, P_ron1: function (v) { P_ron1 = v; }, P_ra1: function (v) { P_ra1 = v; }, P_rop1: function (v) { P_rop1 = v; }, P_rb1: function (v) { P_rb1 = v; }, P_rthr1: function (v) { P_rthr1 = v; }, P_ron2: function (v) { P_ron2 = v; }, P_ra2: function (v) { P_ra2 = v; }, P_rop2: function (v) { P_rop2 = v; }, P_rb2: function (v) { P_rb2 = v; }, P_rthr2: function (v) { P_rthr2 = v; }, P_ron3: function (v) { P_ron3 = v; }, P_ra3: function (v) { P_ra3 = v; }, P_rop3: function (v) { P_rop3 = v; }, P_rb3: function (v) { P_rb3 = v; }, P_rthr3: function (v) { P_rthr3 = v; }, P_pon: function (v) { P_pon = v; }, P_psrc: function (v) { P_psrc = v; }, P_ptick: function (v) { P_ptick = v; }};
-  var hist = {lb: function () { return lb; }, plw: function () { return plw; }, pf: function () { return pf; }, pvh: function () { return pvh; }, pcnt: function () { return pcnt; }, raw0: function () { return raw0; }, off0: function () { return off0; }, hv0: function () { return hv0; }, sv0: function () { return sv0; }, gc0: function () { return gc0; }, vv0: function () { return vv0; }, pv0: function () { return pv0; }, tg0: function () { return tg0; }, ep0: function () { return ep0; }, er0: function () { return er0; }, cx0: function () { return cx0; }, cy0: function () { return cy0; }, cz0: function () { return cz0; }, lha0: function () { return lha0; }, lhb0: function () { return lhb0; }, lhc0: function () { return lhc0; }, as0: function () { return as0; }, raw1: function () { return raw1; }, off1: function () { return off1; }, hv1: function () { return hv1; }, sv1: function () { return sv1; }, gc1: function () { return gc1; }, vv1: function () { return vv1; }, pv1: function () { return pv1; }, tg1: function () { return tg1; }, ep1: function () { return ep1; }, er1: function () { return er1; }, cx1: function () { return cx1; }, cy1: function () { return cy1; }, cz1: function () { return cz1; }, lha1: function () { return lha1; }, lhb1: function () { return lhb1; }, lhc1: function () { return lhc1; }, as1: function () { return as1; }, raw2: function () { return raw2; }, off2: function () { return off2; }, hv2: function () { return hv2; }, sv2: function () { return sv2; }, gc2: function () { return gc2; }, vv2: function () { return vv2; }, pv2: function () { return pv2; }, tg2: function () { return tg2; }, ep2: function () { return ep2; }, er2: function () { return er2; }, cx2: function () { return cx2; }, cy2: function () { return cy2; }, cz2: function () { return cz2; }, lha2: function () { return lha2; }, lhb2: function () { return lhb2; }, lhc2: function () { return lhc2; }, as2: function () { return as2; }, raw3: function () { return raw3; }, off3: function () { return off3; }, hv3: function () { return hv3; }, sv3: function () { return sv3; }, gc3: function () { return gc3; }, vv3: function () { return vv3; }, pv3: function () { return pv3; }, tg3: function () { return tg3; }, ep3: function () { return ep3; }, er3: function () { return er3; }, cx3: function () { return cx3; }, cy3: function () { return cy3; }, cz3: function () { return cz3; }, lha3: function () { return lha3; }, lhb3: function () { return lhb3; }, lhc3: function () { return lhc3; }, as3: function () { return as3; }, raw4: function () { return raw4; }, off4: function () { return off4; }, hv4: function () { return hv4; }, sv4: function () { return sv4; }, gc4: function () { return gc4; }, vv4: function () { return vv4; }, pv4: function () { return pv4; }, tg4: function () { return tg4; }, ep4: function () { return ep4; }, er4: function () { return er4; }, cx4: function () { return cx4; }, cy4: function () { return cy4; }, cz4: function () { return cz4; }, lha4: function () { return lha4; }, lhb4: function () { return lhb4; }, lhc4: function () { return lhc4; }, as4: function () { return as4; }, raw5: function () { return raw5; }, off5: function () { return off5; }, hv5: function () { return hv5; }, sv5: function () { return sv5; }, gc5: function () { return gc5; }, vv5: function () { return vv5; }, pv5: function () { return pv5; }, tg5: function () { return tg5; }, ep5: function () { return ep5; }, er5: function () { return er5; }, cx5: function () { return cx5; }, cy5: function () { return cy5; }, cz5: function () { return cz5; }, lha5: function () { return lha5; }, lhb5: function () { return lhb5; }, lhc5: function () { return lhc5; }, as5: function () { return as5; }, raw6: function () { return raw6; }, off6: function () { return off6; }, hv6: function () { return hv6; }, sv6: function () { return sv6; }, gc6: function () { return gc6; }, vv6: function () { return vv6; }, pv6: function () { return pv6; }, tg6: function () { return tg6; }, ep6: function () { return ep6; }, er6: function () { return er6; }, cx6: function () { return cx6; }, cy6: function () { return cy6; }, cz6: function () { return cz6; }, lha6: function () { return lha6; }, lhb6: function () { return lhb6; }, lhc6: function () { return lhc6; }, as6: function () { return as6; }, raw7: function () { return raw7; }, off7: function () { return off7; }, hv7: function () { return hv7; }, sv7: function () { return sv7; }, gc7: function () { return gc7; }, vv7: function () { return vv7; }, pv7: function () { return pv7; }, tg7: function () { return tg7; }, ep7: function () { return ep7; }, er7: function () { return er7; }, cx7: function () { return cx7; }, cy7: function () { return cy7; }, cz7: function () { return cz7; }, lha7: function () { return lha7; }, lhb7: function () { return lhb7; }, lhc7: function () { return lhc7; }, as7: function () { return as7; }, rg0: function () { return rg0; }, rs0: function () { return rs0; }, pc0: function () { return pc0; }, rg1: function () { return rg1; }, rs1: function () { return rs1; }, pc1: function () { return pc1; }, rg2: function () { return rg2; }, rs2: function () { return rs2; }, pc2: function () { return pc2; }, rg3: function () { return rg3; }, rs3: function () { return rs3; }, pc3: function () { return pc3; }};
+  var setters = {P_on0: function (v) { P_on0 = v; }, P_type0: function (v) { P_type0 = v; }, P_sync0: function (v) { P_sync0 = v; }, P_div0: function (v) { P_div0 = v; }, P_hz0: function (v) { P_hz0 = v; }, P_amp0: function (v) { P_amp0 = v; }, P_ta0: function (v) { P_ta0 = v; }, P_tb0: function (v) { P_tb0 = v; }, P_phase0: function (v) { P_phase0 = v; }, P_depth0: function (v) { P_depth0 = v; }, P_bi0: function (v) { P_bi0 = v; }, P_clk0: function (v) { P_clk0 = v; }, P_out0: function (v) { P_out0 = v; }, P_mode0: function (v) { P_mode0 = v; }, P_pol0: function (v) { P_pol0 = v; }, P_g1d0: function (v) { P_g1d0 = v; }, P_g2d0: function (v) { P_g2d0 = v; }, P_ho0: function (v) { P_ho0 = v; }, P_hm0: function (v) { P_hm0 = v; }, P_on1: function (v) { P_on1 = v; }, P_type1: function (v) { P_type1 = v; }, P_sync1: function (v) { P_sync1 = v; }, P_div1: function (v) { P_div1 = v; }, P_hz1: function (v) { P_hz1 = v; }, P_amp1: function (v) { P_amp1 = v; }, P_ta1: function (v) { P_ta1 = v; }, P_tb1: function (v) { P_tb1 = v; }, P_phase1: function (v) { P_phase1 = v; }, P_depth1: function (v) { P_depth1 = v; }, P_bi1: function (v) { P_bi1 = v; }, P_clk1: function (v) { P_clk1 = v; }, P_out1: function (v) { P_out1 = v; }, P_mode1: function (v) { P_mode1 = v; }, P_pol1: function (v) { P_pol1 = v; }, P_g1d1: function (v) { P_g1d1 = v; }, P_g2d1: function (v) { P_g2d1 = v; }, P_ho1: function (v) { P_ho1 = v; }, P_hm1: function (v) { P_hm1 = v; }, P_on2: function (v) { P_on2 = v; }, P_type2: function (v) { P_type2 = v; }, P_sync2: function (v) { P_sync2 = v; }, P_div2: function (v) { P_div2 = v; }, P_hz2: function (v) { P_hz2 = v; }, P_amp2: function (v) { P_amp2 = v; }, P_ta2: function (v) { P_ta2 = v; }, P_tb2: function (v) { P_tb2 = v; }, P_phase2: function (v) { P_phase2 = v; }, P_depth2: function (v) { P_depth2 = v; }, P_bi2: function (v) { P_bi2 = v; }, P_clk2: function (v) { P_clk2 = v; }, P_out2: function (v) { P_out2 = v; }, P_mode2: function (v) { P_mode2 = v; }, P_pol2: function (v) { P_pol2 = v; }, P_g1d2: function (v) { P_g1d2 = v; }, P_g2d2: function (v) { P_g2d2 = v; }, P_ho2: function (v) { P_ho2 = v; }, P_hm2: function (v) { P_hm2 = v; }, P_on3: function (v) { P_on3 = v; }, P_type3: function (v) { P_type3 = v; }, P_sync3: function (v) { P_sync3 = v; }, P_div3: function (v) { P_div3 = v; }, P_hz3: function (v) { P_hz3 = v; }, P_amp3: function (v) { P_amp3 = v; }, P_ta3: function (v) { P_ta3 = v; }, P_tb3: function (v) { P_tb3 = v; }, P_phase3: function (v) { P_phase3 = v; }, P_depth3: function (v) { P_depth3 = v; }, P_bi3: function (v) { P_bi3 = v; }, P_clk3: function (v) { P_clk3 = v; }, P_out3: function (v) { P_out3 = v; }, P_mode3: function (v) { P_mode3 = v; }, P_pol3: function (v) { P_pol3 = v; }, P_g1d3: function (v) { P_g1d3 = v; }, P_g2d3: function (v) { P_g2d3 = v; }, P_ho3: function (v) { P_ho3 = v; }, P_hm3: function (v) { P_hm3 = v; }, P_on4: function (v) { P_on4 = v; }, P_type4: function (v) { P_type4 = v; }, P_sync4: function (v) { P_sync4 = v; }, P_div4: function (v) { P_div4 = v; }, P_hz4: function (v) { P_hz4 = v; }, P_amp4: function (v) { P_amp4 = v; }, P_ta4: function (v) { P_ta4 = v; }, P_tb4: function (v) { P_tb4 = v; }, P_phase4: function (v) { P_phase4 = v; }, P_depth4: function (v) { P_depth4 = v; }, P_bi4: function (v) { P_bi4 = v; }, P_clk4: function (v) { P_clk4 = v; }, P_out4: function (v) { P_out4 = v; }, P_mode4: function (v) { P_mode4 = v; }, P_pol4: function (v) { P_pol4 = v; }, P_g1d4: function (v) { P_g1d4 = v; }, P_g2d4: function (v) { P_g2d4 = v; }, P_ho4: function (v) { P_ho4 = v; }, P_hm4: function (v) { P_hm4 = v; }, P_on5: function (v) { P_on5 = v; }, P_type5: function (v) { P_type5 = v; }, P_sync5: function (v) { P_sync5 = v; }, P_div5: function (v) { P_div5 = v; }, P_hz5: function (v) { P_hz5 = v; }, P_amp5: function (v) { P_amp5 = v; }, P_ta5: function (v) { P_ta5 = v; }, P_tb5: function (v) { P_tb5 = v; }, P_phase5: function (v) { P_phase5 = v; }, P_depth5: function (v) { P_depth5 = v; }, P_bi5: function (v) { P_bi5 = v; }, P_clk5: function (v) { P_clk5 = v; }, P_out5: function (v) { P_out5 = v; }, P_mode5: function (v) { P_mode5 = v; }, P_pol5: function (v) { P_pol5 = v; }, P_g1d5: function (v) { P_g1d5 = v; }, P_g2d5: function (v) { P_g2d5 = v; }, P_ho5: function (v) { P_ho5 = v; }, P_hm5: function (v) { P_hm5 = v; }, P_on6: function (v) { P_on6 = v; }, P_type6: function (v) { P_type6 = v; }, P_sync6: function (v) { P_sync6 = v; }, P_div6: function (v) { P_div6 = v; }, P_hz6: function (v) { P_hz6 = v; }, P_amp6: function (v) { P_amp6 = v; }, P_ta6: function (v) { P_ta6 = v; }, P_tb6: function (v) { P_tb6 = v; }, P_phase6: function (v) { P_phase6 = v; }, P_depth6: function (v) { P_depth6 = v; }, P_bi6: function (v) { P_bi6 = v; }, P_clk6: function (v) { P_clk6 = v; }, P_out6: function (v) { P_out6 = v; }, P_mode6: function (v) { P_mode6 = v; }, P_pol6: function (v) { P_pol6 = v; }, P_g1d6: function (v) { P_g1d6 = v; }, P_g2d6: function (v) { P_g2d6 = v; }, P_ho6: function (v) { P_ho6 = v; }, P_hm6: function (v) { P_hm6 = v; }, P_on7: function (v) { P_on7 = v; }, P_type7: function (v) { P_type7 = v; }, P_sync7: function (v) { P_sync7 = v; }, P_div7: function (v) { P_div7 = v; }, P_hz7: function (v) { P_hz7 = v; }, P_amp7: function (v) { P_amp7 = v; }, P_ta7: function (v) { P_ta7 = v; }, P_tb7: function (v) { P_tb7 = v; }, P_phase7: function (v) { P_phase7 = v; }, P_depth7: function (v) { P_depth7 = v; }, P_bi7: function (v) { P_bi7 = v; }, P_clk7: function (v) { P_clk7 = v; }, P_out7: function (v) { P_out7 = v; }, P_mode7: function (v) { P_mode7 = v; }, P_pol7: function (v) { P_pol7 = v; }, P_g1d7: function (v) { P_g1d7 = v; }, P_g2d7: function (v) { P_g2d7 = v; }, P_ho7: function (v) { P_ho7 = v; }, P_hm7: function (v) { P_hm7 = v; }, P_bankA: function (v) { P_bankA = v; }, P_bankB: function (v) { P_bankB = v; }, P_layA: function (v) { P_layA = v; }, P_layB: function (v) { P_layB = v; }, P_couple: function (v) { P_couple = v; }, P_fbA: function (v) { P_fbA = v; }, P_fbB: function (v) { P_fbB = v; }, P_nudge: function (v) { P_nudge = v; }, P_rst: function (v) { P_rst = v; }, P_tempo: function (v) { P_tempo = v; }, P_play: function (v) { P_play = v; }, P_mdep: function (v) { P_mdep = v; }, P_moff: function (v) { P_moff = v; }};
+  var hist = {lb: function () { return lb; }, plw: function () { return plw; }, raw0: function () { return raw0; }, off0: function () { return off0; }, hv0: function () { return hv0; }, sv0: function () { return sv0; }, gc0: function () { return gc0; }, vv0: function () { return vv0; }, pv0: function () { return pv0; }, tg0: function () { return tg0; }, ep0: function () { return ep0; }, er0: function () { return er0; }, cx0: function () { return cx0; }, cy0: function () { return cy0; }, cz0: function () { return cz0; }, lha0: function () { return lha0; }, lhb0: function () { return lhb0; }, lhc0: function () { return lhc0; }, as0: function () { return as0; }, raw1: function () { return raw1; }, off1: function () { return off1; }, hv1: function () { return hv1; }, sv1: function () { return sv1; }, gc1: function () { return gc1; }, vv1: function () { return vv1; }, pv1: function () { return pv1; }, tg1: function () { return tg1; }, ep1: function () { return ep1; }, er1: function () { return er1; }, cx1: function () { return cx1; }, cy1: function () { return cy1; }, cz1: function () { return cz1; }, lha1: function () { return lha1; }, lhb1: function () { return lhb1; }, lhc1: function () { return lhc1; }, as1: function () { return as1; }, raw2: function () { return raw2; }, off2: function () { return off2; }, hv2: function () { return hv2; }, sv2: function () { return sv2; }, gc2: function () { return gc2; }, vv2: function () { return vv2; }, pv2: function () { return pv2; }, tg2: function () { return tg2; }, ep2: function () { return ep2; }, er2: function () { return er2; }, cx2: function () { return cx2; }, cy2: function () { return cy2; }, cz2: function () { return cz2; }, lha2: function () { return lha2; }, lhb2: function () { return lhb2; }, lhc2: function () { return lhc2; }, as2: function () { return as2; }, raw3: function () { return raw3; }, off3: function () { return off3; }, hv3: function () { return hv3; }, sv3: function () { return sv3; }, gc3: function () { return gc3; }, vv3: function () { return vv3; }, pv3: function () { return pv3; }, tg3: function () { return tg3; }, ep3: function () { return ep3; }, er3: function () { return er3; }, cx3: function () { return cx3; }, cy3: function () { return cy3; }, cz3: function () { return cz3; }, lha3: function () { return lha3; }, lhb3: function () { return lhb3; }, lhc3: function () { return lhc3; }, as3: function () { return as3; }, raw4: function () { return raw4; }, off4: function () { return off4; }, hv4: function () { return hv4; }, sv4: function () { return sv4; }, gc4: function () { return gc4; }, vv4: function () { return vv4; }, pv4: function () { return pv4; }, tg4: function () { return tg4; }, ep4: function () { return ep4; }, er4: function () { return er4; }, cx4: function () { return cx4; }, cy4: function () { return cy4; }, cz4: function () { return cz4; }, lha4: function () { return lha4; }, lhb4: function () { return lhb4; }, lhc4: function () { return lhc4; }, as4: function () { return as4; }, raw5: function () { return raw5; }, off5: function () { return off5; }, hv5: function () { return hv5; }, sv5: function () { return sv5; }, gc5: function () { return gc5; }, vv5: function () { return vv5; }, pv5: function () { return pv5; }, tg5: function () { return tg5; }, ep5: function () { return ep5; }, er5: function () { return er5; }, cx5: function () { return cx5; }, cy5: function () { return cy5; }, cz5: function () { return cz5; }, lha5: function () { return lha5; }, lhb5: function () { return lhb5; }, lhc5: function () { return lhc5; }, as5: function () { return as5; }, raw6: function () { return raw6; }, off6: function () { return off6; }, hv6: function () { return hv6; }, sv6: function () { return sv6; }, gc6: function () { return gc6; }, vv6: function () { return vv6; }, pv6: function () { return pv6; }, tg6: function () { return tg6; }, ep6: function () { return ep6; }, er6: function () { return er6; }, cx6: function () { return cx6; }, cy6: function () { return cy6; }, cz6: function () { return cz6; }, lha6: function () { return lha6; }, lhb6: function () { return lhb6; }, lhc6: function () { return lhc6; }, as6: function () { return as6; }, raw7: function () { return raw7; }, off7: function () { return off7; }, hv7: function () { return hv7; }, sv7: function () { return sv7; }, gc7: function () { return gc7; }, vv7: function () { return vv7; }, pv7: function () { return pv7; }, tg7: function () { return tg7; }, ep7: function () { return ep7; }, er7: function () { return er7; }, cx7: function () { return cx7; }, cy7: function () { return cy7; }, cz7: function () { return cz7; }, lha7: function () { return lha7; }, lhb7: function () { return lhb7; }, lhc7: function () { return lhc7; }, as7: function () { return as7; }};
   var lastT = -1, lastP = -1;
   function run(beat, bpm, play) {   // the device's clock: song position as the 192-bar locked phasor
     if (bpm !== lastT) { P_tempo = bpm; lastT = bpm; }
@@ -2479,13 +2319,13 @@ function makeNet(sr, seed) {
     set: function (n, v) { if (!setters[n]) { throw new Error('no param ' + n); } setters[n](v); },
     h: function (n) { return hist[n](); } };
 }
-var NET_EXPORTS = { makeNet: makeNet, NOUT: 38 };
+var NET_EXPORTS = { makeNet: makeNet, NOUT: 32 };
 
 </script>
 <script>
 (function () {
   "use strict";
-  var D = {"layouts":[["Chain",[[0,1,"rate"],[1,2,"amp"],[2,3,"shape"]]],["Ring",[[0,1,"rate"],[1,2,"rate"],[2,3,"rate"],[3,0,"rate"]]],["Star",[[0,1,"rate"],[0,2,"amp"],[0,3,"phase"]]],["Pairs",[[0,1,"rate"],[1,0,"rate"],[2,3,"shape"],[3,2,"rate"]]],["Clocked",[[0,1,"clock"],[0,2,"clock"],[0,3,"clock"]]],["Self",[[0,0,"rate"],[1,1,"rate"],[2,2,"rate"],[3,3,"rate"]]]],"divs":[["1/64",0.0625],["1/32T",0.08333333333333333],["1/32",0.125],["1/16T",0.16666666666666666],["1/16",0.25],["1/8T",0.3333333333333333],["1/16D",0.375],["1/8",0.5],["1/4T",0.6666666666666666],["1/8D",0.75],["1/4",1.0],["1/4D",1.5],["1/2",2.0],["1/2D",3.0],["1 bar",4.0],["2 bars",8.0],["3 bars",12.0],["4 bars",16.0],["6 bars",24.0],["8 bars",32.0],["12 bars",48.0],["16 bars",64.0],["32 bars",128.0],["64 bars",256.0]],"ops":["a > b","a < b","a and b","a or b","a crosses b"],"params":[{"name":"P_on0","default":1,"min":0,"max":1},{"name":"P_type0","default":0,"min":0,"max":6},{"name":"P_sync0","default":1,"min":0,"max":1},{"name":"P_div0","default":14,"min":0,"max":23},{"name":"P_hz0","default":0.25,"min":0.005,"max":40},{"name":"P_amp0","default":0.8,"min":0,"max":1},{"name":"P_ta0","default":0.0,"min":0,"max":1},{"name":"P_tb0","default":0.0,"min":0,"max":1},{"name":"P_phase0","default":0.0,"min":0,"max":1},{"name":"P_depth0","default":0.3,"min":-1,"max":1},{"name":"P_bi0","default":0,"min":0,"max":1},{"name":"P_clk0","default":0,"min":0,"max":1},{"name":"P_out0","default":1,"min":0,"max":1},{"name":"P_mode0","default":0,"min":0,"max":2},{"name":"P_pol0","default":0,"min":0,"max":1},{"name":"P_g1d0","default":1,"min":-1,"max":1},{"name":"P_g2d0","default":1,"min":-1,"max":1},{"name":"P_ho0","default":0,"min":0,"max":1},{"name":"P_hm0","default":1,"min":0,"max":7},{"name":"P_on1","default":1,"min":0,"max":1},{"name":"P_type1","default":0,"min":0,"max":6},{"name":"P_sync1","default":1,"min":0,"max":1},{"name":"P_div1","default":12,"min":0,"max":23},{"name":"P_hz1","default":0.5,"min":0.005,"max":40},{"name":"P_amp1","default":0.7,"min":0,"max":1},{"name":"P_ta1","default":0.33,"min":0,"max":1},{"name":"P_tb1","default":0.0,"min":0,"max":1},{"name":"P_phase1","default":0.0,"min":0,"max":1},{"name":"P_depth1","default":0.3,"min":-1,"max":1},{"name":"P_bi1","default":0,"min":0,"max":1},{"name":"P_clk1","default":0,"min":0,"max":1},{"name":"P_out1","default":1,"min":0,"max":1},{"name":"P_mode1","default":0,"min":0,"max":2},{"name":"P_pol1","default":0,"min":0,"max":1},{"name":"P_g1d1","default":1,"min":-1,"max":1},{"name":"P_g2d1","default":1,"min":-1,"max":1},{"name":"P_ho1","default":0,"min":0,"max":1},{"name":"P_hm1","default":1,"min":0,"max":7},{"name":"P_on2","default":1,"min":0,"max":1},{"name":"P_type2","default":2,"min":0,"max":6},{"name":"P_sync2","default":1,"min":0,"max":1},{"name":"P_div2","default":10,"min":0,"max":23},{"name":"P_hz2","default":2.0,"min":0.005,"max":40},{"name":"P_amp2","default":0.6,"min":0,"max":1},{"name":"P_ta2","default":0.2,"min":0,"max":1},{"name":"P_tb2","default":0.0,"min":0,"max":1},{"name":"P_phase2","default":0.0,"min":0,"max":1},{"name":"P_depth2","default":0.3,"min":-1,"max":1},{"name":"P_bi2","default":0,"min":0,"max":1},{"name":"P_clk2","default":0,"min":0,"max":1},{"name":"P_out2","default":1,"min":0,"max":1},{"name":"P_mode2","default":0,"min":0,"max":2},{"name":"P_pol2","default":0,"min":0,"max":1},{"name":"P_g1d2","default":1,"min":-1,"max":1},{"name":"P_g2d2","default":1,"min":-1,"max":1},{"name":"P_ho2","default":0,"min":0,"max":1},{"name":"P_hm2","default":1,"min":0,"max":7},{"name":"P_on3","default":1,"min":0,"max":1},{"name":"P_type3","default":1,"min":0,"max":6},{"name":"P_sync3","default":1,"min":0,"max":1},{"name":"P_div3","default":15,"min":0,"max":23},{"name":"P_hz3","default":0.125,"min":0.005,"max":40},{"name":"P_amp3","default":0.8,"min":0,"max":1},{"name":"P_ta3","default":0.2,"min":0,"max":1},{"name":"P_tb3","default":0.6,"min":0,"max":1},{"name":"P_phase3","default":0.0,"min":0,"max":1},{"name":"P_depth3","default":0.3,"min":-1,"max":1},{"name":"P_bi3","default":0,"min":0,"max":1},{"name":"P_clk3","default":0,"min":0,"max":1},{"name":"P_out3","default":1,"min":0,"max":1},{"name":"P_mode3","default":0,"min":0,"max":2},{"name":"P_pol3","default":0,"min":0,"max":1},{"name":"P_g1d3","default":1,"min":-1,"max":1},{"name":"P_g2d3","default":1,"min":-1,"max":1},{"name":"P_ho3","default":0,"min":0,"max":1},{"name":"P_hm3","default":1,"min":0,"max":7},{"name":"P_on4","default":1,"min":0,"max":1},{"name":"P_type4","default":0,"min":0,"max":6},{"name":"P_sync4","default":0,"min":0,"max":1},{"name":"P_div4","default":14,"min":0,"max":23},{"name":"P_hz4","default":0.13,"min":0.005,"max":40},{"name":"P_amp4","default":0.8,"min":0,"max":1},{"name":"P_ta4","default":0.0,"min":0,"max":1},{"name":"P_tb4","default":0.0,"min":0,"max":1},{"name":"P_phase4","default":0.0,"min":0,"max":1},{"name":"P_depth4","default":0.3,"min":-1,"max":1},{"name":"P_bi4","default":0,"min":0,"max":1},{"name":"P_clk4","default":0,"min":0,"max":1},{"name":"P_out4","default":1,"min":0,"max":1},{"name":"P_mode4","default":0,"min":0,"max":2},{"name":"P_pol4","default":0,"min":0,"max":1},{"name":"P_g1d4","default":1,"min":-1,"max":1},{"name":"P_g2d4","default":1,"min":-1,"max":1},{"name":"P_ho4","default":0,"min":0,"max":1},{"name":"P_hm4","default":1,"min":0,"max":7},{"name":"P_on5","default":1,"min":0,"max":1},{"name":"P_type5","default":0,"min":0,"max":6},{"name":"P_sync5","default":0,"min":0,"max":1},{"name":"P_div5","default":12,"min":0,"max":23},{"name":"P_hz5","default":0.21,"min":0.005,"max":40},{"name":"P_amp5","default":0.7,"min":0,"max":1},{"name":"P_ta5","default":0.67,"min":0,"max":1},{"name":"P_tb5","default":0.0,"min":0,"max":1},{"name":"P_phase5","default":0.0,"min":0,"max":1},{"name":"P_depth5","default":0.3,"min":-1,"max":1},{"name":"P_bi5","default":0,"min":0,"max":1},{"name":"P_clk5","default":0,"min":0,"max":1},{"name":"P_out5","default":1,"min":0,"max":1},{"name":"P_mode5","default":0,"min":0,"max":2},{"name":"P_pol5","default":0,"min":0,"max":1},{"name":"P_g1d5","default":1,"min":-1,"max":1},{"name":"P_g2d5","default":1,"min":-1,"max":1},{"name":"P_ho5","default":0,"min":0,"max":1},{"name":"P_hm5","default":1,"min":0,"max":7},{"name":"P_on6","default":1,"min":0,"max":1},{"name":"P_type6","default":3,"min":0,"max":6},{"name":"P_sync6","default":1,"min":0,"max":1},{"name":"P_div6","default":14,"min":0,"max":23},{"name":"P_hz6","default":1.0,"min":0.005,"max":40},{"name":"P_amp6","default":1.0,"min":0,"max":1},{"name":"P_ta6","default":0.1,"min":0,"max":1},{"name":"P_tb6","default":0.0,"min":0,"max":1},{"name":"P_phase6","default":0.0,"min":0,"max":1},{"name":"P_depth6","default":0.5,"min":-1,"max":1},{"name":"P_bi6","default":0,"min":0,"max":1},{"name":"P_clk6","default":0,"min":0,"max":1},{"name":"P_out6","default":1,"min":0,"max":1},{"name":"P_mode6","default":0,"min":0,"max":2},{"name":"P_pol6","default":0,"min":0,"max":1},{"name":"P_g1d6","default":1,"min":-1,"max":1},{"name":"P_g2d6","default":1,"min":-1,"max":1},{"name":"P_ho6","default":0,"min":0,"max":1},{"name":"P_hm6","default":1,"min":0,"max":7},{"name":"P_on7","default":1,"min":0,"max":1},{"name":"P_type7","default":2,"min":0,"max":6},{"name":"P_sync7","default":1,"min":0,"max":1},{"name":"P_div7","default":12,"min":0,"max":23},{"name":"P_hz7","default":1.0,"min":0.005,"max":40},{"name":"P_amp7","default":0.6,"min":0,"max":1},{"name":"P_ta7","default":0.1,"min":0,"max":1},{"name":"P_tb7","default":0.0,"min":0,"max":1},{"name":"P_phase7","default":0.0,"min":0,"max":1},{"name":"P_depth7","default":0.3,"min":-1,"max":1},{"name":"P_bi7","default":0,"min":0,"max":1},{"name":"P_clk7","default":0,"min":0,"max":1},{"name":"P_out7","default":1,"min":0,"max":1},{"name":"P_mode7","default":0,"min":0,"max":2},{"name":"P_pol7","default":0,"min":0,"max":1},{"name":"P_g1d7","default":1,"min":-1,"max":1},{"name":"P_g2d7","default":1,"min":-1,"max":1},{"name":"P_ho7","default":0,"min":0,"max":1},{"name":"P_hm7","default":1,"min":0,"max":7},{"name":"P_bankA","default":1,"min":0,"max":1},{"name":"P_bankB","default":0,"min":0,"max":1},{"name":"P_layA","default":0,"min":0,"max":5},{"name":"P_layB","default":0,"min":0,"max":5},{"name":"P_couple","default":0,"min":0,"max":1},{"name":"P_fbA","default":0,"min":0,"max":1},{"name":"P_fbB","default":0,"min":0,"max":1},{"name":"P_nudge","default":0,"min":-50,"max":50},{"name":"P_rst","default":0,"min":0,"max":1},{"name":"P_tempo","default":120,"min":20,"max":999},{"name":"P_play","default":0,"min":0,"max":1},{"name":"P_mdep","default":1,"min":-1,"max":1},{"name":"P_moff","default":0,"min":-1,"max":1},{"name":"P_ron0","default":0,"min":0,"max":1},{"name":"P_ra0","default":0,"min":0,"max":7},{"name":"P_rop0","default":0,"min":0,"max":4},{"name":"P_rb0","default":1,"min":0,"max":8},{"name":"P_rthr0","default":0.5,"min":0,"max":1},{"name":"P_ron1","default":0,"min":0,"max":1},{"name":"P_ra1","default":0,"min":0,"max":7},{"name":"P_rop1","default":0,"min":0,"max":4},{"name":"P_rb1","default":1,"min":0,"max":8},{"name":"P_rthr1","default":0.5,"min":0,"max":1},{"name":"P_ron2","default":0,"min":0,"max":1},{"name":"P_ra2","default":0,"min":0,"max":7},{"name":"P_rop2","default":0,"min":0,"max":4},{"name":"P_rb2","default":1,"min":0,"max":8},{"name":"P_rthr2","default":0.5,"min":0,"max":1},{"name":"P_ron3","default":0,"min":0,"max":1},{"name":"P_ra3","default":0,"min":0,"max":7},{"name":"P_rop3","default":0,"min":0,"max":4},{"name":"P_rb3","default":1,"min":0,"max":8},{"name":"P_rthr3","default":0.5,"min":0,"max":1},{"name":"P_pon","default":0,"min":0,"max":1},{"name":"P_psrc","default":0,"min":0,"max":7},{"name":"P_ptick","default":10,"min":0,"max":31}]};
+  var D = {"layouts":[["Chain",[[0,1,"rate"],[1,2,"amp"],[2,3,"shape"]]],["Ring",[[0,1,"rate"],[1,2,"rate"],[2,3,"rate"],[3,0,"rate"]]],["Star",[[0,1,"rate"],[0,2,"amp"],[0,3,"phase"]]],["Pairs",[[0,1,"rate"],[1,0,"rate"],[2,3,"shape"],[3,2,"rate"]]],["Clocked",[[0,1,"clock"],[0,2,"clock"],[0,3,"clock"]]],["Self",[[0,0,"rate"],[1,1,"rate"],[2,2,"rate"],[3,3,"rate"]]]],"divs":[["1/64",0.0625],["1/32T",0.08333333333333333],["1/32",0.125],["1/16T",0.16666666666666666],["1/16",0.25],["1/8T",0.3333333333333333],["1/16D",0.375],["1/8",0.5],["1/4T",0.6666666666666666],["1/8D",0.75],["1/4",1.0],["1/4D",1.5],["1/2",2.0],["1/2D",3.0],["1 bar",4.0],["2 bars",8.0],["3 bars",12.0],["4 bars",16.0],["6 bars",24.0],["8 bars",32.0],["12 bars",48.0],["16 bars",64.0],["32 bars",128.0],["64 bars",256.0]],"names":{"layA":"Layout A","layB":"Layout B","bankB":"Bank B On","couple":"Couple","fbA":"Feedback A","fbB":"Feedback B","type":"Type","rate":"Rate","amp":"Amp","depth":"Depth"},"factory":[["Slow drift",{"banka":1,"bankb":0,"laya":1,"cpl":0,"fba":0,"fbb":0,"n0on":1,"n0type":0,"n0div":15,"n0dep":25,"n1on":1,"n1type":0,"n1div":16,"n1dep":25,"n2on":1,"n2type":0,"n2div":17,"n2dep":25,"n3on":1,"n3type":0,"n3div":18,"n3dep":25,"n4on":1,"n4type":0,"n4div":15,"n4dep":25,"n5on":1,"n5type":0,"n5div":16,"n5dep":25,"n6on":1,"n6type":0,"n6div":17,"n6dep":25,"n7on":1,"n7type":0,"n7div":18,"n7dep":25}],["Chain pulse",{"banka":1,"bankb":0,"laya":0,"cpl":0,"n0on":1,"n0type":0,"n0div":10,"n0dep":45,"n1on":1,"n1type":1,"n1div":14,"n1dep":40,"n2on":1,"n2type":2,"n2div":7,"n2dep":35,"n3on":1,"n3type":4,"n3div":15,"n3dep":50,"n4on":1,"n4type":0,"n4div":14,"n4dep":30,"n5on":1,"n5type":0,"n5div":14,"n5dep":30,"n6on":1,"n6type":0,"n6div":14,"n6dep":30,"n7on":1,"n7type":0,"n7div":14,"n7dep":30}],["Star clock",{"banka":1,"bankb":0,"laya":4,"cpl":0,"n0on":1,"n0type":0,"n0div":4,"n0dep":35,"n1on":1,"n1type":2,"n1div":10,"n1dep":40,"n2on":1,"n2type":3,"n2div":7,"n2dep":30,"n3on":1,"n3type":5,"n3div":12,"n3dep":35,"n4on":1,"n4type":0,"n4div":14,"n4dep":30,"n5on":1,"n5type":0,"n5div":14,"n5dep":30,"n6on":1,"n6type":0,"n6div":14,"n6dep":30,"n7on":1,"n7type":0,"n7div":14,"n7dep":30}],["Pairs",{"banka":1,"bankb":1,"laya":3,"layb":1,"cpl":30,"n0on":1,"n0type":0,"n0div":12,"n0dep":40,"n1on":1,"n1type":4,"n1div":14,"n1dep":30,"n2on":1,"n2type":1,"n2div":10,"n2dep":35,"n3on":1,"n3type":0,"n3div":15,"n3dep":30,"n4on":1,"n4type":0,"n4div":14,"n4dep":30,"n5on":1,"n5type":2,"n5div":7,"n5dep":35,"n6on":1,"n6type":0,"n6div":17,"n6dep":25,"n7on":1,"n7type":4,"n7div":12,"n7dep":30}],["Two worlds",{"banka":1,"bankb":1,"laya":1,"layb":2,"cpl":50,"fba":20,"n0on":1,"n0type":0,"n0div":14,"n0dep":35,"n1on":1,"n1type":0,"n1div":15,"n1dep":30,"n2on":1,"n2type":1,"n2div":12,"n2dep":40,"n3on":1,"n3type":4,"n3div":17,"n3dep":30,"n4on":1,"n4type":2,"n4div":7,"n4dep":45,"n5on":1,"n5type":0,"n5div":10,"n5dep":30,"n6on":1,"n6type":5,"n6div":12,"n6dep":35,"n7on":1,"n7type":4,"n7div":15,"n7dep":30}],["Self loops",{"banka":1,"bankb":1,"laya":5,"layb":0,"cpl":20,"fba":35,"fbb":25,"n0on":1,"n0type":6,"n0div":12,"n0dep":40,"n1on":1,"n1type":5,"n1div":10,"n1dep":35,"n2on":1,"n2type":6,"n2div":14,"n2dep":40,"n3on":1,"n3type":0,"n3div":15,"n3dep":30,"n4on":1,"n4type":0,"n4div":10,"n4dep":35,"n5on":1,"n5type":1,"n5div":14,"n5dep":30,"n6on":1,"n6type":2,"n6div":7,"n6dep":35,"n7on":1,"n7type":4,"n7div":15,"n7dep":30}],["Geiger rain",{"banka":1,"bankb":0,"laya":4,"cpl":0,"n0on":1,"n0type":0,"n0div":7,"n0dep":30,"n1on":1,"n1type":3,"n1div":10,"n1dep":45,"n2on":1,"n2type":3,"n2div":12,"n2dep":40,"n3on":1,"n3type":3,"n3div":14,"n3dep":35,"n4on":1,"n4type":0,"n4div":14,"n4dep":30,"n5on":1,"n5type":0,"n5div":14,"n5dep":30,"n6on":1,"n6type":0,"n6div":14,"n6dep":30,"n7on":1,"n7type":0,"n7div":14,"n7dep":30}],["Chaos web",{"banka":1,"bankb":1,"laya":3,"layb":5,"cpl":70,"fba":40,"fbb":40,"n0on":1,"n0type":6,"n0div":10,"n0dep":50,"n1on":1,"n1type":5,"n1div":7,"n1dep":45,"n2on":1,"n2type":6,"n2div":12,"n2dep":50,"n3on":1,"n3type":2,"n3div":4,"n3dep":40,"n4on":1,"n4type":6,"n4div":10,"n4dep":50,"n5on":1,"n5type":5,"n5div":14,"n5dep":45,"n6on":1,"n6type":3,"n6div":7,"n6dep":40,"n7on":1,"n7type":4,"n7div":12,"n7dep":45}]],"params":[{"name":"P_on0","default":1,"min":0,"max":1},{"name":"P_type0","default":0,"min":0,"max":6},{"name":"P_sync0","default":1,"min":0,"max":1},{"name":"P_div0","default":14,"min":0,"max":23},{"name":"P_hz0","default":0.25,"min":0.005,"max":40},{"name":"P_amp0","default":0.8,"min":0,"max":1},{"name":"P_ta0","default":0.0,"min":0,"max":1},{"name":"P_tb0","default":0.0,"min":0,"max":1},{"name":"P_phase0","default":0.0,"min":0,"max":1},{"name":"P_depth0","default":0.3,"min":-1,"max":1},{"name":"P_bi0","default":0,"min":0,"max":1},{"name":"P_clk0","default":0,"min":0,"max":1},{"name":"P_out0","default":1,"min":0,"max":1},{"name":"P_mode0","default":0,"min":0,"max":2},{"name":"P_pol0","default":0,"min":0,"max":1},{"name":"P_g1d0","default":1,"min":-1,"max":1},{"name":"P_g2d0","default":1,"min":-1,"max":1},{"name":"P_ho0","default":0,"min":0,"max":1},{"name":"P_hm0","default":1,"min":0,"max":7},{"name":"P_on1","default":1,"min":0,"max":1},{"name":"P_type1","default":0,"min":0,"max":6},{"name":"P_sync1","default":1,"min":0,"max":1},{"name":"P_div1","default":12,"min":0,"max":23},{"name":"P_hz1","default":0.5,"min":0.005,"max":40},{"name":"P_amp1","default":0.7,"min":0,"max":1},{"name":"P_ta1","default":0.33,"min":0,"max":1},{"name":"P_tb1","default":0.0,"min":0,"max":1},{"name":"P_phase1","default":0.0,"min":0,"max":1},{"name":"P_depth1","default":0.3,"min":-1,"max":1},{"name":"P_bi1","default":0,"min":0,"max":1},{"name":"P_clk1","default":0,"min":0,"max":1},{"name":"P_out1","default":1,"min":0,"max":1},{"name":"P_mode1","default":0,"min":0,"max":2},{"name":"P_pol1","default":0,"min":0,"max":1},{"name":"P_g1d1","default":1,"min":-1,"max":1},{"name":"P_g2d1","default":1,"min":-1,"max":1},{"name":"P_ho1","default":0,"min":0,"max":1},{"name":"P_hm1","default":1,"min":0,"max":7},{"name":"P_on2","default":1,"min":0,"max":1},{"name":"P_type2","default":2,"min":0,"max":6},{"name":"P_sync2","default":1,"min":0,"max":1},{"name":"P_div2","default":10,"min":0,"max":23},{"name":"P_hz2","default":2.0,"min":0.005,"max":40},{"name":"P_amp2","default":0.6,"min":0,"max":1},{"name":"P_ta2","default":0.2,"min":0,"max":1},{"name":"P_tb2","default":0.0,"min":0,"max":1},{"name":"P_phase2","default":0.0,"min":0,"max":1},{"name":"P_depth2","default":0.3,"min":-1,"max":1},{"name":"P_bi2","default":0,"min":0,"max":1},{"name":"P_clk2","default":0,"min":0,"max":1},{"name":"P_out2","default":1,"min":0,"max":1},{"name":"P_mode2","default":0,"min":0,"max":2},{"name":"P_pol2","default":0,"min":0,"max":1},{"name":"P_g1d2","default":1,"min":-1,"max":1},{"name":"P_g2d2","default":1,"min":-1,"max":1},{"name":"P_ho2","default":0,"min":0,"max":1},{"name":"P_hm2","default":1,"min":0,"max":7},{"name":"P_on3","default":1,"min":0,"max":1},{"name":"P_type3","default":1,"min":0,"max":6},{"name":"P_sync3","default":1,"min":0,"max":1},{"name":"P_div3","default":15,"min":0,"max":23},{"name":"P_hz3","default":0.125,"min":0.005,"max":40},{"name":"P_amp3","default":0.8,"min":0,"max":1},{"name":"P_ta3","default":0.2,"min":0,"max":1},{"name":"P_tb3","default":0.6,"min":0,"max":1},{"name":"P_phase3","default":0.0,"min":0,"max":1},{"name":"P_depth3","default":0.3,"min":-1,"max":1},{"name":"P_bi3","default":0,"min":0,"max":1},{"name":"P_clk3","default":0,"min":0,"max":1},{"name":"P_out3","default":1,"min":0,"max":1},{"name":"P_mode3","default":0,"min":0,"max":2},{"name":"P_pol3","default":0,"min":0,"max":1},{"name":"P_g1d3","default":1,"min":-1,"max":1},{"name":"P_g2d3","default":1,"min":-1,"max":1},{"name":"P_ho3","default":0,"min":0,"max":1},{"name":"P_hm3","default":1,"min":0,"max":7},{"name":"P_on4","default":1,"min":0,"max":1},{"name":"P_type4","default":0,"min":0,"max":6},{"name":"P_sync4","default":0,"min":0,"max":1},{"name":"P_div4","default":14,"min":0,"max":23},{"name":"P_hz4","default":0.13,"min":0.005,"max":40},{"name":"P_amp4","default":0.8,"min":0,"max":1},{"name":"P_ta4","default":0.0,"min":0,"max":1},{"name":"P_tb4","default":0.0,"min":0,"max":1},{"name":"P_phase4","default":0.0,"min":0,"max":1},{"name":"P_depth4","default":0.3,"min":-1,"max":1},{"name":"P_bi4","default":0,"min":0,"max":1},{"name":"P_clk4","default":0,"min":0,"max":1},{"name":"P_out4","default":1,"min":0,"max":1},{"name":"P_mode4","default":0,"min":0,"max":2},{"name":"P_pol4","default":0,"min":0,"max":1},{"name":"P_g1d4","default":1,"min":-1,"max":1},{"name":"P_g2d4","default":1,"min":-1,"max":1},{"name":"P_ho4","default":0,"min":0,"max":1},{"name":"P_hm4","default":1,"min":0,"max":7},{"name":"P_on5","default":1,"min":0,"max":1},{"name":"P_type5","default":0,"min":0,"max":6},{"name":"P_sync5","default":0,"min":0,"max":1},{"name":"P_div5","default":12,"min":0,"max":23},{"name":"P_hz5","default":0.21,"min":0.005,"max":40},{"name":"P_amp5","default":0.7,"min":0,"max":1},{"name":"P_ta5","default":0.67,"min":0,"max":1},{"name":"P_tb5","default":0.0,"min":0,"max":1},{"name":"P_phase5","default":0.0,"min":0,"max":1},{"name":"P_depth5","default":0.3,"min":-1,"max":1},{"name":"P_bi5","default":0,"min":0,"max":1},{"name":"P_clk5","default":0,"min":0,"max":1},{"name":"P_out5","default":1,"min":0,"max":1},{"name":"P_mode5","default":0,"min":0,"max":2},{"name":"P_pol5","default":0,"min":0,"max":1},{"name":"P_g1d5","default":1,"min":-1,"max":1},{"name":"P_g2d5","default":1,"min":-1,"max":1},{"name":"P_ho5","default":0,"min":0,"max":1},{"name":"P_hm5","default":1,"min":0,"max":7},{"name":"P_on6","default":1,"min":0,"max":1},{"name":"P_type6","default":3,"min":0,"max":6},{"name":"P_sync6","default":1,"min":0,"max":1},{"name":"P_div6","default":14,"min":0,"max":23},{"name":"P_hz6","default":1.0,"min":0.005,"max":40},{"name":"P_amp6","default":1.0,"min":0,"max":1},{"name":"P_ta6","default":0.1,"min":0,"max":1},{"name":"P_tb6","default":0.0,"min":0,"max":1},{"name":"P_phase6","default":0.0,"min":0,"max":1},{"name":"P_depth6","default":0.5,"min":-1,"max":1},{"name":"P_bi6","default":0,"min":0,"max":1},{"name":"P_clk6","default":0,"min":0,"max":1},{"name":"P_out6","default":1,"min":0,"max":1},{"name":"P_mode6","default":0,"min":0,"max":2},{"name":"P_pol6","default":0,"min":0,"max":1},{"name":"P_g1d6","default":1,"min":-1,"max":1},{"name":"P_g2d6","default":1,"min":-1,"max":1},{"name":"P_ho6","default":0,"min":0,"max":1},{"name":"P_hm6","default":1,"min":0,"max":7},{"name":"P_on7","default":1,"min":0,"max":1},{"name":"P_type7","default":2,"min":0,"max":6},{"name":"P_sync7","default":1,"min":0,"max":1},{"name":"P_div7","default":12,"min":0,"max":23},{"name":"P_hz7","default":1.0,"min":0.005,"max":40},{"name":"P_amp7","default":0.6,"min":0,"max":1},{"name":"P_ta7","default":0.1,"min":0,"max":1},{"name":"P_tb7","default":0.0,"min":0,"max":1},{"name":"P_phase7","default":0.0,"min":0,"max":1},{"name":"P_depth7","default":0.3,"min":-1,"max":1},{"name":"P_bi7","default":0,"min":0,"max":1},{"name":"P_clk7","default":0,"min":0,"max":1},{"name":"P_out7","default":1,"min":0,"max":1},{"name":"P_mode7","default":0,"min":0,"max":2},{"name":"P_pol7","default":0,"min":0,"max":1},{"name":"P_g1d7","default":1,"min":-1,"max":1},{"name":"P_g2d7","default":1,"min":-1,"max":1},{"name":"P_ho7","default":0,"min":0,"max":1},{"name":"P_hm7","default":1,"min":0,"max":7},{"name":"P_bankA","default":1,"min":0,"max":1},{"name":"P_bankB","default":0,"min":0,"max":1},{"name":"P_layA","default":0,"min":0,"max":5},{"name":"P_layB","default":0,"min":0,"max":5},{"name":"P_couple","default":0,"min":0,"max":1},{"name":"P_fbA","default":0,"min":0,"max":1},{"name":"P_fbB","default":0,"min":0,"max":1},{"name":"P_nudge","default":0,"min":-50,"max":50},{"name":"P_rst","default":0,"min":0,"max":1},{"name":"P_tempo","default":120,"min":20,"max":999},{"name":"P_play","default":0,"min":0,"max":1},{"name":"P_mdep","default":1,"min":-1,"max":1},{"name":"P_moff","default":0,"min":-1,"max":1}]};
   var css = getComputedStyle(document.documentElement);
   function tok(n) { return css.getPropertyValue(n).trim(); }
   var C = { bg: tok("--bg"), surf: tok("--surface"), raised: tok("--raised"), line: tok("--line"), fg: tok("--fg"), muted: tok("--muted"),
@@ -2494,15 +2334,12 @@ var NET_EXPORTS = { makeNet: makeNet, NOUT: 38 };
   function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
   function rnd() { return Math.random(); }
   function pick(a) { return a[Math.floor(rnd() * a.length)]; }
-  var NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-  function nname(p) { p = Math.round(p); return NAMES[((p % 12) + 12) % 12] + (Math.floor(p / 12) - 2); }
   var NODE = ["A1", "A2", "A3", "A4", "B1", "B2", "B3", "B4"];
   var TSHORT = ["LFO", "SLP", "S&H", "GEI", "SLW", "RND", "CHS"];
-  var MODES = [null, ["cycle", "trigger"], null, null, ["stepped", "smooth"], ["hold", "glide", "curve"], ["Lorenz", "Rossler"]];
+  var MODES = [null, ["cycle", "trigger"], null, null, ["stepped", "smooth"], ["hold", "glide", "curve"], ["chaos 1", "chaos 2"]];
   var INSHORT = { rate: "rate", amp: "amp", shape: "shape", phase: "phase", clock: "clk" };
   var DIVN = D.divs.map(function (d) { return d[0]; });
-  var SCALES = { major: [0,2,4,5,7,9,11], minor: [0,2,3,5,7,8,10], dorian: [0,2,3,5,7,9,10], "pent minor": [0,3,5,7,10],
-    "pent major": [0,2,4,7,9], phrygian: [0,1,3,5,7,8,10], chromatic: [0,1,2,3,4,5,6,7,8,9,10,11] };
+
 
   // ---------- the core ----------
   var SR = 1000;
@@ -2520,16 +2357,14 @@ var NET_EXPORTS = { makeNet: makeNet, NOUT: 38 };
     { name: "Cutoff", unit: "Hz" }, { name: "Resonance", unit: "" }, { name: "Drive", unit: "" }, { name: "Wave", unit: "saw ↔ square" },
     { name: "Pan", unit: "" }, { name: "Level", unit: "" }, { name: "Detune", unit: "cents" }, { name: "Echo", unit: "send" }
   ];
-  var DRUMS = [["kick", 36], ["snare", 38], ["hat", 42], ["rim", 37]];
-  var X;   // page-only state: outputs, rule notes, pitch, prob, bpm
+  var X;   // page-only state: outputs, hand-off, bpm, volume
   function freshX() {
     return {
-      bpm: 120, vol: 70, prob: 100,
+      bpm: 120, vol: 70,
       outs: [   // src -1 = none; dep -1..1; base 0..1
         { src: 3, dep: 0.7, base: 0.12 }, { src: 0, dep: 0.35, base: 0.15 }, { src: -1, dep: 0.5, base: 0.15 }, { src: 1, dep: 0.6, base: 0.2 },
         { src: 2, dep: 0.7, base: 0.15 }, { src: -1, dep: 0.5, base: 0.75 }, { src: -1, dep: 0.5, base: 0.5 }, { src: -1, dep: 0.5, base: 0.3 }
       ],
-      pitch: { root: 0, scale: "minor", range: 2, base: 48 },
       pass: [0, 0, 0, 0, 0, 0, 0, 0]   // per node: hand off its group one lane at a time
     };
   }
@@ -2537,8 +2372,7 @@ var NET_EXPORTS = { makeNet: makeNet, NOUT: 38 };
   // ---------- runtime ----------
   var RT;
   function freshRT() {
-    RT = { beat: 0, playing: true, t: 0, o: new Array(38).fill(0), scope: [], hist: 0,
-      gates: [0, 0, 0, 0], gateTr: [[], [], [], []], hits: [[], [], [], []], lastTick: 0, notes: [], lastNote: "—", nodeSel: 0 };
+    RT = { beat: 0, playing: true, t: 0, o: new Array(32).fill(0), scope: [], hist: 0, nodeSel: 0 };
     for (var i = 0; i < 8; i++) RT.scope.push(new Float32Array(240));
   }
   function stepCore(n) {
@@ -2547,47 +2381,13 @@ var NET_EXPORTS = { makeNet: makeNet, NOUT: 38 };
       var o = NET.run(RT.beat, X.bpm, RT.playing ? 1 : 0);
       if (RT.playing) RT.beat += spb;
       RT.t += 1 / SR;
-      for (var k = 0; k < 4; k++) {
-        var g = o[24 + k];
-        if (g > 0.5 && RT.gates[k] < 0.5 && RT.playing) {
-          var ok = rnd() * 100 < X.prob;
-          RT.hits[k].push([RT.t, ok]);
-          if (ok) drum(k);
-        }
-        RT.gates[k] = g;
-      }
-      if (o[28] > 0.5 && RT.lastTick < 0.5 && RT.playing) pitchNote(o[29]);
-      RT.lastTick = o[28];
       RT.o = o;
       RT.hist += 1;
       if (RT.hist >= 12) {           // ~83 Hz scope history, 240 points = ~2.9 s
         RT.hist = 0;
-        for (var i = 0; i < 8; i++) { var sc = RT.scope[i]; sc.copyWithin(0, 1); sc[sc.length - 1] = o[30 + i]; }
-        for (k = 0; k < 4; k++) { RT.gateTr[k].push([RT.t, RT.gates[k]]); }
+        for (var i = 0; i < 8; i++) { var sc = RT.scope[i]; sc.copyWithin(0, 1); sc[sc.length - 1] = o[24 + i]; }
       }
     }
-    var cut = RT.t - 4;
-    for (k = 0; k < 4; k++) {
-      while (RT.gateTr[k].length && RT.gateTr[k][0][0] < cut) RT.gateTr[k].shift();
-      while (RT.hits[k].length && RT.hits[k][0][0] < cut) RT.hits[k].shift();
-    }
-    while (RT.notes.length && RT.notes[0].t < RT.t - 6) RT.notes.shift();
-  }
-  function quant(x) {
-    var sc = SCALES[X.pitch.scale], best = 0, bd = 1e9, o0 = Math.floor(x / 12);
-    for (var o = o0 - 1; o <= o0 + 1; o++) for (var d = 0; d < sc.length; d++) {
-      var c = 12 * o + (X.pitch.root + sc[d]) % 12, dd = Math.abs(c - x);
-      if (dd < bd - 1e-9) { bd = dd; best = c; }
-    }
-    return clamp(best, 0, 127);
-  }
-  function pitchNote(v) {
-    var ok = rnd() * 100 < X.prob;
-    var p = quant(X.pitch.base + clamp(v, 0, 1) * 12 * X.pitch.range);
-    RT.notes.push({ t: RT.t, p: p, ok: ok });
-    if (!ok) return;
-    RT.lastNote = nname(p);
-    pluck(p);
   }
   // groups + hand-off: targets sharing a node are its lanes 1/2/3 (outlets src, src+8, src+16). With pass on, the
   // core hands the node's shape from one lane to the next each cycle (P_ho / P_hm); the others hold. Mirrors GROUPS.
@@ -2620,7 +2420,6 @@ var NET_EXPORTS = { makeNet: makeNet, NOUT: 38 };
   // ---------- sound ----------
   var A = null, soundOn = false;
   var PAD = [36, 43, 48, 51, 58];
-  var NKITS = [["Saw + square", ["sawtooth", "square"]], ["Soft", ["triangle", "sine"]], ["Hollow", ["square", "triangle"]], ["Pure", ["sine", "sine"]], ["Buzz", ["sawtooth", "sawtooth"]]], nkit = 0;
   function audio() {
     if (A) return A;
     var ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -2641,7 +2440,7 @@ var NET_EXPORTS = { makeNet: makeNet, NOUT: 38 };
     PAD.forEach(function (n, j) {
       var f = 440 * Math.pow(2, (n - 69) / 12);
       var a = ctx.createOscillator(), b = ctx.createOscillator();
-      a.type = NKITS[nkit][1][0]; b.type = NKITS[nkit][1][1]; a.frequency.value = f; b.frequency.value = f;
+      a.type = "sawtooth"; b.type = "square"; a.frequency.value = f; b.frequency.value = f;
       a.detune.value = (j % 2 ? 1 : -1) * 4;
       var lv = j === 0 ? 0.26 : 0.13, gs = ctx.createGain(), gq = ctx.createGain();
       a.connect(gs); b.connect(gq);
@@ -2672,108 +2471,116 @@ var NET_EXPORTS = { makeNet: makeNet, NOUT: 38 };
     setT(A.echo.gain, on * v[7] * 0.9);
     A.delay.delayTime.setTargetAtTime(60 / X.bpm * 0.75, A.ctx.currentTime, 0.05);
   }
-  function envG(g, now, peak, a, d) { g.gain.setValueAtTime(0.0001, now); g.gain.exponentialRampToValueAtTime(peak, now + a); g.gain.exponentialRampToValueAtTime(0.0001, now + a + d); }
-  function noiseBuf(sec) { var b = A.ctx.createBuffer(1, Math.floor(A.ctx.sampleRate * sec), A.ctx.sampleRate), d = b.getChannelData(0); for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; return b; }
-  function drum(k) {
-    if (!soundOn || !A) return;
-    var ctx = A.ctx, now = ctx.currentTime, g = ctx.createGain(), s, f;
-    if (k === 0) {
-      var o = ctx.createOscillator(); o.frequency.setValueAtTime(150, now); o.frequency.exponentialRampToValueAtTime(42, now + 0.16);
-      o.connect(g); envG(g, now, 0.7, 0.002, 0.3); o.start(now); o.stop(now + 0.35);
-    } else if (k === 1) {
-      s = ctx.createBufferSource(); s.buffer = noiseBuf(0.2); f = ctx.createBiquadFilter(); f.type = "bandpass"; f.frequency.value = 1800; f.Q.value = 0.8;
-      s.connect(f); f.connect(g); envG(g, now, 0.35, 0.001, 0.16); s.start(now);
-      var t = ctx.createOscillator(), tg = ctx.createGain(); t.frequency.value = 190; t.connect(tg); envG(tg, now, 0.18, 0.001, 0.08); tg.connect(A.master); t.start(now); t.stop(now + 0.12);
-    } else if (k === 2) {
-      s = ctx.createBufferSource(); s.buffer = noiseBuf(0.06); f = ctx.createBiquadFilter(); f.type = "highpass"; f.frequency.value = 7500;
-      s.connect(f); f.connect(g); envG(g, now, 0.13, 0.001, 0.045); s.start(now);
-    } else {
-      var r = ctx.createOscillator(); r.type = "triangle"; r.frequency.value = 1700; r.connect(g); envG(g, now, 0.16, 0.001, 0.03); r.start(now); r.stop(now + 0.06);
-    }
-    g.connect(A.master);
-  }
-  function pluck(p) {
-    if (!soundOn || !A) return;
-    var ctx = A.ctx, now = ctx.currentTime, f = 440 * Math.pow(2, (p - 69) / 12), g = ctx.createGain();
-    var o = ctx.createOscillator(), m = ctx.createOscillator(), mg = ctx.createGain();
-    o.type = "sine"; o.frequency.value = f; m.type = "sine"; m.frequency.value = f * 2;
-    mg.gain.setValueAtTime(f * 1.4, now); mg.gain.exponentialRampToValueAtTime(f * 0.05, now + 0.5);
-    m.connect(mg); mg.connect(o.frequency); o.connect(g); envG(g, now, 0.16, 0.004, 0.55);
-    g.connect(A.master); var e = ctx.createGain(); e.gain.value = 0.35; g.connect(e); e.connect(A.delay); e.connect(A.verb);
-    o.start(now); m.start(now); o.stop(now + 0.65); m.stop(now + 0.65);
-  }
 
-  // ---------- examples ----------
+  // ---------- fresh state, factory patterns, tour ----------
+  var priming = false, curPat = -1;
   function node(i, o) { setP("P_on" + i, 1); for (var k in o) setP("P_" + k + i, o[k]); }
-  function out(k, src, dep, base) { X.outs[k].src = src; X.outs[k].dep = dep; if (base != null) X.outs[k].base = base; }
-  function rule(k, a, op, b, thr) { setP("P_ron" + k, 1); setP("P_ra" + k, a); setP("P_rop" + k, op); setP("P_rb" + k, b); if (thr != null) setP("P_rthr" + k, thr); }
-  var SCENES = [
-    { name: "Starting state", what: "What a new device loads: bank A on with the Chain layout. A1 bends A2's rate, A2 moves A3's amp, A3 changes A4's shape. A4, a 2-bar envelope, opens the filter; A2 sweeps the wave, A3 throws the pan around. Rhythm and Pitch are off.", fn: function () {} },
-    { name: "Never repeats", what: "Pairs layout. A2, a slow free LFO, speeds A1 up and slows it down, and A1 pushes back. A1 sweeps the wave, so the sweep never lines up with the bar the same way twice.", fn: function () {
-      setP("P_layA", 3);
-      node(0, { type: 0, sync: 1, div: 12, amp: 1, ta: 0.33, depth: 0.35 });
-      node(1, { type: 0, sync: 0, hz: 0.09, amp: 1, ta: 0, depth: 0.7 });
-      out(3, 0, 0.85, 0.05); out(0, 1, 0.35, 0.3); out(1, -1, 0.3, 0.3);
-    } },
-    { name: "Slow drift", what: "A3 stretches A4's rise and fall; A4 feeds A3's rate back. That two-way link drifts slowly. A4 drives a group: Cutoff, Resonance inverted, and Drive.", fn: function () {
-      setP("P_layA", 3);
-      node(2, { type: 0, sync: 0, hz: 0.07, amp: 1, ta: 0, depth: 0.8 });
-      node(3, { type: 1, sync: 1, div: 15, amp: 1, ta: 0.3, tb: 0.7, depth: 0.6 });
-      out(0, 3, 0.8, 0.08); out(1, 3, -0.55, 0.65); out(2, 3, 0.6, 0.05); out(3, -1, 0.5, 0.35); out(4, 2, 0.5, 0.25);
-    } },
-    { name: "Geiger clicks", what: "Clocked layout. A1 is a Geiger: random clicks, about four a bar. Every click makes A2, A3 and A4, all S&H on the layout clock, pick a new value, so the filter, the pan and the resonance jump at irregular moments. Rule 1 plays a kick on each click.", fn: function () {
-      setP("P_layA", 4);
-      node(0, { type: 3, sync: 1, div: 10, amp: 1, ta: 0.6, tb: 0.15, depth: 1 });
-      node(1, { type: 2, sync: 1, div: 14, amp: 1, ta: 0.15, tb: 0, clk: 1 });
-      node(2, { type: 2, sync: 1, div: 14, amp: 1, ta: 0, tb: 0.5, clk: 1 });
-      node(3, { type: 2, sync: 1, div: 14, amp: 1, ta: 0.3, tb: 0, clk: 1 });
-      out(0, 1, 0.75, 0.1); out(4, 2, 1, 0); out(1, 3, 0.5, 0.15); out(3, -1, 0.5, 0.4);
-      rule(0, 0, 0, 8, 0.5); rule(2, 1, 0, 2);
-    } },
-    { name: "LFO as melody", what: "Pitch reads A1, a triangle LFO, on every 1/8 and fits it to C minor pentatonic. A2 is chained onto A1's rate, so the melody speeds up and slows down. Rule 1 plays a kick when A3 is above A4.", fn: function () {
-      setP("P_layA", 0);
-      node(0, { type: 0, sync: 1, div: 15, amp: 1, ta: 0.33, depth: 0.45 });
-      node(1, { type: 0, sync: 0, hz: 0.11, amp: 0.8, ta: 0, depth: 0.3 });
-      setP("P_pon", 1); setP("P_psrc", 0); setP("P_ptick", 7);
-      X.pitch.scale = "pent minor"; X.pitch.range = 2;
-      out(5, -1, 0.5, 0.45); out(0, 3, 0.4, 0.12);
-      rule(0, 2, 0, 3); rule(2, 1, 4, 8, 0.5);
-    } },
-    { name: "Two banks talking", what: "Both banks on, both in Ring. Bank B is all FREE, so it drifts against the tempo; Couple lets the two rings pull on each other. Turn Couple to 0 and they become two separate modulators.", fn: function () {
-      setP("P_bankB", 1); setP("P_layA", 1); setP("P_layB", 1); setP("P_couple", 0.55);
-      for (var i = 4; i < 8; i++) setP("P_depth" + i, 0.45);
-      out(7, 4, 0.8, 0.05); out(6, 5, 0.3, 0.5); out(1, 6, 0.45, 0.1);
-    } }
-  ];
-  var curScene = 0;
-  function loadScene(k) {
-    freshCore(); var keepBpm = X ? X.bpm : 120, keepVol = X ? X.vol : 70;
-    X = freshX(); X.bpm = keepBpm; X.vol = keepVol;
-    SCENES[k].fn();
-    curScene = k;
-    var sel = RT ? RT.nodeSel : 0, beat = RT ? RT.beat : 0, pl = RT ? RT.playing : true;
-    freshRT(); RT.nodeSel = sel; RT.beat = beat; RT.playing = pl;
-    stepCore(SR * 2);                    // two seconds so the scopes have history
-    buildAll();
+  function outsOnly(list) {
+    X.outs.forEach(function (O) { O.src = -1; });
+    list.forEach(function (q) { X.outs[q[0]].src = q[1]; X.outs[q[0]].dep = q[2]; X.outs[q[0]].base = q[3]; });
   }
+  function out(k, src, dep, base) { X.outs[k].src = src; X.outs[k].dep = dep; if (base != null) X.outs[k].base = base; }
+  var FMAP = { banka: ["P_bankA", 1], bankb: ["P_bankB", 1], laya: ["P_layA", 1], layb: ["P_layB", 1], cpl: ["P_couple", 0.01], fba: ["P_fbA", 0.01], fbb: ["P_fbB", 0.01] };
+  var NMAP = { on: ["P_on", 1], type: ["P_type", 1], div: ["P_div", 1], dep: ["P_depth", 0.01] };
+  function applyPattern(o) {      // a factory pattern is a list of device settings over the defaults
+    Object.keys(o).forEach(function (k) {
+      var m = /^n(\d)(on|type|div|dep)$/.exec(k), q = m ? NMAP[m[2]] : FMAP[k];
+      if (!q) return;
+      setP(q[0] + (m ? m[1] : ""), o[k] * q[1]);
+    });
+  }
+  function applyAndRun(fn, sel) {
+    var keepSel = RT ? RT.nodeSel : 0, keepBeat = RT ? RT.beat : 0, pl = RT ? RT.playing : false;
+    var keepBpm = X ? X.bpm : 120, keepVol = X ? X.vol : 70;
+    freshCore(); X = freshX(); X.bpm = keepBpm; X.vol = keepVol;
+    if (fn) fn();
+    freshRT(); RT.nodeSel = sel != null ? sel : keepSel; RT.beat = keepBeat;
+    RT.playing = true; priming = true; stepCore(SR * 2); priming = false; RT.playing = pl;   // two seconds, so the scopes have history
+    buildAll(); syncBar();
+  }
+  function startFresh() { curPat = -1; applyAndRun(null, 0); }
+  function recallPattern(c) { if (!D.factory[c]) return; curPat = c; applyAndRun(function () { applyPattern(D.factory[c][1]); }); }
 
-  // ---------- dice ----------
-  function rollAll() {
-    var bankB = rnd() < 0.5;
-    setP("P_bankB", bankB ? 1 : 0);
-    setP("P_layA", Math.floor(rnd() * 6)); setP("P_layB", Math.floor(rnd() * 6));
-    setP("P_couple", bankB ? pick([0, 0.2, 0.4, 0.6]) : 0); setP("P_fbA", pick([0, 0, 0.2, 0.4])); setP("P_fbB", pick([0, 0.2, 0.4]));
-    for (var i = 0; i < 8; i++) {
-      var ty = pick([0, 0, 0, 1, 1, 2, 2, 3]);
-      node(i, { type: ty, sync: rnd() < 0.7 ? 1 : 0, div: pick([7, 8, 10, 11, 12, 13, 14, 15, 17]), hz: +(0.04 + rnd() * rnd() * 2).toFixed(3),
-        amp: 0.5 + rnd() * 0.5, ta: rnd(), tb: rnd() * 0.8, depth: +(pick([-1, 1]) * (0.2 + rnd() * 0.6)).toFixed(2), clk: 0, phase: 0 });
+  var TOUR = [
+    { t: "One LFO, alone", x: "Only A1 is on: an LFO with one cycle per bar, nothing modulating it. It opens and closes the synth's filter. Press Play, and switch Sound on to hear it.",
+      l: "A slow, perfectly regular filter sweep. Watch A1's value rise and fall.", sel: 0, fn: function () {
+        for (var i = 1; i < 4; i++) setP("P_on" + i, 0);
+        node(0, { type: 0, sync: 1, div: 14, amp: 1, ta: 0, depth: 0 });
+        outsOnly([[0, 0, 0.8, 0.1]]);
+      } },
+    { t: "Chain: one node bends the next", x: "Layout A is Chain: A1 pushes A2's rate, A2 moves A3's amp, A3 changes A4's shape. A4 drives the filter, A2 the wave, A3 the pan.",
+      l: "A sweep that still has a pulse, but whose pace and size keep shifting.", sel: 1, fn: function () {
+        setP("P_layA", 0); for (var i = 0; i < 3; i++) setP("P_depth" + i, 0.6);
+        outsOnly([[0, 3, 0.8, 0.1], [3, 1, 0.6, 0.2], [4, 2, 0.7, 0.15]]);
+      } },
+    { t: "Ring: close the loop", x: "Layout A is now Ring: A4 pushes A1's rate again, so the chain bites its own tail. Feedback A also sends A1 back into its own rate.",
+      l: "The motion stops lining up with the bar. Raise Feedback A to push it further.", sel: 0, fn: function () {
+        setP("P_layA", 1); setP("P_fbA", 0.4); for (var i = 0; i < 4; i++) setP("P_depth" + i, 0.5);
+        outsOnly([[0, 3, 0.8, 0.1], [3, 1, 0.6, 0.2], [4, 2, 0.7, 0.15]]);
+      } },
+    { t: "Clocked + S&H steps", x: "Layout A is Clocked: A1, a Geiger (random clicks), clocks A2, A3 and A4. They are S&H nodes that take a new value only on a click, so the targets they drive jump together.",
+      l: "Irregular jumps: the filter, wave and pan change to new values at the same moments. Sound on.", sel: 0, fn: function () {
+        setP("P_layA", 4);
+        node(0, { type: 3, sync: 1, div: 10, amp: 1, ta: 0.6, tb: 0.15, depth: 1 });
+        node(1, { type: 2, sync: 1, div: 14, amp: 1, ta: 0.15, tb: 0, clk: 1 });
+        node(2, { type: 2, sync: 1, div: 14, amp: 1, ta: 0, tb: 0.5, clk: 1 });
+        node(3, { type: 2, sync: 1, div: 14, amp: 1, ta: 0.3, tb: 0, clk: 1 });
+        outsOnly([[0, 1, 0.75, 0.1], [4, 2, 1, 0], [1, 3, 0.5, 0.15], [5, -1, 0.5, 0.75]]);
+      } },
+    { t: "Bank B on + Couple", x: "Bank B is on in the Star layout, and runs free in Hz, so it drifts against the tempo. Couple ties the banks: A4 pushes B1's rate and B4 pushes A1's.",
+      l: "Two moving things that lean on each other. Set Couple to 0 and they separate.", sel: 4, fn: function () {
+        setP("P_bankB", 1); setP("P_layA", 1); setP("P_layB", 2); setP("P_couple", 0.55);
+        for (var i = 4; i < 8; i++) setP("P_depth" + i, 0.45);
+        outsOnly([[0, 3, 0.8, 0.1], [7, 4, 0.8, 0.05], [6, 5, 0.3, 0.5], [1, 6, 0.45, 0.1], [4, 2, 0.6, 0.2]]);
+      } },
+    { t: "Chaos types", x: "Layout A is Pairs. A1 and A2 are Chaos nodes (two different attractors), A3 is Random and A4 is Slew. Chaos tumbles on smooth, bounded curves that never repeat.",
+      l: "Slow tumbling in the filter and wave that no cycle ever repeats.", sel: 0, fn: function () {
+        setP("P_layA", 3);
+        node(0, { type: 6, sync: 1, div: 12, amp: 1, tb: 0.5, depth: 0.5, mode: 0 });
+        node(1, { type: 6, sync: 1, div: 12, amp: 1, tb: 0.5, depth: 0.5, mode: 1 });
+        node(2, { type: 5, sync: 1, div: 10, amp: 1, tb: 0.5, depth: 0.4 });
+        node(3, { type: 4, sync: 1, div: 12, amp: 1, ta: 0.4, tb: 0.5, depth: 0.4 });
+        outsOnly([[0, 0, 0.8, 0.1], [3, 1, 0.7, 0.15], [4, 2, 0.7, 0.15], [1, 3, 0.4, 0.2]]);
+      } },
+    { t: "Hand-off: one node, three targets", x: "A1, a triangle LFO, now drives Cutoff, Resonance and Drive, and Hand-off (pass) is on: A1 moves one of them per cycle and the others hold. A2 is chained onto A1's rate.",
+      l: "The filter opens, then the resonance whistles, then the drive bites, each taking its turn. Sound on.", sel: 0, fn: function () {
+        setP("P_layA", 0);
+        node(0, { type: 0, sync: 1, div: 13, amp: 1, ta: 0.33, depth: 0.45 });
+        node(1, { type: 0, sync: 0, hz: 0.11, amp: 0.8, ta: 0, depth: 0.3 });
+        outsOnly([[0, 0, 0.8, 0.1], [1, 0, 0.7, 0.1], [2, 0, 0.8, 0.1], [5, -1, 0.5, 0.45]]);
+        X.pass[0] = 1;
+      } }
+  ];
+  var tourI = 0, guided = true;
+  function gotoStop(k) {
+    tourI = clamp(k, 0, TOUR.length - 1); curPat = -1;
+    applyAndRun(TOUR[tourI].fn, TOUR[tourI].sel);
+    showTour();
+  }
+  function showTour() {
+    var s = TOUR[tourI], nav = document.getElementById("tPrev").parentNode;
+    nav.hidden = !guided;
+    if (guided) {
+      document.getElementById("tTitle").textContent = s.t;
+      document.getElementById("tText").textContent = s.x;
+      document.getElementById("tListen").textContent = "Listen for: " + s.l;
+      document.getElementById("tCount").textContent = (tourI + 1) + " / " + TOUR.length;
+      document.getElementById("tPrev").disabled = tourI === 0;
+      document.getElementById("tNext").disabled = tourI === TOUR.length - 1;
+    } else {
+      document.getElementById("tTitle").textContent = "Free mode";
+      document.getElementById("tText").textContent = "Everything is open: change any control, tap the pads, load a factory pattern from row 8, or edit the nodes and outputs below.";
+      document.getElementById("tListen").textContent = "Switch to Guided to start the tour again.";
     }
-    buildAll();
+    document.getElementById("more").hidden = guided;
+    document.getElementById("m-guided").setAttribute("aria-pressed", String(guided));
+    document.getElementById("m-free").setAttribute("aria-pressed", String(!guided));
+    fit(); drawAll();
   }
 
   // ---------- drawing ----------
   var canv = {};
-  ["net", "scopes", "rhy", "pitch"].forEach(function (id) {
+  ["net", "scopes"].forEach(function (id) {
     var el = document.getElementById("c-" + id); canv[id] = { el: el, ctx: el.getContext("2d"), w: 0, h: Number(el.getAttribute("height")) };
   });
   function fit() {
@@ -2822,7 +2629,7 @@ var NET_EXPORTS = { makeNet: makeNet, NOUT: 38 };
       txt(ctx, "BANK " + "AB"[b] + " · " + D.layouts[lay][0].toUpperCase() + (on ? "" : " · off"), (pos[b * 4][0] + pos[b * 4 + 1][0]) / 2, 18, on ? bankCol(b * 4) : C.muted, 11, "center", true);
       ctx.globalAlpha = on ? 1 : 0.3;
       D.layouts[lay][1].forEach(function (e) {
-        var s = e[0] + b * 4, t = e[1] + b * 4, dep = Math.abs(P["P_depth" + s]), live = nodeOn(s) ? Math.abs(RT.o[14 + s] * 2 - 1) : 0;
+        var s = e[0] + b * 4, t = e[1] + b * 4, dep = Math.abs(P["P_depth" + s]), live = nodeOn(s) ? Math.abs(RT.o[24 + s] * 2 - 1) : 0;
         var col = bankCol(s, dep < 0.02);
         ctx.globalAlpha = (on ? 1 : 0.3) * (0.35 + 0.65 * Math.min(1, dep * 1.4)) * (0.55 + 0.45 * live);
         if (s === t) loop(ctx, pos[s], r, col, 1 + dep * 3, INSHORT[e[2]], (s % 4) < 2);
@@ -2835,7 +2642,7 @@ var NET_EXPORTS = { makeNet: makeNet, NOUT: 38 };
     if (cpl > 0.01 && P.P_bankB > 0.5) {
       ctx.globalAlpha = 0.4 + 0.6 * cpl;
       wire(ctx, pos[3], pos[4], r, C.fg, 1 + cpl * 3, true, "couple", -26);
-      wire(ctx, pos[7], pos[0], r, C.fg, 1 + cpl * 3, true, "couple", -26);
+      wire(ctx, pos[7], pos[0], r, C.fg, 1 + cpl * 3, true, "", -26);
       ctx.globalAlpha = 1;
     }
     [[0, "P_fbA"], [4, "P_fbB"]].forEach(function (f) {
@@ -2843,7 +2650,7 @@ var NET_EXPORTS = { makeNet: makeNet, NOUT: 38 };
     });
     // nodes
     for (var i = 0; i < 8; i++) {
-      var p = pos[i], on2 = nodeOn(i), v = RT.o[30 + i], col = bankCol(i);
+      var p = pos[i], on2 = nodeOn(i), v = RT.o[24 + i], col = bankCol(i);
       ctx.globalAlpha = on2 ? 1 : 0.35;
       ctx.fillStyle = C.raised; ctx.beginPath(); ctx.arc(p[0], p[1], r, 0, Math.PI * 2); ctx.fill();
       if (on2) { ctx.fillStyle = col; ctx.globalAlpha = 0.18 + 0.7 * v; ctx.beginPath(); ctx.arc(p[0], p[1], r * (0.3 + 0.7 * v), 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1; }
@@ -2874,42 +2681,7 @@ var NET_EXPORTS = { makeNet: makeNet, NOUT: 38 };
       ctx.globalAlpha = 1;
     }
   }
-  function drawRhy() {
-    var c = canv.rhy, ctx = c.ctx; clear(c);
-    var lh = (c.h - 8) / 4, x0 = 46, x1 = c.w - 8, span = 4;
-    for (var k = 0; k < 4; k++) {
-      var y = 4 + k * lh, on = P["P_ron" + k] > 0.5;
-      txt(ctx, "R" + (k + 1), 6, y + lh / 2 + 4, on ? C.fg : C.muted, 11, "left", true);
-      ctx.fillStyle = C.surf; ctx.fillRect(x0, y + 4, x1 - x0, lh - 8);
-      var tr = RT.gateTr[k];
-      ctx.fillStyle = C.accDim;
-      for (var i = 1; i < tr.length; i++) if (tr[i][1] > 0.5) { var xa = x1 - (RT.t - tr[i - 1][0]) / span * (x1 - x0), xb = x1 - (RT.t - tr[i][0]) / span * (x1 - x0); ctx.fillRect(Math.max(x0, xa), y + 8, Math.max(1, xb - xa), lh - 16); }
-      RT.hits[k].forEach(function (h) {
-        var x = x1 - (RT.t - h[0]) / span * (x1 - x0); if (x < x0) return;
-        ctx.fillStyle = h[1] ? C.hot : C.muted; ctx.fillRect(x - 1, y + 4, 2, lh - 8);
-      });
-      var lamp = document.getElementById("lamp" + k);
-      if (lamp) { var age = RT.hits[k].length ? RT.t - RT.hits[k][RT.hits[k].length - 1][0] : 9; lamp.style.background = age < 0.12 ? C.hot : (RT.gates[k] > 0.5 ? C.accDim : C.raised); }
-    }
-  }
-  function drawPitch() {
-    var c = canv.pitch, ctx = c.ctx; clear(c);
-    var lo = X.pitch.base - 1, hi = X.pitch.base + 12 * X.pitch.range + 1, x0 = 8, x1 = c.w - 8, span = 6;
-    var sc = SCALES[X.pitch.scale];
-    for (var p = Math.ceil(lo); p <= hi; p++) {
-      if (sc.indexOf(((p - X.pitch.root) % 12 + 12) % 12) < 0) continue;
-      var y = c.h - 18 - (p - lo) / (hi - lo) * (c.h - 30);
-      ctx.fillStyle = (p - X.pitch.root) % 12 === 0 ? C.line : "rgba(255,255,255,.035)"; ctx.fillRect(x0, y - 0.5, x1 - x0, 1);
-    }
-    RT.notes.forEach(function (n) {
-      var x = x1 - (RT.t - n.t) / span * (x1 - x0), y = c.h - 18 - (n.p - lo) / (hi - lo) * (c.h - 30);
-      if (x < x0) return;
-      ctx.fillStyle = n.ok ? C.acc : C.line; ctx.fillRect(x - 6, y - 3, 12, 6);
-    });
-    var on = P.P_pon > 0.5;
-    txt(ctx, on ? "last note " + RT.lastNote + "  ·  " + NAMES[X.pitch.root] + " " + X.pitch.scale : "pitch is off", x0, c.h - 4, on ? C.acc : C.muted, 11);
-  }
-  function drawAll() { drawNet(); drawScopes(); drawRhy(); drawPitch(); updMeters(); }
+  function drawAll() { drawNet(); drawScopes(); updMeters(); }
 
   // ---------- controls ----------
   function el(tag, attrs, html) { var e = document.createElement(tag); if (attrs) Object.keys(attrs).forEach(function (k) { e.setAttribute(k, attrs[k]); }); if (html != null) e.innerHTML = html; return e; }
@@ -2938,20 +2710,28 @@ var NET_EXPORTS = { makeNet: makeNet, NOUT: 38 };
   var pct = function (v) { return Math.round(v * 100) + " %"; };
   var spct = function (v) { return (v > 0 ? "+" : "") + Math.round(v * 100) + " %"; };
 
+  function dpar(n) { for (var i = 0; i < D.params.length; i++) if (D.params[i].name === n) return D.params[i]; throw new Error("no param " + n); }
+  function NM_(k) { return D.names[k]; }
   function buildNet() {
     var h = document.getElementById("k-net"); h.innerHTML = "";
     var LN = D.layouts.map(function (l) { return l[0]; });
+    function lay(host, id, key, par, cls) {
+      var d = dpar(par); selectBox(host, id, NM_(key), LN.slice(d.min, d.max + 1), Math.round(P[par]), function (v) { setP(par, +v); }, cls);
+    }
+    function fbs(host, id, key, par, cls) {
+      var d = dpar(par); slider(host, id, NM_(key), d.min, d.max, 0.01, P[par], pct, function (v) { setP(par, v); }, cls).title = "default " + pct(d["default"]);
+    }
     h.appendChild(el("div", { "class": "sub" }, "Bank A"));
-    selectBox(h, "layA", "Layout A", LN, Math.round(P.P_layA), function (v) { setP("P_layA", +v); });
-    slider(h, "fbA", "Feedback A", 0, 1, 0.01, P.P_fbA, pct, function (v) { setP("P_fbA", v); });
+    lay(h, "layA", "layA", "P_layA"); fbs(h, "fbA", "fbA", "P_fbA");
     var sb = el("div", { "class": "sub b" }, "Bank B"); h.appendChild(sb);
-    var bb = el("button", { type: "button", "aria-pressed": String(P.P_bankB > 0.5) }, P.P_bankB > 0.5 ? "on" : "off");
+    var wb = el("div", { "class": "f bankB" }); wb.appendChild(el("span", { "class": "lab" }, NM_("bankB")));
+    var bb = el("button", { type: "button", id: "bankB", "aria-pressed": String(P.P_bankB > 0.5) }, P.P_bankB > 0.5 ? "on" : "off");
     bb.addEventListener("click", function () { setP("P_bankB", P.P_bankB > 0.5 ? 0 : 1); bb.setAttribute("aria-pressed", String(P.P_bankB > 0.5)); bb.textContent = P.P_bankB > 0.5 ? "on" : "off"; });
-    sb.appendChild(bb); sb.classList.add("bankB");
+    wb.appendChild(bb); h.appendChild(wb);
     var wrapB = el("div", { "class": "bankB", style: "display:contents" }); h.appendChild(wrapB);
-    selectBox(wrapB, "layB", "Layout B", LN, Math.round(P.P_layB), function (v) { setP("P_layB", +v); });
-    slider(wrapB, "fbB", "Feedback B", 0, 1, 0.01, P.P_fbB, pct, function (v) { setP("P_fbB", v); });
-    slider(wrapB, "couple", "Couple A ↔ B", 0, 1, 0.01, P.P_couple, pct, function (v) { setP("P_couple", v); });
+    lay(wrapB, "layB", "layB", "P_layB"); fbs(wrapB, "fbB", "fbB", "P_fbB");
+    var dc = dpar("P_couple");
+    slider(h, "couple", NM_("couple"), dc.min, dc.max, 0.01, P.P_couple, pct, function (v) { setP("P_couple", v); }).title = "default " + pct(dc["default"]);
   }
   var BLAB = [null, "Curve", "Steps", "Regularity", "Noise", "Steps", "Character"];
   function fmtA(ty) {
@@ -2968,36 +2748,44 @@ var NET_EXPORTS = { makeNet: makeNet, NOUT: 38 };
     if (ty === 4 || ty === 6) return function (v) { return Math.round(v * 100) + " %"; };
     return function (v) { return v < 0.05 ? "random" : v > 0.95 ? "one per cycle" : Math.round(v * 100) + " %"; };
   }
+  var TYPES = ["LFO", "Slope", "S&H", "Geiger", "Slew", "Random", "Chaos"];
   function buildNode() {
-    var h = document.getElementById("k-node"); h.innerHTML = "";
+    var hs = document.getElementById("k-sel"), h = document.getElementById("k-node"); hs.innerHTML = ""; h.innerHTML = "";
     var i = RT.nodeSel, ty = Math.round(P["P_type" + i]), B = i >= 4;
-    if (B) h.classList.add("bankB"); else h.classList.remove("bankB");
-    var head = el("div", { "class": "sub" + (B ? " b" : "") }, "Editing " + NODE[i]);
-    var onb = el("button", { type: "button", "aria-pressed": String(P["P_on" + i] > 0.5) }, P["P_on" + i] > 0.5 ? "on" : "off");
+    [hs, h].forEach(function (x) { x.classList.toggle("bankB", B); });
+    var head = el("div", { "class": "sub" + (B ? " b" : "") }, "Selected node " + NODE[i]);
+    var onb = el("button", { type: "button", id: "n-on", "aria-pressed": String(P["P_on" + i] > 0.5) }, P["P_on" + i] > 0.5 ? "on" : "off");
     onb.addEventListener("click", function () { setP("P_on" + i, P["P_on" + i] > 0.5 ? 0 : 1); buildNode(); });
     head.appendChild(onb);
-    if (B && P.P_bankB < 0.5) head.appendChild(el("span", null, "· bank B is off"));
-    h.appendChild(head);
-    segBox(h, "Type", ["LFO", "Slope", "S&H", "Geiger", "Slew", "Random", "Chaos"], ty, function (k) { setP("P_type" + i, k); buildNode(); }, "span2");
+    if (B && P.P_bankB < 0.5) head.appendChild(el("span", null, "bank B is off"));
+    hs.appendChild(head);
+    var dt = dpar("P_type" + i);
+    selectBox(hs, "n-type", NM_("type"), TYPES.slice(dt.min, dt.max + 1), ty, function (v) { setP("P_type" + i, +v); buildNode(); });
+    var rl = NM_("rate");
+    if (P["P_sync" + i] > 0.5) {
+      var dd = dpar("P_div" + i);
+      slider(hs, "n-rate", rl, dd.min, dd.max, 1, P["P_div" + i], function (v) { return DIVN[v]; }, function (v) { setP("P_div" + i, v); }).title = "default " + DIVN[dd["default"]];
+    } else {
+      var dh = dpar("P_hz" + i);
+      slider(hs, "n-rate", rl + " (Hz)", Math.log(dh.min), Math.log(dh.max), 0.001, Math.log(P["P_hz" + i]), function (v) { var z = Math.exp(v); return z < 1 ? z.toFixed(3) + " Hz" : z.toFixed(2) + " Hz"; }, function (v) { setP("P_hz" + i, Math.exp(v)); });
+    }
+    var da = dpar("P_amp" + i), dp_ = dpar("P_depth" + i);
+    slider(hs, "n-amp", NM_("amp"), da.min, da.max, 0.01, P["P_amp" + i], pct, function (v) { setP("P_amp" + i, v); }).title = "default " + pct(da["default"]);
+    slider(hs, "n-dep", NM_("depth"), dp_.min, dp_.max, 0.01, P["P_depth" + i], spct, function (v) { setP("P_depth" + i, v); }).title = "default " + spct(dp_["default"]);
     segBox(h, "Clock", ["SYNC", "FREE"], P["P_sync" + i] > 0.5 ? 0 : 1, function (k) { setP("P_sync" + i, k === 0 ? 1 : 0); buildNode(); });
-    var rl = ty === 3 ? "Mean rate" : ty === 2 ? "Rate" : "Cycle";
-    if (P["P_sync" + i] > 0.5) selectBox(h, "n-div", rl, DIVN, Math.round(P["P_div" + i]), function (v) { setP("P_div" + i, +v); });
-    else slider(h, "n-hz", rl, Math.log(0.005), Math.log(40), 0.001, Math.log(P["P_hz" + i]), function (v) { var z = Math.exp(v); return z < 1 ? z.toFixed(3) + " Hz" : z.toFixed(2) + " Hz"; }, function (v) { setP("P_hz" + i, Math.exp(v)); });
-    slider(h, "n-amp", ty === 3 ? "Click height" : "Amp", 0, 1, 0.01, P["P_amp" + i], pct, function (v) { setP("P_amp" + i, v); });
     slider(h, "n-ta", "A · " + ["shape", "rise", "slew", "click width", "slew", "skew", "x .. z"][ty], 0, 1, 0.01, P["P_ta" + i], fmtA(ty), function (v) { setP("P_ta" + i, v); });
     if (ty > 0) slider(h, "n-tb", "B · " + BLAB[ty].toLowerCase(), 0, 1, 0.01, P["P_tb" + i], fmtB(ty), function (v) { setP("P_tb" + i, v); });
     if (MODES[ty]) segBox(h, "Mode", MODES[ty], Math.min(MODES[ty].length - 1, Math.round(P["P_mode" + i])), function (k) { setP("P_mode" + i, k); buildNode(); });
     segBox(h, "Amp wire", ["ADD", "POLAR"], P["P_pol" + i] > 0.5 ? 1 : 0, function (k) { setP("P_pol" + i, k); });
     if (ty < 2) slider(h, "n-ph", "Phase", 0, 1, 0.01, P["P_phase" + i], function (v) { return Math.round(v * 360) + "°"; }, function (v) { setP("P_phase" + i, v); });
-    slider(h, "n-dep", "Depth into the layout", -1, 1, 0.01, P["P_depth" + i], spct, function (v) { setP("P_depth" + i, v); });
     segBox(h, "Polarity", ["0..1", "−1..1"], P["P_bi" + i] > 0.5 ? 1 : 0, function (k) { setP("P_bi" + i, k); });
     slider(h, "n-out", "Output level", 0, 1, 0.01, P["P_out" + i], pct, function (v) { setP("P_out" + i, v); });
-    if (ty === 2 || ty === 4 || ty === 5) segBox(h, "Clock", ["own rate", "layout only"], P["P_clk" + i] > 0.5 ? 1 : 0, function (k) { setP("P_clk" + i, k); });
+    if (ty === 2 || ty === 4 || ty === 5) segBox(h, "Clock source", ["own rate", "layout only"], P["P_clk" + i] > 0.5 ? 1 : 0, function (k) { setP("P_clk" + i, k); });
     var grp = 0; for (var t2 = 0; t2 < X.outs.length; t2++) if (X.outs[t2].src === i) grp++;
     segBox(h, "Hand-off (pass)", ["OFF", "ON"], X.pass[i] ? 1 : 0, function (k) { X.pass[i] = k; applyGroups(); });
     var hint = el("p", { "class": "what", id: "pass-hint" },
                   grp >= 2 ? ("With pass on, " + NODE[i] + " moves one of its " + grp + " targets at a time and hands over each cycle; the others hold.")
-                           : (NODE[i] + " drives " + grp + " target" + (grp === 1 ? "" : "s") + " — pass needs two or more (give another target the same node in OUTPUTS)."));
+                           : (NODE[i] + " drives " + grp + " target" + (grp === 1 ? "" : "s") + ". Pass needs two or more (give another target the same node in Outputs)."));
     h.appendChild(hint);
   }
   function updPass() { if (document.getElementById("pass-hint")) buildNode(); }
@@ -3022,49 +2810,7 @@ var NET_EXPORTS = { makeNet: makeNet, NOUT: 38 };
   function updMeters() {
     meters.forEach(function (mi, k) { var O = X.outs[k]; mi.style.width = Math.round(outVal(k) * 100) + "%"; mi.style.background = O.src < 0 ? C.muted : bankCol(O.src); });
   }
-  function buildRhy() {
-    var h = document.getElementById("k-rhy"); h.innerHTML = "";
-    ["", "On", "a", "op", "b", "threshold", "note"].forEach(function (t) { h.appendChild(el("span", { "class": "h" }, t)); });
-    var srcs = NODE.slice(), srcsB = NODE.concat(["value"]);
-    for (var k = 0; k < 4; k++) (function (k) {
-      h.appendChild(el("span", { "class": "lamp", id: "lamp" + k, "aria-hidden": "true" }));
-      var on = el("button", { type: "button", "aria-pressed": String(P["P_ron" + k] > 0.5), "aria-label": "Rule " + (k + 1) + " on" }, "R" + (k + 1));
-      on.addEventListener("click", function () { setP("P_ron" + k, P["P_ron" + k] > 0.5 ? 0 : 1); on.setAttribute("aria-pressed", String(P["P_ron" + k] > 0.5)); });
-      h.appendChild(on);
-      [["P_ra", srcs], ["P_rop", D.ops], ["P_rb", srcsB]].forEach(function (q) {
-        var s = el("select", { id: "r" + q[0] + k, "aria-label": "Rule " + (k + 1) + " " + q[0].slice(3) });
-        q[1].forEach(function (o, j) { s.appendChild(el("option", { value: j }, o)); }); s.value = Math.round(P[q[0] + k]);
-        s.addEventListener("change", function () { setP(q[0] + k, +s.value); }); h.appendChild(s);
-      });
-      var t = el("input", { type: "range", id: "r-thr" + k, min: 0, max: 1, step: 0.01, "aria-label": "Rule " + (k + 1) + " threshold" }); t.value = P["P_rthr" + k];
-      t.addEventListener("input", function () { setP("P_rthr" + k, +t.value); }); h.appendChild(t);
-      h.appendChild(el("span", { "class": "note" }, DRUMS[k][0] + " " + nname(DRUMS[k][1])));
-    })(k);
-  }
-  function buildPitch() {
-    var h = document.getElementById("k-pitch"); h.innerHTML = "";
-    var pb = el("button", { type: "button", "aria-pressed": String(P.P_pon > 0.5) }, P.P_pon > 0.5 ? "on" : "off");
-    pb.addEventListener("click", function () { setP("P_pon", P.P_pon > 0.5 ? 0 : 1); pb.setAttribute("aria-pressed", String(P.P_pon > 0.5)); pb.textContent = P.P_pon > 0.5 ? "on" : "off"; });
-    var sub = el("div", { "class": "sub" }, "Pitch"); sub.appendChild(pb); h.appendChild(sub);
-    selectBox(h, "p-src", "Source", NODE, Math.round(P.P_psrc), function (v) { setP("P_psrc", +v); });
-    selectBox(h, "p-tick", "Tick", DIVN.concat(NODE.map(function (n) { return n + " trigger"; })), Math.round(P.P_ptick), function (v) { setP("P_ptick", +v); });
-    selectBox(h, "p-root", "Key", NAMES, X.pitch.root, function (v) { X.pitch.root = +v; });
-    selectBox(h, "p-scale", "Scale", Object.keys(SCALES).map(function (s) { return [s, s]; }), X.pitch.scale, function (v) { X.pitch.scale = v; });
-    slider(h, "p-range", "Range", 1, 4, 1, X.pitch.range, function (v) { return v + " oct"; }, function (v) { X.pitch.range = v; });
-    slider(h, "p-base", "Lowest note", 36, 72, 1, X.pitch.base, nname, function (v) { X.pitch.base = v; });
-    h.appendChild(el("div", { "class": "sub" }, "Both outputs"));
-    slider(h, "prob", "Prob", 0, 100, 1, X.prob, function (v) { return v + " %"; }, function (v) { X.prob = v; }, "span2");
-  }
-  function buildScenes() {
-    var h = document.getElementById("scenes"); h.innerHTML = "";
-    SCENES.forEach(function (s, k) {
-      var b = el("button", { type: "button", "aria-pressed": String(k === curScene) }, s.name);
-      b.addEventListener("click", function () { loadScene(k); });
-      h.appendChild(b);
-    });
-    document.getElementById("scene-what").textContent = curScene >= 0 ? SCENES[curScene].what : "Your own: rolled with rnd.";
-  }
-  function buildAll() { applyGroups(); buildScenes(); buildNet(); buildNode(); buildOuts(); buildRhy(); buildPitch(); fit(); drawAll(); }
+  function buildAll() { applyGroups(); buildNet(); buildNode(); buildOuts(); buildChips(); buildPads(); fit(); drawAll(); }
 
   // ---------- picking ----------
   canv.net.el.addEventListener("click", function (e) {
@@ -3077,35 +2823,120 @@ var NET_EXPORTS = { makeNet: makeNet, NOUT: 38 };
     if (i >= 0 && i < 8) { RT.nodeSel = i; buildNode(); drawAll(); }
   });
 
+  // ---------- chips and pads (derived from the core's settings) ----------
+  var $ = function (id) { return document.getElementById(id); };
+  var chipEls = [], chipTxt = [];
+  function selectNode(i) { RT.nodeSel = i; buildNode(); drawAll(); updatePads(); liveUpdate(true); }
+  function buildChips() {
+    var h = $("chips"); if (chipEls.length) return;
+    for (var i = 0; i < 8; i++) (function (i) {
+      var b = el("button", { type: "button", "class": "chip " + (i < 4 ? "a" : "b"), "aria-label": "Select node " + NODE[i] }, NODE[i] + " <span></span><b>0.00</b>");
+      b.addEventListener("click", function () { selectNode(i); });
+      h.appendChild(b); chipEls.push(b);
+    })(i);
+  }
+  function liveUpdate(force) {
+    var now = performance.now();
+    if (!force && now - liveUpdate.t < 70) return;
+    liveUpdate.t = now;
+    for (var i = 0; i < 8; i++) {
+      var on = nodeOn(i), v = RT.o[24 + i], txt = on ? v.toFixed(2) : "off", ty = TSHORT[Math.round(P["P_type" + i])];
+      var key = txt + ty + (i === RT.nodeSel ? 1 : 0) + (on ? 1 : 0);
+      if (chipTxt[i] === key) continue;
+      chipTxt[i] = key;
+      var c = chipEls[i]; c.querySelector("b").textContent = txt; c.querySelector("span").textContent = ty;
+      c.classList.toggle("sel", i === RT.nodeSel); c.classList.toggle("off", !on);
+      c.setAttribute("data-value", on ? v.toFixed(3) : "off");
+    }
+    updatePads();
+  }
+  var padEls = [], padKey = [];
+  var PADDARK = "#1a1a1c", PADOFF = "#35363b";
+  function hex2rgb(h) { return [parseInt(h.substr(1, 2), 16), parseInt(h.substr(3, 2), 16), parseInt(h.substr(5, 2), 16)]; }
+  function mixc(h, a) { var c = hex2rgb(h), b = hex2rgb(PADDARK); return "rgb(" + [0, 1, 2].map(function (k) { return Math.round(b[k] + (c[k] - b[k]) * a); }).join(",") + ")"; }
+  function lv3(x) { return x < 0.34 ? 0.22 : (x < 0.67 ? 0.55 : 1); }
+  function lvName(a) { return a < 0.3 ? "dark" : a < 0.7 ? "mid" : "full"; }
+    function padInfo(r, c) {
+    var bc = c < 4 ? C.acc : C.turq, on = P["P_on" + c] > 0.5, bankOn = P[c < 4 ? "P_bankA" : "P_bankB"] > 0.5, ty = Math.round(P["P_type" + c]), x, a;
+    if (r === 0) return { col: on ? (bankOn ? bc : mixc(bc, 0.35)) : PADOFF, txt: NODE[c] + (on ? " on" : " off") + (on && !bankOn ? " (bank off)" : ""), st: on ? "on" : "off" };
+    if (r === 1) return { col: c === RT.nodeSel ? "#f4f4f4" : "#55575d", txt: NODE[c] + (c === RT.nodeSel ? " selected, type " + TYPES[ty] : " select"), st: c === RT.nodeSel ? "sel" : "idle" };
+    if (r === 7) {
+      var stored = !!D.factory[c];
+      return { col: c === curPat ? C.acc : (stored ? "#7a7c84" : PADDARK), txt: "pattern " + (c + 1) + (c === curPat ? " current" : (stored ? " stored" : " empty")), st: c === curPat ? "current" : (stored ? "stored" : "empty") };
+    }
+    // 1.0.1: rows 3-7 = the node's live value as a meter, bottom up (as the device's pads), dark when it or its bank is off
+    var live = on && bankOn, hgt = live ? Math.round(clamp(RT.o[24 + c], 0, 1) * 5) : 0, lit = (6 - r) < hgt;
+    return { col: lit ? bc : PADDARK, txt: NODE[c] + " meter row " + (r + 1) + (lit ? " lit" : " dark"), st: lit ? "lit" : "dark" };
+  }
+  function updatePads() {
+    if (!padEls.length) return;
+    for (var r = 0; r < 8; r++) for (var c = 0; c < 8; c++) {
+      var k = r * 8 + c, q = padInfo(r, c), key = q.col + q.txt;
+      if (padKey[k] === key) continue;
+      padKey[k] = key; var e = padEls[k];
+      e.style.background = q.col; e.setAttribute("data-state", q.st);
+      e.setAttribute("aria-label", "Row " + (r + 1) + " pad " + (c + 1) + ": " + q.txt + (r === 0 || r === 1 || r === 7 ? "" : ", display only"));
+    }
+  }
+  function padTap(r, c) {
+    if (r === 0) { setP("P_on" + c, P["P_on" + c] > 0.5 ? 0 : 1); if (c === RT.nodeSel) buildNode(); }
+    else if (r === 1) {
+      if (c === RT.nodeSel) { var ty = (Math.round(P["P_type" + c]) + 1) % TYPES.length; setP("P_type" + c, ty); buildNode(); }
+      else { RT.nodeSel = c; buildNode(); }
+    } else if (r === 7) { recallPattern(c); return; }
+    else return;
+    drawAll(); updatePads(); liveUpdate(true);
+  }
+  function buildPads() {
+    var host = $("pads"); if (padEls.length) { updatePads(); return; }
+    host.appendChild(el("span"));
+    for (var c = 0; c < 8; c++) host.appendChild(el("span", { "class": "cn " + (c < 4 ? "a" : "b") }, NODE[c]));
+    for (var r = 0; r < 8; r++) {
+      host.appendChild(el("span", { "class": "rn", "aria-hidden": "true" }, String(r + 1)));
+      for (c = 0; c < 8; c++) (function (r, c) {
+        var b = el("button", { type: "button", "class": "pad" + (r === 0 || r === 1 || r === 7 ? "" : " ro"), "data-r": r, "data-c": c });
+        b.addEventListener("click", function () { padTap(r, c); });
+        host.appendChild(b); padEls.push(b);
+      })(r, c);
+    }
+    updatePads();
+  }
+
   // ---------- bar ----------
-  var kitSel = document.getElementById("kit");
-  NKITS.forEach(function (k, i) { var o = document.createElement("option"); o.value = String(i); o.textContent = k[0]; kitSel.appendChild(o); });
-  kitSel.addEventListener("change", function () { nkit = +kitSel.value || 0; if (A) A.oscs.forEach(function (o, i) { o.type = NKITS[nkit][1][i % 2]; }); });
-  var playB = document.getElementById("play"), soundB = document.getElementById("sound");
-  playB.addEventListener("click", function () { RT.playing = !RT.playing; playB.textContent = RT.playing ? "Pause" : "Play"; playB.classList.toggle("on", RT.playing); });
+  var playB = $("play"), soundB = $("sound");
+  function syncBar() {
+    playB.textContent = RT.playing ? "Stop" : "Play"; playB.classList.toggle("on", RT.playing);
+  }
+  playB.addEventListener("click", function () { RT.playing = !RT.playing; syncBar(); });
   soundB.addEventListener("click", function () {
     soundOn = !soundOn; audio(); if (A.ctx.state === "suspended") A.ctx.resume();
     soundB.setAttribute("aria-pressed", String(soundOn)); soundB.textContent = soundOn ? "Sound on" : "Sound off";
   });
-  var bpmI = document.getElementById("bpm"), volI = document.getElementById("vol");
-  bpmI.addEventListener("input", function () { X.bpm = +bpmI.value; document.getElementById("bpm-o").textContent = X.bpm + " BPM"; });
-  volI.addEventListener("input", function () { X.vol = +volI.value; document.getElementById("vol-o").textContent = X.vol + " %"; if (A) A.master.gain.setTargetAtTime(X.vol / 100 * 0.8, A.ctx.currentTime, 0.05); });
-  var DICE_SVG = '<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="1.5" width="13" height="13" rx="3" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="5" cy="5" r="1.3" fill="currentColor"/><circle cx="11" cy="11" r="1.3" fill="currentColor"/><circle cx="8" cy="8" r="1.3" fill="currentColor"/></svg>';
-  var diceB = document.getElementById("diceall"); diceB.innerHTML = DICE_SVG + "rnd";
-  diceB.addEventListener("click", function () { curScene = -1; rollAll(); });
-  document.getElementById("reset").addEventListener("click", function () { loadScene(0); });
+  var bpmI = $("bpm"), volI = $("vol");
+  bpmI.addEventListener("input", function () { X.bpm = +bpmI.value; $("bpm-o").textContent = X.bpm + " BPM"; });
+  volI.addEventListener("input", function () { X.vol = +volI.value; $("vol-o").textContent = X.vol + " %"; if (A) A.master.gain.setTargetAtTime(X.vol / 100 * 0.8, A.ctx.currentTime, 0.05); });
+  $("tPrev").addEventListener("click", function () { gotoStop(tourI - 1); });
+  $("tNext").addEventListener("click", function () { gotoStop(tourI + 1); });
+  $("m-guided").addEventListener("click", function () { guided = true; gotoStop(tourI); });
+  $("m-free").addEventListener("click", function () { guided = false; showTour(); });
+  canv.net.el.addEventListener("keydown", function (e) {
+    if (e.key === "ArrowRight" || e.key === "ArrowDown") { e.preventDefault(); selectNode((RT.nodeSel + 1) % 8); }
+    else if (e.key === "ArrowLeft" || e.key === "ArrowUp") { e.preventDefault(); selectNode((RT.nodeSel + 7) % 8); }
+  });
 
   // ---------- run ----------
-  loadScene(0);
+  gotoStop(0);
   var last = performance.now();
   function frame(now) {
     var dt = Math.min(0.1, (now - last) / 1000); last = now;
     stepCore(Math.round(dt * SR));
     applySynth();
-    drawAll();
+    drawAll(); liveUpdate();
     requestAnimationFrame(frame);
   }
   window.addEventListener("resize", function () { fit(); drawAll(); });
   requestAnimationFrame(frame);
 })();
 </script>
+</body>
+</html>
